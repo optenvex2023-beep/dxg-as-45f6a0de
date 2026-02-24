@@ -205,22 +205,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Find the report and update inspection + equipment serial numbers
     const report = reports.find(r => r.id === reportId);
     if (report) {
-      // Write serial numbers back to equipment items
       const serialNumbers = report.serial_numbers;
       setInspections(prev => prev.map(insp => {
         if (insp.id !== report.inspection_id) return insp;
         const oldStatus = insp.status;
         const oldDueWarning = insp.due_warning;
 
-        const updatedItems = insp.equipment_items.map(item => ({
-          ...item,
-          serial_no: serialNumbers[item.id] || item.serial_no,
-          updated_at: now,
-        }));
+        // Write serial numbers back to equipment items (per-equipment or legacy)
+        const updatedItems = insp.equipment_items.map(item => {
+          const newSerial = serialNumbers[item.id];
+          if (newSerial) {
+            return { ...item, serial_no: newSerial, updated_at: now };
+          }
+          return item;
+        });
 
         let dateUpdate: Partial<OutboundInspection> = {};
         if (report.report_type === "first") {
-          dateUpdate = { first_inspection_done_date: now.split("T")[0] };
+          dateUpdate = { first_inspection_done_date: insp.first_inspection_done_date || now.split("T")[0] };
         } else {
           dateUpdate = { final_inspection_done_date: now.split("T")[0] };
         }
