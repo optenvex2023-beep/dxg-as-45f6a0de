@@ -110,6 +110,17 @@ export interface ReplacementPart {
   note: string;
 }
 
+export interface ReportPhoto {
+  id: string;
+  report_id: string;
+  file_url: string;
+  caption: string;
+  page_slot: string; // e.g. "replacement_parts", "body_optics", "cpu_smps", "ao_probe", "probe_detail", "spectrometer", "other"
+  order_index: number;
+  uploaded_by: string;
+  uploaded_at: string;
+}
+
 export interface InspectionReportData {
   // Page 1: Cover info
   client_name: string;
@@ -138,6 +149,8 @@ export interface InspectionReportData {
 
   // Detailed notes (Ⅳ)
   detail_notes: string;
+  main_control_cpu: string; // "부팅 상태, AO 신호, DO 신호 : "
+  optics_window_lens: string; // "광학부품 (윈도우, 볼록렌즈) / 오염상태 : "
 
   // Page 4: Detail sections
   beam_splitter_contamination: string;
@@ -159,6 +172,12 @@ export interface InspectionReportData {
 
   // Summary
   summary_items: string[];
+
+  // Department head
+  department_head: string;
+
+  // Photos
+  photos: ReportPhoto[];
 }
 
 export interface InspectionReport {
