@@ -229,9 +229,11 @@ function CreateFinalReportForm({
 
       <Button onClick={() => onSubmit({
         inspection_id: inspection.id,
+        equipment_item_id: "",
         report_type: "final",
         status: "draft",
         serial_numbers: serialNumbers,
+        inspection_data: {} as any,
         inspection_result: inspectionResult,
         special_notes: specialNotes,
         inspector_name: inspectorName,

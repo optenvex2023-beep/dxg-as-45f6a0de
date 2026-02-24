@@ -13,6 +13,7 @@ function headerCell(text: string, width?: number): TableCell {
   return new TableCell({
     borders: cellBorders(),
     width: width ? { size: width, type: WidthType.DXA } : undefined,
+    shading: { fill: "F2F2F2" },
     children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 20 })] })],
   });
 }
@@ -30,12 +31,31 @@ export async function exportReportToWord(
   report: InspectionReport,
   reportTitle: string,
 ) {
-  const equipRows = inspection.equipment_items.map((item) =>
+  const data = report.inspection_data;
+  const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
+  const serialNo = report.serial_numbers[report.equipment_item_id] || equipItem?.serial_no || "";
+
+  // Build check items rows
+  const checkRows = (data?.check_items || []).map(item =>
     new TableRow({
       children: [
-        textCell(item.equipment_name, 3000),
-        textCell(String(item.qty_set), 1500),
-        textCell(report.serial_numbers[item.id] || "—", 3000),
+        textCell(item.category, 1500),
+        textCell(item.item, 2000),
+        textCell(item.result, 1800),
+        textCell(item.action, 1800),
+        textCell(item.action_result, 1800),
+      ],
+    })
+  );
+
+  // Build replacement parts rows
+  const partRows = (data?.replacement_parts || []).map(part =>
+    new TableRow({
+      children: [
+        textCell(part.name, 2500),
+        textCell(part.qty, 1000),
+        textCell(part.status, 2500),
+        textCell(part.note, 3000),
       ],
     })
   );
@@ -48,7 +68,7 @@ export async function exportReportToWord(
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 200 },
-            children: [new TextRun({ text: "DXG", bold: true, size: 28 })],
+            children: [new TextRun({ text: "DXG", bold: true, size: 36 })],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
@@ -58,43 +78,49 @@ export async function exportReportToWord(
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
+            spacing: { after: 200 },
             children: [new TextRun({ text: `[${reportTitle}]`, bold: true, size: 28 })],
           }),
 
-          // Report type checkbox
+          // Report type
           new Paragraph({
             spacing: { after: 200 },
-            children: [
-              new TextRun({
-                text: report.report_type === "first"
-                  ? "■ 입고  □ 중간  □ 완료  □ 기타 (긴급)"
-                  : "□ 입고  □ 중간  ■ 완료  □ 기타 (긴급)",
-                size: 20,
-              }),
-            ],
+            children: [new TextRun({
+              text: report.report_type === "first"
+                ? "■ 입고  □ 중간  □ 완료  □ 기타 (긴급)"
+                : "□ 입고  □ 중간  ■ 완료  □ 기타 (긴급)",
+              size: 20,
+            })],
           }),
 
           // Inspector info
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [new TextRun({ text: `점검자: ${report.inspector_name}`, size: 20 })],
-          }),
-          new Paragraph({
-            spacing: { after: 300 },
-            children: [new TextRun({ text: `작성일: ${report.created_date}`, size: 20 })],
-          }),
+          new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: `점검자: ${report.inspector_name}`, size: 20 })] }),
+          new Paragraph({ spacing: { after: 300 }, children: [new TextRun({ text: `작성일: ${report.created_date}`, size: 20 })] }),
 
           // Basic info table
           new Table({
             width: { size: 9000, type: WidthType.DXA },
             rows: [
+              new TableRow({ children: [headerCell("Client", 2000), textCell(data?.client_name || "", 2500), headerCell("Serial No", 1500), textCell(serialNo, 3000)] }),
+              new TableRow({ children: [headerCell("관리번호", 2000), textCell(inspection.manage_no, 2500), headerCell("건명", 1500), textCell(inspection.project_name, 3000)] }),
+              new TableRow({ children: [headerCell("입고일", 2000), textCell(data?.inbound_date || "", 2500), headerCell("작성일", 1500), textCell(report.created_date, 3000)] }),
+              new TableRow({ children: [headerCell("반출장비", 2000), textCell(equipItem?.equipment_name || "", 2500), headerCell("수량", 1500), textCell(String(equipItem?.qty_set || ""), 3000)] }),
+            ],
+          }),
+
+          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
+
+          // Ⅰ. 기본 Check
+          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅰ. 기본 Check 항목", bold: true, size: 24 })] }),
+          new Table({
+            width: { size: 9000, type: WidthType.DXA },
+            rows: [
+              new TableRow({ children: [headerCell("전압", 3000), headerCell("측정가스", 3000), headerCell("설치 구분", 3000)] }),
               new TableRow({
                 children: [
-                  headerCell("관리번호", 2500),
-                  textCell(inspection.manage_no, 2500),
-                  headerCell("건명", 1500),
-                  textCell(inspection.project_name, 2500),
+                  textCell(`Main Unit: ${(data?.voltage_main || []).join(", ")}\nPurge Air: ${(data?.voltage_purge || []).join(", ")}`, 3000),
+                  textCell((data?.measure_gas || []).join(", "), 3000),
+                  textCell((data?.install_type || []).join(", "), 3000),
                 ],
               }),
             ],
@@ -102,47 +128,49 @@ export async function exportReportToWord(
 
           new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
 
-          // Equipment table
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { after: 100 },
-            children: [new TextRun({ text: "■ 반출 장비 목록", bold: true, size: 24 })],
-          }),
+          // Ⅱ. Inspection checklist
+          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅱ. 점검 내용 및 조치 사항", bold: true, size: 24 })] }),
           new Table({
             width: { size: 9000, type: WidthType.DXA },
             rows: [
               new TableRow({
                 children: [
-                  headerCell("반출장비(모델명)", 3000),
-                  headerCell("수량(Set)", 1500),
-                  headerCell("Serial No.", 3000),
+                  headerCell("구분", 1500), headerCell("점검 항목", 2000),
+                  headerCell("점검 결과", 1800), headerCell("조치 사항", 1800), headerCell("조치 결과", 1800),
                 ],
               }),
-              ...equipRows,
+              ...checkRows,
             ],
           }),
 
-          new Paragraph({ spacing: { before: 300 }, children: [] }),
+          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
 
-          // Inspection sections
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { after: 100 },
-            children: [new TextRun({ text: "Ⅱ. 점검 결과", bold: true, size: 24 })],
-          }),
-          new Paragraph({
-            spacing: { after: 200 },
-            children: [new TextRun({ text: report.inspection_result || "(내용 없음)", size: 20 })],
+          // Ⅲ. Replacement parts
+          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅲ. 교체 (필요) 품목 List", bold: true, size: 24 })] }),
+          new Table({
+            width: { size: 9000, type: WidthType.DXA },
+            rows: [
+              new TableRow({ children: [headerCell("품목", 2500), headerCell("수량", 1000), headerCell("Status", 2500), headerCell("점검내용", 3000)] }),
+              ...(partRows.length > 0 ? partRows : [new TableRow({ children: [textCell("—", 2500), textCell("", 1000), textCell("", 2500), textCell("", 3000)] })]),
+            ],
           }),
 
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200, after: 100 },
-            children: [new TextRun({ text: "Ⅳ. 기타 특이사항", bold: true, size: 24 })],
-          }),
-          new Paragraph({
-            spacing: { after: 200 },
-            children: [new TextRun({ text: report.special_notes || "(내용 없음)", size: 20 })],
+          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
+
+          // Ⅳ. Special notes
+          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅳ. 기타 특이사항 (세부 설명)", bold: true, size: 24 })] }),
+          new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: data?.detail_notes || "(내용 없음)", size: 20 })] }),
+
+          // Summary
+          new Paragraph({ spacing: { before: 300 }, heading: HeadingLevel.HEADING_2, children: [new TextRun({ text: "점검 사항 요약", bold: true, size: 24 })] }),
+          new Table({
+            width: { size: 9000, type: WidthType.DXA },
+            rows: [
+              new TableRow({ children: [headerCell("No", 800), headerCell("항목", 3000), headerCell("내용", 5200)] }),
+              ...["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"].map((label, i) =>
+                new TableRow({ children: [textCell(String(i + 1), 800), textCell(label, 3000), textCell(data?.summary_items?.[i] || "", 5200)] })
+              ),
+            ],
           }),
         ],
       },

@@ -95,13 +95,81 @@ export interface MailOutbox {
 export type ReportType = "first" | "final";
 export type ReportStatus = "draft" | "completed" | "approval_requested" | "approved";
 
+export interface InspectionCheckItem {
+  category: string;
+  item: string;
+  result: "양호" | "추가점검 필요" | "";
+  action: string;
+  action_result: string;
+}
+
+export interface ReplacementPart {
+  name: string;
+  qty: string;
+  status: string;
+  note: string;
+}
+
+export interface InspectionReportData {
+  // Page 1: Cover info
+  client_name: string;
+  serial_no: string;
+  inbound_date: string;
+  related_doc: string;
+  model_checks: string[]; // e.g. ["DGA-X", "DSM-XG"]
+  inbound_items: string[]; // e.g. ["Main Unit", "ACU"]
+
+  // Page 2: Context
+  inbound_type: string[]; // 정기 반출 점검, 긴급 점검, 입고 점검
+  site_situation: string;
+  client_request: string;
+
+  // Basic check
+  voltage_main: string[]; // 110V, 220V
+  voltage_purge: string[]; // 220V, 380-480V
+  measure_gas: string[];
+  install_type: string[];
+
+  // Inspection checklist
+  check_items: InspectionCheckItem[];
+
+  // Replacement parts
+  replacement_parts: ReplacementPart[];
+
+  // Detailed notes (Ⅳ)
+  detail_notes: string;
+
+  // Page 4: Detail sections
+  beam_splitter_contamination: string;
+  beam_splitter_result: string;
+  spectrometer_status: string;
+  spectrometer_result: string;
+  uv_lamp_note: string;
+  cooling_fan_status: string;
+  smps_note: string;
+  wiring_status: string;
+
+  // Probe
+  probe_exterior: string;
+  probe_temp_sensor: string;
+  probe_corner_mirror: string;
+  probe_length: string;
+  probe_measure_section: string;
+  probe_gas_direction: string;
+
+  // Summary
+  summary_items: string[];
+}
+
 export interface InspectionReport {
   id: string;
   inspection_id: string;
+  equipment_item_id: string; // links to one OutboundEquipmentItem
   report_type: ReportType;
   status: ReportStatus;
 
-  serial_numbers: Record<string, string>; // equipment_item_id -> serial_no
+  serial_numbers: Record<string, string>; // kept for backward compat
+  inspection_data: InspectionReportData;
 
   inspection_result: string;
   special_notes: string;
