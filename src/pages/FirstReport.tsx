@@ -385,6 +385,13 @@ function DocumentView({
   };
 
   const handleAiReview = async () => {
+    // Check if AI service is configured (edge function / API key)
+    const aiConfigured = false; // MVP: not configured yet
+    if (!aiConfigured) {
+      toast.error("AI 기능을 사용하려면 관리자에게 API 설정을 요청하세요.", { duration: 4000 });
+      return;
+    }
+
     const fields = collectTextFields();
     if (Object.keys(fields).length === 0) {
       toast.error("교정할 텍스트가 없습니다.");
@@ -394,8 +401,6 @@ function DocumentView({
     setAiLoading(true);
     setAiModalOpen(true);
 
-    // MVP simulation - in production this would call an edge function
-    toast.info("AI 기능을 사용하려면 관리자 API 설정이 필요합니다.", { duration: 4000 });
     setTimeout(() => {
       const corrected: Record<string, string> = {};
       for (const [key, val] of Object.entries(fields)) {
@@ -494,7 +499,7 @@ function DocumentView({
               <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
             </label>
           </Button>
-          {isManufacturing && editable && (
+          {isManufacturing && (
             <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleAiReview}>
               <Sparkles className="h-3.5 w-3.5" /> AI 검토
             </Button>
@@ -525,12 +530,17 @@ function DocumentView({
         {canEdit && report.status === "completed" && (
           <Button onClick={onRequestApproval} className="gap-1"><Send className="h-4 w-4" /> 승인요청</Button>
         )}
+        {isManufacturing && (
+          <Button variant="outline" onClick={handleAiReview} className="gap-1">
+            <Sparkles className="h-4 w-4" /> AI 검토
+          </Button>
+        )}
         {canApprove && report.status === "approval_requested" && (
           <Button onClick={onApprove} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
             <Check className="h-4 w-4" /> 승인
           </Button>
         )}
-        {!editable && !canApprove && (
+        {!editable && !canApprove && !isManufacturing && (
           <Button variant="outline" onClick={handleWordDownload} className="gap-1">
             <FileDown className="h-4 w-4" /> Word 다운로드
           </Button>
