@@ -75,6 +75,7 @@ export default function StatusTable() {
   const { inspections, currentUser, addInspection, updateInspection } = useApp();
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
+  const dueFilter = searchParams.get("due");
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -83,12 +84,24 @@ export default function StatusTable() {
   const isManufacturing = currentUser?.department === "제조본부";
 
   const filtered = useMemo(() => {
+    if (dueFilter === "7days") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return inspections.filter((i) => {
+        if (!i.contract_due_date) return false;
+        const due = new Date(i.contract_due_date);
+        due.setHours(0, 0, 0, 0);
+        const warn = new Date(due);
+        warn.setDate(warn.getDate() - 7);
+        return today >= warn && today <= due;
+      });
+    }
     if (!statusFilter) return inspections;
     if (statusFilter === "납기유의") {
       return inspections.filter((i) => i.status === "납기유의" || i.due_warning);
     }
     return inspections.filter((i) => i.status === statusFilter);
-  }, [inspections, statusFilter]);
+  }, [inspections, statusFilter, dueFilter]);
 
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
@@ -102,6 +115,7 @@ export default function StatusTable() {
         <h1 className="text-xl font-semibold">
           현황표
           {statusFilter && <span className="text-sm text-muted-foreground ml-2">({statusFilter})</span>}
+          {dueFilter === "7days" && <span className="text-sm text-muted-foreground ml-2">(계약납기 7일전)</span>}
         </h1>
         {isAdmin && (
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
