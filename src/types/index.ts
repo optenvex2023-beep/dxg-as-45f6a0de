@@ -23,14 +23,23 @@ export interface AppUser {
   is_active: boolean;
 }
 
+export interface OutboundEquipmentItem {
+  id: string;
+  outbound_inspection_id: string;
+  equipment_name: string;
+  qty_set: number;
+  serial_no: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OutboundInspection {
   id: string;
   status: StatusType;
   manage_no: string;
   project_name: string;
-  equipment: string;
-  qty_set: number;
-  serial_no: string;
+
+  equipment_items: OutboundEquipmentItem[];
 
   outbound_request_date_mode: DateMode;
   outbound_request_date_single: string | null;
@@ -57,7 +66,6 @@ export interface OutboundInspection {
   client_pic_phone: string;
 
   request_type: RequestType;
-  sales_order_no: string;
   support_request_file: string | null;
 
   due_warning: boolean;

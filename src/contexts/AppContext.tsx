@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import type { AppUser, OutboundInspection, RoleCategory, Department } from "@/types";
+import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department } from "@/types";
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
 
@@ -46,9 +46,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addInspection = useCallback(
     (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at">) => {
       const now = new Date().toISOString();
+      const inspectionId = crypto.randomUUID();
+      const equipmentItems: OutboundEquipmentItem[] = (data.equipment_items || []).map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+        outbound_inspection_id: inspectionId,
+        serial_no: null,
+        created_at: now,
+        updated_at: now,
+      }));
       const base: OutboundInspection = {
         ...data,
-        id: crypto.randomUUID(),
+        id: inspectionId,
+        equipment_items: equipmentItems,
         status: "확인필요",
         due_warning: false,
         created_at: now,
