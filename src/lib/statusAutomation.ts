@@ -18,7 +18,7 @@ export function computeStatus(record: Omit<OutboundInspection, "status" | "due_w
   const plannedOutbound = toDate(record.planned_outbound_date);
 
   // 1) 설치 완료
-  if (reinstallDate && reinstallDate <= today && record.reinstall_confirm_status === "확정") {
+  if (reinstallDate && reinstallDate <= today) {
     return { status: "설치 완료", due_warning: false };
   }
 
