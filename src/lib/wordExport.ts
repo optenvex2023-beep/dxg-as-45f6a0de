@@ -60,17 +60,23 @@ export async function exportReportToWord(
   const serialNo = report.serial_numbers[report.equipment_item_id] || equipItem?.serial_no || "";
 
   // Build check items rows — renamed columns
-  const checkRows = (data?.check_items || []).map(item =>
-    new TableRow({
+  const checkRows = (data?.check_items || []).map(item => {
+    // Build the last column value from dropdown option + detail
+    const resultOption = item.inspection_result_option || "사용 가능";
+    const resultText = resultOption === "직접 기입" && item.inspection_result_detail
+      ? `${resultOption} - ${item.inspection_result_detail}`
+      : resultOption;
+
+    return new TableRow({
       children: [
-        textCell(item.category, 1500),
-        textCell(item.item, 2000),
+        textCell(item.category, 1200),
+        textCell(item.item, 1600),
         textCell(item.result, 1800),
-        textCell(item.action, 1800),
-        textCell(item.action_result, 1800),
+        textCell(item.action, 2200),
+        textCell(resultText, 2200),
       ],
-    })
-  );
+    });
+  });
 
   // Build replacement parts rows
   const partRows = (data?.replacement_parts || []).map(part =>

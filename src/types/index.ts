@@ -95,12 +95,16 @@ export interface MailOutbox {
 export type ReportType = "first" | "final";
 export type ReportStatus = "draft" | "completed" | "approval_requested" | "approved";
 
+export type InspectionResultOption = "추후 교체 권장" | "사용 가능" | "직접 기입" | "";
+
 export interface InspectionCheckItem {
   category: string;
   item: string;
   result: "양호" | "추가점검 필요" | "";
   action: string;
   action_result: string;
+  inspection_result_option: InspectionResultOption;
+  inspection_result_detail: string;
 }
 
 export interface ReplacementPart {

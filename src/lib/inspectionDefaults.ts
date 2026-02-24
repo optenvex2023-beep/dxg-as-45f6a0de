@@ -1,20 +1,25 @@
 import type { InspectionReportData, InspectionCheckItem } from "@/types";
 
+const ci = (category: string, item: string): InspectionCheckItem => ({
+  category, item, result: "", action: "", action_result: "",
+  inspection_result_option: "사용 가능", inspection_result_detail: "",
+});
+
 export const DEFAULT_CHECK_ITEMS: InspectionCheckItem[] = [
-  { category: "광학부", item: "Beam Splitter", result: "", action: "", action_result: "" },
-  { category: "광학부", item: "Focusing Lens", result: "", action: "", action_result: "" },
-  { category: "광학부", item: "M/U Window", result: "", action: "", action_result: "" },
-  { category: "Spectrometer", item: "스펙트럼 형상", result: "", action: "", action_result: "" },
-  { category: "Spectrometer", item: "신호 상태", result: "", action: "", action_result: "" },
-  { category: "UV Lamp", item: "UV Lamp 광원", result: "", action: "", action_result: "" },
-  { category: "UV Lamp Driver", item: "DC 출력 상태", result: "", action: "", action_result: "" },
-  { category: "SMPS", item: "동작 상태 (5V, 12V, 24V)", result: "", action: "", action_result: "" },
-  { category: "배선 결선", item: "배선 단락, 단선", result: "", action: "", action_result: "" },
-  { category: "Main Control CPU Board", item: "부팅 여부 / 동작 상태", result: "", action: "", action_result: "" },
-  { category: "냉각 팬", item: "동작 상태", result: "", action: "", action_result: "" },
-  { category: "프로브", item: "외관 상태", result: "", action: "", action_result: "" },
-  { category: "프로브", item: "온도센서 / 동작 상태", result: "", action: "", action_result: "" },
-  { category: "프로브", item: "코너큐브 미러", result: "", action: "", action_result: "" },
+  ci("광학부", "Beam Splitter"),
+  ci("광학부", "Focusing Lens"),
+  ci("광학부", "M/U Window"),
+  ci("Spectrometer", "스펙트럼 형상"),
+  ci("Spectrometer", "신호 상태"),
+  ci("UV Lamp", "UV Lamp 광원"),
+  ci("UV Lamp Driver", "DC 출력 상태"),
+  ci("SMPS", "동작 상태 (5V, 12V, 24V)"),
+  ci("배선 결선", "배선 단락, 단선"),
+  ci("Main Control CPU Board", "부팅 여부 / 동작 상태"),
+  ci("냉각 팬", "동작 상태"),
+  ci("프로브", "외관 상태"),
+  ci("프로브", "온도센서 / 동작 상태"),
+  ci("프로브", "코너큐브 미러"),
 ];
 
 export const MODEL_OPTIONS = ["DGA-X", "DSM-XG", "RGA-60", "RSM-61", "TGA-50", "LSM-30", "GGA-70-1", "PGA-91"];
