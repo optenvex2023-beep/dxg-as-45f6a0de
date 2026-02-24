@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useApp } from "@/contexts/AppContext";
-import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto } from "@/types";
+import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto, InspectionResultOption } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +37,8 @@ const PHOTO_SLOTS = [
   { key: "spectrometer", title: "Spectrometer 얼라인먼트 / 기타 사진" },
   { key: "final_assembly", title: "프로브 결합후 Spectrometer 형상" },
 ];
+
+const RESULT_OPTIONS: InspectionResultOption[] = ["사용 가능", "추후 교체 권장", "직접 기입"];
 
 export default function FirstReport() {
   const {
@@ -87,7 +89,6 @@ export default function FirstReport() {
 
   const handleComplete = () => {
     if (!existingReport) return;
-    // Auto-fill department head for 제조본부
     if (isManufacturing) {
       updateReport(existingReport.id, {
         inspection_data: { ...existingReport.inspection_data, department_head: "김영기" },
@@ -245,7 +246,12 @@ function DocumentForm({
 }) {
   const today = new Date().toISOString().split("T")[0];
   const [serialNo, setSerialNo] = useState(equipment.serial_no || "");
-  const [data, setData] = useState<InspectionReportData>(createDefaultReportData);
+  const [data, setData] = useState<InspectionReportData>(() => {
+    const d = createDefaultReportData();
+    // Auto-fill inbound_date from inspection
+    d.inbound_date = inspection.inbound_date || "";
+    return d;
+  });
 
   const upd = (patch: Partial<InspectionReportData>) => setData(prev => ({ ...prev, ...patch }));
 
@@ -308,8 +314,14 @@ function DocumentView({
   const editable = canEdit && !isLocked;
 
   const [serialNo, setSerialNo] = useState(report.serial_numbers[equipment.id] || "");
-  const [data, setData] = useState<InspectionReportData>(report.inspection_data || createDefaultReportData());
-  const [hasSaved, setHasSaved] = useState(report.status !== "draft" || false);
+  const [data, setData] = useState<InspectionReportData>(() => {
+    const d = report.inspection_data || createDefaultReportData();
+    // Ensure inbound_date is populated from inspection if not overridden
+    if (!d.inbound_date && inspection.inbound_date) {
+      d.inbound_date = inspection.inbound_date;
+    }
+    return d;
+  });
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiOriginal, setAiOriginal] = useState<Record<string, string>>({});
   const [aiCorrected, setAiCorrected] = useState<Record<string, string>>({});
@@ -324,7 +336,6 @@ function DocumentView({
       serial_numbers: { [equipment.id]: serialNo },
       inspection_data: { ...data, serial_no: serialNo },
     });
-    setHasSaved(true);
     toast.success("임시저장되었습니다.");
   };
 
@@ -332,6 +343,13 @@ function DocumentView({
     const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
     await exportReportToWord(inspection, updatedReport, "1차 점검보고서");
     toast.success("Word 파일이 다운로드되었습니다.");
+  };
+
+  const handlePdfDownload = async () => {
+    // Generate Word first, then inform user to convert
+    const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
+    await exportReportToWord(inspection, updatedReport, "1차 점검보고서");
+    toast.info("Word 파일이 다운로드되었습니다. Word에서 열어 PDF로 저장해 주세요.", { duration: 5000 });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,6 +367,9 @@ function DocumentView({
     data.check_items.forEach((item, idx) => {
       if (item.action) fields[`check_action_${idx}`] = item.action;
       if (item.action_result) fields[`check_result_${idx}`] = item.action_result;
+      if (item.inspection_result_option === "직접 기입" && item.inspection_result_detail) {
+        fields[`check_detail_${idx}`] = item.inspection_result_detail;
+      }
     });
     if (data.detail_notes) fields.detail_notes = data.detail_notes;
     if (data.main_control_cpu) fields.main_control_cpu = data.main_control_cpu;
@@ -373,12 +394,11 @@ function DocumentView({
     setAiLoading(true);
     setAiModalOpen(true);
 
-    // Simulate AI correction (MVP - no backend yet)
-    // In production, this would call an edge function
+    // MVP simulation - in production this would call an edge function
+    toast.info("AI 기능을 사용하려면 관리자 API 설정이 필요합니다.", { duration: 4000 });
     setTimeout(() => {
       const corrected: Record<string, string> = {};
       for (const [key, val] of Object.entries(fields)) {
-        // Simple MVP: fix common spacing issues
         corrected[key] = val
           .replace(/\s{2,}/g, " ")
           .replace(/\s+:/g, " :")
@@ -402,6 +422,9 @@ function DocumentView({
       } else if (key.startsWith("check_result_")) {
         const idx = parseInt(key.replace("check_result_", ""));
         newItems[idx] = { ...newItems[idx], action_result: val };
+      } else if (key.startsWith("check_detail_")) {
+        const idx = parseInt(key.replace("check_detail_", ""));
+        newItems[idx] = { ...newItems[idx], inspection_result_detail: val };
       } else if (key.startsWith("summary_")) {
         const idx = parseInt(key.replace("summary_", ""));
         newSummary[idx] = val;
@@ -462,13 +485,16 @@ function DocumentView({
           <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleWordDownload}>
             <FileDown className="h-3.5 w-3.5" /> Word 다운로드
           </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handlePdfDownload}>
+            <FileDown className="h-3.5 w-3.5" /> PDF 다운로드
+          </Button>
           <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
             <label className="cursor-pointer">
               <Upload className="h-3.5 w-3.5" /> 수정본 업로드
               <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
             </label>
           </Button>
-          {editable && hasSaved && isManufacturing && (
+          {isManufacturing && editable && (
             <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleAiReview}>
               <Sparkles className="h-3.5 w-3.5" /> AI 검토
             </Button>
@@ -532,7 +558,7 @@ function DocumentView({
               </div>
               <div className="max-h-[50vh] overflow-y-auto space-y-3">
                 {Object.entries(aiOriginal).map(([key, original]) => {
-                  const corrected = aiEditMode ? (aiCorrected[key] || original) : (aiCorrected[key] || original);
+                  const corrected = aiCorrected[key] || original;
                   const changed = original !== corrected;
                   return (
                     <div key={key} className="grid grid-cols-2 gap-4">
@@ -676,7 +702,7 @@ function TemplateBody({
         <span>□ 기타 (긴급)</span>
       </div>
 
-      {/* Inspector table - removed 점/수 placeholders */}
+      {/* Inspector table */}
       <table className="w-full border-collapse">
         <tbody>
           <tr>
@@ -813,17 +839,17 @@ function TemplateBody({
         </table>
       </div>
 
-      {/* Ⅱ. 점검 내용 및 조치 사항 — renamed columns */}
+      {/* Ⅱ. 점검 내용 및 조치 사항 */}
       <div>
         <h3 className="text-sm font-bold mb-2">Ⅱ. 점검 내용 및 조치 사항</h3>
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className={thCls} style={{ width: "15%" }}>구분</th>
-              <th className={thCls} style={{ width: "20%" }}>점검 항목</th>
+              <th className={thCls} style={{ width: "13%" }}>구분</th>
+              <th className={thCls} style={{ width: "17%" }}>점검 항목</th>
               <th className={thCls} style={{ width: "20%" }}>점검 결과</th>
-              <th className={thCls} style={{ width: "22.5%" }}>점검 내용</th>
-              <th className={thCls} style={{ width: "22.5%" }}>점검 결과</th>
+              <th className={thCls} style={{ width: "25%" }}>점검 내용</th>
+              <th className={thCls} style={{ width: "25%" }}>점검 결과</th>
             </tr>
           </thead>
           <tbody>
@@ -855,7 +881,44 @@ function TemplateBody({
                   <EditableText value={item.action} onChange={v => updateCheckItem(idx, "action", v)} disabled={ro} />
                 </td>
                 <td className={tdCls}>
-                  <EditableText value={item.action_result} onChange={v => updateCheckItem(idx, "action_result", v)} disabled={ro} />
+                  {ro ? (
+                    <span className="text-xs">
+                      {item.inspection_result_option || "사용 가능"}
+                      {item.inspection_result_option === "직접 기입" && item.inspection_result_detail ? ` - ${item.inspection_result_detail}` : ""}
+                    </span>
+                  ) : (
+                    <div className="space-y-1">
+                      <Select
+                        value={item.inspection_result_option || "사용 가능"}
+                        onValueChange={v => {
+                          const items = [...data.check_items];
+                          items[idx] = { ...items[idx], inspection_result_option: v as InspectionResultOption, inspection_result_detail: v === "직접 기입" ? items[idx].inspection_result_detail : "" };
+                          upd({ check_items: items });
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-[60]">
+                          {RESULT_OPTIONS.map(opt => (
+                            <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {item.inspection_result_option === "직접 기입" && (
+                        <Input
+                          className="h-7 text-xs"
+                          placeholder="상세 내용 입력"
+                          value={item.inspection_result_detail || ""}
+                          onChange={e => {
+                            const items = [...data.check_items];
+                            items[idx] = { ...items[idx], inspection_result_detail: e.target.value };
+                            upd({ check_items: items });
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -904,7 +967,7 @@ function TemplateBody({
         )}
       </div>
 
-      {/* Ⅳ. 기타 특이사항 (세부 설명) — Updated labels */}
+      {/* Ⅳ. 기타 특이사항 (세부 설명) */}
       <div>
         <h3 className="text-sm font-bold mb-2">Ⅳ. 기타 특이사항 (세부 설명)</h3>
         <table className="w-full border-collapse">
@@ -1024,16 +1087,18 @@ function TemplateBody({
                         <X className="h-3 w-3" />
                       </button>
                     )}
-                    <div className="p-1">
+                    <div className="p-2">
+                      <p className="text-[10px] font-medium text-muted-foreground mb-1">설명</p>
                       {!ro ? (
-                        <Input
-                          className="h-6 text-[10px] border-0 border-b rounded-none px-0"
-                          placeholder="캡션"
+                        <Textarea
+                          className="text-xs min-h-[40px] resize-none"
+                          placeholder="사진 설명을 입력하세요"
                           value={photo.caption}
                           onChange={e => updatePhotoCaption(photo.id, e.target.value)}
+                          rows={2}
                         />
                       ) : (
-                        <p className="text-[10px] text-muted-foreground">{photo.caption || ""}</p>
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">{photo.caption || "—"}</p>
                       )}
                     </div>
                   </div>
