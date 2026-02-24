@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useApp } from "@/contexts/AppContext";
-import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart } from "@/types";
+import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2 } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import {
@@ -26,6 +26,17 @@ const statusOrder = ["확인필요", "반출예정", "반출완료", "입고완�
 function isAtLeastInbound(status: string): boolean {
   return statusOrder.indexOf(status) >= statusOrder.indexOf("입고완료");
 }
+
+/* Photo page slots matching Word template pages 6-12 */
+const PHOTO_SLOTS = [
+  { key: "replacement_parts", title: "교체 필요 부품 사진" },
+  { key: "body_optics", title: "본체, 광학 (렌즈) 관련 부품 점검 사진" },
+  { key: "cpu_smps", title: "Main Control CPU Board, SMPS, 기타 부품 점검 사진" },
+  { key: "ao_probe", title: "AO 출력 / 프로브 점검 사진" },
+  { key: "probe_detail", title: "프로브 상세 점검 사진" },
+  { key: "spectrometer", title: "Spectrometer 얼라인먼트 / 기타 사진" },
+  { key: "final_assembly", title: "프로브 결합후 Spectrometer 형상" },
+];
 
 export default function FirstReport() {
   const {
@@ -49,10 +60,8 @@ export default function FirstReport() {
   );
 
   const selectedInspection = inspections.find(i => i.id === selectedInspectionId) ?? null;
-
   const selectedEquipment = selectedInspection?.equipment_items.find(e => e.id === selectedEquipmentId) ?? null;
 
-  // Find existing report for this equipment item
   const existingReport = useMemo(() => {
     if (!selectedEquipmentId) return null;
     return reports.find(r =>
@@ -62,7 +71,6 @@ export default function FirstReport() {
     ) ?? null;
   }, [reports, selectedInspectionId, selectedEquipmentId]);
 
-  // Check which equipment items already have reports
   const equipmentWithReports = useMemo(() => {
     if (!selectedInspectionId) return new Set<string>();
     return new Set(
@@ -75,6 +83,24 @@ export default function FirstReport() {
   const handleInspectionChange = (id: string) => {
     setSelectedInspectionId(id);
     setSelectedEquipmentId("");
+  };
+
+  const handleComplete = () => {
+    if (!existingReport) return;
+    // Auto-fill department head for 제조본부
+    if (isManufacturing) {
+      updateReport(existingReport.id, {
+        inspection_data: { ...existingReport.inspection_data, department_head: "김영기" },
+      });
+    }
+    completeReport(existingReport.id);
+    toast.success("1차 점검보고서가 완료되었습니다.");
+  };
+
+  const handleApprove = () => {
+    if (!existingReport) return;
+    approveReport(existingReport.id, currentUser?.name || "");
+    toast.success("보고서가 승인되었습니다.");
   };
 
   return (
@@ -100,7 +126,6 @@ export default function FirstReport() {
           </SelectContent>
         </Select>
 
-        {/* Step 2: Select equipment item */}
         {selectedInspection && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">장비 선택 (1 장비 = 1 보고서)</label>
@@ -131,10 +156,11 @@ export default function FirstReport() {
               report={existingReport}
               canEdit={isManufacturing && existingReport.status === "draft"}
               canApprove={canApprove && existingReport.status === "approval_requested"}
+              isManufacturing={isManufacturing}
               onUpdate={updateReport}
-              onComplete={() => { completeReport(existingReport.id); toast.success("1차 점검보고서가 완료되었습니다."); }}
+              onComplete={handleComplete}
               onRequestApproval={() => { requestApproval(existingReport.id); toast.success("승인요청이 전송되었습니다."); }}
-              onApprove={() => { approveReport(existingReport.id, currentUser?.name || ""); toast.success("보고서가 승인되었습니다."); }}
+              onApprove={handleApprove}
               onAddVersion={addReportVersion}
               getVersions={getReportVersions}
               currentUserName={currentUser?.name || ""}
@@ -260,7 +286,7 @@ function DocumentForm({
    Document View (existing report)
    ══════════════════════════════════════════════════════════════ */
 function DocumentView({
-  inspection, equipment, report, canEdit, canApprove,
+  inspection, equipment, report, canEdit, canApprove, isManufacturing,
   onUpdate, onComplete, onRequestApproval, onApprove,
   onAddVersion, getVersions, currentUserName,
 }: {
@@ -269,6 +295,7 @@ function DocumentView({
   report: InspectionReport;
   canEdit: boolean;
   canApprove: boolean;
+  isManufacturing: boolean;
   onUpdate: (id: string, updates: Partial<InspectionReport>) => void;
   onComplete: () => void;
   onRequestApproval: () => void;
@@ -282,6 +309,12 @@ function DocumentView({
 
   const [serialNo, setSerialNo] = useState(report.serial_numbers[equipment.id] || "");
   const [data, setData] = useState<InspectionReportData>(report.inspection_data || createDefaultReportData());
+  const [hasSaved, setHasSaved] = useState(report.status !== "draft" || false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiOriginal, setAiOriginal] = useState<Record<string, string>>({});
+  const [aiCorrected, setAiCorrected] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiEditMode, setAiEditMode] = useState(false);
   const versions = getVersions(report.id);
 
   const upd = (patch: Partial<InspectionReportData>) => setData(prev => ({ ...prev, ...patch }));
@@ -291,6 +324,7 @@ function DocumentView({
       serial_numbers: { [equipment.id]: serialNo },
       inspection_data: { ...data, serial_no: serialNo },
     });
+    setHasSaved(true);
     toast.success("임시저장되었습니다.");
   };
 
@@ -307,6 +341,87 @@ function DocumentView({
       onAddVersion(report.id, file.name, url, currentUserName);
       toast.success(`수정본 v${versions.length + 1}이 업로드되었습니다.`);
     }
+  };
+
+  /* ─── AI Proofreading ─── */
+  const collectTextFields = (): Record<string, string> => {
+    const fields: Record<string, string> = {};
+    data.check_items.forEach((item, idx) => {
+      if (item.action) fields[`check_action_${idx}`] = item.action;
+      if (item.action_result) fields[`check_result_${idx}`] = item.action_result;
+    });
+    if (data.detail_notes) fields.detail_notes = data.detail_notes;
+    if (data.main_control_cpu) fields.main_control_cpu = data.main_control_cpu;
+    if (data.optics_window_lens) fields.optics_window_lens = data.optics_window_lens;
+    if (data.beam_splitter_contamination) fields.beam_splitter_contamination = data.beam_splitter_contamination;
+    if (data.beam_splitter_result) fields.beam_splitter_result = data.beam_splitter_result;
+    if (data.spectrometer_status) fields.spectrometer_status = data.spectrometer_status;
+    if (data.spectrometer_result) fields.spectrometer_result = data.spectrometer_result;
+    if (data.site_situation) fields.site_situation = data.site_situation;
+    if (data.client_request) fields.client_request = data.client_request;
+    data.summary_items.forEach((s, i) => { if (s) fields[`summary_${i}`] = s; });
+    return fields;
+  };
+
+  const handleAiReview = async () => {
+    const fields = collectTextFields();
+    if (Object.keys(fields).length === 0) {
+      toast.error("교정할 텍스트가 없습니다.");
+      return;
+    }
+    setAiOriginal(fields);
+    setAiLoading(true);
+    setAiModalOpen(true);
+
+    // Simulate AI correction (MVP - no backend yet)
+    // In production, this would call an edge function
+    setTimeout(() => {
+      const corrected: Record<string, string> = {};
+      for (const [key, val] of Object.entries(fields)) {
+        // Simple MVP: fix common spacing issues
+        corrected[key] = val
+          .replace(/\s{2,}/g, " ")
+          .replace(/\s+:/g, " :")
+          .replace(/\s+\./g, ".")
+          .trim();
+      }
+      setAiCorrected(corrected);
+      setAiLoading(false);
+    }, 1500);
+  };
+
+  const applyAiCorrections = (corrected: Record<string, string>) => {
+    const newData = { ...data };
+    const newItems = [...newData.check_items];
+    const newSummary = [...newData.summary_items];
+
+    for (const [key, val] of Object.entries(corrected)) {
+      if (key.startsWith("check_action_")) {
+        const idx = parseInt(key.replace("check_action_", ""));
+        newItems[idx] = { ...newItems[idx], action: val };
+      } else if (key.startsWith("check_result_")) {
+        const idx = parseInt(key.replace("check_result_", ""));
+        newItems[idx] = { ...newItems[idx], action_result: val };
+      } else if (key.startsWith("summary_")) {
+        const idx = parseInt(key.replace("summary_", ""));
+        newSummary[idx] = val;
+      } else if (key === "detail_notes") newData.detail_notes = val;
+      else if (key === "main_control_cpu") newData.main_control_cpu = val;
+      else if (key === "optics_window_lens") newData.optics_window_lens = val;
+      else if (key === "beam_splitter_contamination") newData.beam_splitter_contamination = val;
+      else if (key === "beam_splitter_result") newData.beam_splitter_result = val;
+      else if (key === "spectrometer_status") newData.spectrometer_status = val;
+      else if (key === "spectrometer_result") newData.spectrometer_result = val;
+      else if (key === "site_situation") newData.site_situation = val;
+      else if (key === "client_request") newData.client_request = val;
+    }
+
+    newData.check_items = newItems;
+    newData.summary_items = newSummary;
+    setData(newData);
+    setAiModalOpen(false);
+    setAiEditMode(false);
+    toast.success("AI 교정이 적용되었습니다.");
   };
 
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
@@ -343,7 +458,7 @@ function DocumentView({
       {/* Document management */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <p className="text-sm font-medium">문서 관리</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleWordDownload}>
             <FileDown className="h-3.5 w-3.5" /> Word 다운로드
           </Button>
@@ -353,6 +468,11 @@ function DocumentView({
               <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
             </label>
           </Button>
+          {editable && hasSaved && isManufacturing && (
+            <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleAiReview}>
+              <Sparkles className="h-3.5 w-3.5" /> AI 검토
+            </Button>
+          )}
         </div>
         {versions.length > 0 && (
           <div className="space-y-1">
@@ -390,6 +510,71 @@ function DocumentView({
           </Button>
         )}
       </div>
+
+      {/* AI Review Modal */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" /> AI 문장 교정
+            </DialogTitle>
+          </DialogHeader>
+          {aiLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+              <p className="text-sm text-muted-foreground">AI가 검토 중입니다...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="font-semibold text-center py-2 bg-muted rounded">기존 작성본</div>
+                <div className="font-semibold text-center py-2 bg-primary/10 rounded">AI 교정본</div>
+              </div>
+              <div className="max-h-[50vh] overflow-y-auto space-y-3">
+                {Object.entries(aiOriginal).map(([key, original]) => {
+                  const corrected = aiEditMode ? (aiCorrected[key] || original) : (aiCorrected[key] || original);
+                  const changed = original !== corrected;
+                  return (
+                    <div key={key} className="grid grid-cols-2 gap-4">
+                      <div className={cn("text-xs p-2 rounded border", changed ? "bg-destructive/5 border-destructive/20" : "border-border")}>
+                        <p className="text-[10px] font-medium text-muted-foreground mb-1">{key}</p>
+                        {original}
+                      </div>
+                      <div className={cn("text-xs p-2 rounded border", changed ? "bg-primary/5 border-primary/20" : "border-border")}>
+                        {aiEditMode ? (
+                          <textarea
+                            className="w-full text-xs bg-transparent border-0 resize-none focus:outline-none min-h-[40px]"
+                            value={corrected}
+                            onChange={e => setAiCorrected(prev => ({ ...prev, [key]: e.target.value }))}
+                          />
+                        ) : (
+                          <>
+                            <p className="text-[10px] font-medium text-muted-foreground mb-1">{key}</p>
+                            {corrected}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button variant="outline" size="sm" onClick={() => { setAiModalOpen(false); setAiEditMode(false); }}>
+                  취소
+                </Button>
+                {!aiEditMode && (
+                  <Button variant="outline" size="sm" onClick={() => setAiEditMode(true)}>
+                    수정 후 적용
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => applyAiCorrections(aiCorrected)}>
+                  {aiEditMode ? "완료" : "AI 수정안 적용"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -445,6 +630,35 @@ function TemplateBody({
     upd({ summary_items: items });
   };
 
+  const handlePhotoUpload = (slotKey: string, files: FileList | null) => {
+    if (ro || !files) return;
+    const photos = [...(data.photos || [])];
+    Array.from(files).forEach((file, i) => {
+      const url = URL.createObjectURL(file);
+      photos.push({
+        id: crypto.randomUUID(),
+        report_id: "",
+        file_url: url,
+        caption: "",
+        page_slot: slotKey,
+        order_index: photos.filter(p => p.page_slot === slotKey).length + i,
+        uploaded_by: inspectorName,
+        uploaded_at: new Date().toISOString(),
+      });
+    });
+    upd({ photos });
+  };
+
+  const removePhoto = (photoId: string) => {
+    if (ro) return;
+    upd({ photos: (data.photos || []).filter(p => p.id !== photoId) });
+  };
+
+  const updatePhotoCaption = (photoId: string, caption: string) => {
+    if (ro) return;
+    upd({ photos: (data.photos || []).map(p => p.id === photoId ? { ...p, caption } : p) });
+  };
+
   return (
     <div className="space-y-8">
       {/* ═══ PAGE 1: Cover ═══ */}
@@ -462,24 +676,18 @@ function TemplateBody({
         <span>□ 기타 (긴급)</span>
       </div>
 
-      {/* Inspector table */}
+      {/* Inspector table - removed 점/수 placeholders */}
       <table className="w-full border-collapse">
         <tbody>
           <tr>
-            <td className={thCls} style={{ width: "25%" }}>점검자</td>
-            <td className={thCls} style={{ width: "25%" }}>부서장</td>
-            <td className={thCls} colSpan={2}>품질</td>
+            <td className={thCls} style={{ width: "33%" }}>점검자</td>
+            <td className={thCls} style={{ width: "33%" }}>부서장</td>
+            <td className={thCls}>품질본부 확인</td>
           </tr>
           <tr>
             <td className={tdCls}>{inspectorName}</td>
+            <td className={tdCls}>{data.department_head || ""}</td>
             <td className={tdCls}></td>
-            <td className={cn(tdCls, "text-center")}>점</td>
-            <td className={tdCls} rowSpan={2}></td>
-          </tr>
-          <tr>
-            <td className={tdCls}></td>
-            <td className={tdCls}></td>
-            <td className={cn(tdCls, "text-center")}>수</td>
           </tr>
         </tbody>
       </table>
@@ -605,7 +813,7 @@ function TemplateBody({
         </table>
       </div>
 
-      {/* Ⅱ. 점검 내용 및 조치 사항 */}
+      {/* Ⅱ. 점검 내용 및 조치 사항 — renamed columns */}
       <div>
         <h3 className="text-sm font-bold mb-2">Ⅱ. 점검 내용 및 조치 사항</h3>
         <table className="w-full border-collapse">
@@ -614,8 +822,8 @@ function TemplateBody({
               <th className={thCls} style={{ width: "15%" }}>구분</th>
               <th className={thCls} style={{ width: "20%" }}>점검 항목</th>
               <th className={thCls} style={{ width: "20%" }}>점검 결과</th>
-              <th className={thCls} style={{ width: "22.5%" }}>조치 사항</th>
-              <th className={thCls} style={{ width: "22.5%" }}>조치 결과</th>
+              <th className={thCls} style={{ width: "22.5%" }}>점검 내용</th>
+              <th className={thCls} style={{ width: "22.5%" }}>점검 결과</th>
             </tr>
           </thead>
           <tbody>
@@ -696,7 +904,7 @@ function TemplateBody({
         )}
       </div>
 
-      {/* Ⅳ. 기타 특이사항 (세부 설명) */}
+      {/* Ⅳ. 기타 특이사항 (세부 설명) — Updated labels */}
       <div>
         <h3 className="text-sm font-bold mb-2">Ⅳ. 기타 특이사항 (세부 설명)</h3>
         <table className="w-full border-collapse">
@@ -705,9 +913,15 @@ function TemplateBody({
           </thead>
           <tbody>
             <tr>
-              <td className={cn(thCls, "w-1/3")}>입고내용</td>
+              <td className={cn(thCls, "w-1/3")}>Main Control CPU Board</td>
               <td className={tdCls}>
-                <EditableTextarea value={data.detail_notes} onChange={v => upd({ detail_notes: v })} disabled={ro} rows={2} />
+                <EditableTextarea value={data.main_control_cpu} onChange={v => upd({ main_control_cpu: v })} disabled={ro} rows={2} />
+              </td>
+            </tr>
+            <tr>
+              <td className={thCls}>광학부품 (윈도우, 볼록렌즈)</td>
+              <td className={tdCls}>
+                <EditableTextarea value={data.optics_window_lens} onChange={v => upd({ optics_window_lens: v })} disabled={ro} rows={2} />
               </td>
             </tr>
             <tr>
@@ -788,6 +1002,62 @@ function TemplateBody({
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* ═══ PAGES 6-12: Photo Sections ═══ */}
+      <div className="space-y-6">
+        <h3 className="text-sm font-bold">사진 첨부</h3>
+        {PHOTO_SLOTS.map(slot => {
+          const slotPhotos = (data.photos || []).filter(p => p.page_slot === slot.key);
+          return (
+            <div key={slot.key} className="rounded-lg border bg-card p-4 space-y-3">
+              <p className="text-xs font-semibold">{slot.title}</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {slotPhotos.map(photo => (
+                  <div key={photo.id} className="relative group border rounded overflow-hidden">
+                    <img src={photo.file_url} alt={photo.caption || slot.title} className="w-full h-32 object-cover" />
+                    {!ro && (
+                      <button
+                        onClick={() => removePhoto(photo.id)}
+                        className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                    <div className="p-1">
+                      {!ro ? (
+                        <Input
+                          className="h-6 text-[10px] border-0 border-b rounded-none px-0"
+                          placeholder="캡션"
+                          value={photo.caption}
+                          onChange={e => updatePhotoCaption(photo.id, e.target.value)}
+                        />
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">{photo.caption || ""}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {!ro && (
+                  <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50 transition-colors">
+                    <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
+                    <span className="text-[10px] text-muted-foreground">드래그 또는 클릭</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={e => handlePhotoUpload(slot.key, e.target.files)}
+                    />
+                  </label>
+                )}
+              </div>
+              {slotPhotos.length === 0 && ro && (
+                <p className="text-xs text-muted-foreground text-center py-4">첨부된 사진 없음</p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Auto-filled info footer */}

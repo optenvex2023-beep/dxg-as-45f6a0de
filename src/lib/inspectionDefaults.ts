@@ -40,6 +40,8 @@ export function createDefaultReportData(): InspectionReportData {
     check_items: DEFAULT_CHECK_ITEMS.map(i => ({ ...i })),
     replacement_parts: [],
     detail_notes: "",
+    main_control_cpu: "부팅 상태, AO 신호, DO 신호 : ",
+    optics_window_lens: "오염상태 : ",
     beam_splitter_contamination: "",
     beam_splitter_result: "",
     spectrometer_status: "",
@@ -55,5 +57,7 @@ export function createDefaultReportData(): InspectionReportData {
     probe_measure_section: "",
     probe_gas_direction: "",
     summary_items: ["", "", "", ""],
+    department_head: "",
+    photos: [],
   };
 }
