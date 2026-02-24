@@ -34,8 +34,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const allStatuses: StatusType[] = [
@@ -81,9 +82,14 @@ function emptyFormData(): CreateFormData {
 
 export default function StatusTable() {
   const { inspections, currentUser, addInspection, updateInspection } = useApp();
-  const [searchParams] = useSearchParams();
-  const statusFilter = searchParams.get("status");
-  const dueFilter = searchParams.get("due");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const urlDue = searchParams.get("due");
+
+  // Local filter state — initialized from URL params (dashboard click-through)
+  const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
+  const [dueToggle, setDueToggle] = useState(urlDue === "7days");
+
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -94,25 +100,36 @@ export default function StatusTable() {
   const isCS = currentUser?.department === "CS팀";
   const isManufacturing = currentUser?.department === "제조본부";
 
+  const isDueWithin7 = (rec: OutboundInspection) => {
+    if (!rec.contract_due_date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(rec.contract_due_date);
+    due.setHours(0, 0, 0, 0);
+    const warn = new Date(due);
+    warn.setDate(warn.getDate() - 7);
+    return today >= warn && today <= due;
+  };
+
   const filtered = useMemo(() => {
-    if (dueFilter === "7days") {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return inspections.filter((i) => {
-        if (!i.contract_due_date) return false;
-        const due = new Date(i.contract_due_date);
-        due.setHours(0, 0, 0, 0);
-        const warn = new Date(due);
-        warn.setDate(warn.getDate() - 7);
-        return today >= warn && today <= due;
-      });
+    let result = inspections;
+
+    // Status filter
+    if (localStatusFilter !== "전체") {
+      if (localStatusFilter === "납기유의") {
+        result = result.filter((i) => i.status === "납기유의" || i.due_warning);
+      } else {
+        result = result.filter((i) => i.status === localStatusFilter);
+      }
     }
-    if (!statusFilter) return inspections;
-    if (statusFilter === "납기유의") {
-      return inspections.filter((i) => i.status === "납기유의" || i.due_warning);
+
+    // Due date toggle
+    if (dueToggle) {
+      result = result.filter(isDueWithin7);
     }
-    return inspections.filter((i) => i.status === statusFilter);
-  }, [inspections, statusFilter, dueFilter]);
+
+    return result;
+  }, [inspections, localStatusFilter, dueToggle]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
@@ -126,14 +143,64 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle;
+
+  const resetFilters = () => {
+    setLocalStatusFilter("전체");
+    setDueToggle(false);
+    setSearchParams({});
+  };
+
+  const activeFilterLabel = () => {
+    const parts: string[] = [];
+    if (localStatusFilter !== "전체") parts.push(localStatusFilter);
+    if (dueToggle) parts.push("계약납기 7일전");
+    return parts.join(", ");
+  };
+
   return (
     <div className="pb-20">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">
-          현황표
-          {statusFilter && <span className="text-sm text-muted-foreground ml-2">({statusFilter})</span>}
-          {dueFilter === "7days" && <span className="text-sm text-muted-foreground ml-2">(계약납기 7일전)</span>}
-        </h1>
+        <h1 className="text-xl font-semibold">현황표</h1>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-4 rounded-lg border bg-card p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">상태</label>
+          <Select value={localStatusFilter} onValueChange={(v) => setLocalStatusFilter(v)}>
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-[60]">
+              <SelectItem value="전체">전체</SelectItem>
+              {allStatuses.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="due-toggle"
+            checked={dueToggle}
+            onCheckedChange={(checked) => setDueToggle(!!checked)}
+          />
+          <label htmlFor="due-toggle" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            계약납기 7일전
+          </label>
+        </div>
+
+        {hasActiveFilter && (
+          <>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-xs text-primary font-medium">현재 필터: {activeFilterLabel()}</span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={resetFilters}>
+              <X className="h-3 w-3" /> 필터 초기화
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
