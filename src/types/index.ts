@@ -91,3 +91,36 @@ export interface MailOutbox {
   body: string;
   created_at: string;
 }
+
+export type ReportType = "first" | "final";
+export type ReportStatus = "draft" | "completed" | "approval_requested" | "approved";
+
+export interface InspectionReport {
+  id: string;
+  inspection_id: string;
+  report_type: ReportType;
+  status: ReportStatus;
+
+  serial_numbers: Record<string, string>; // equipment_item_id -> serial_no
+
+  inspection_result: string;
+  special_notes: string;
+  inspector_name: string;
+  created_date: string;
+
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+}
+
+export interface ReportVersion {
+  id: string;
+  report_id: string;
+  version_number: number;
+  file_name: string;
+  file_url: string;
+  uploaded_by: string;
+  uploaded_at: string;
+}

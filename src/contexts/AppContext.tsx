@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department, StatusType, Notification, MailOutbox } from "@/types";
+import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department, StatusType, Notification, MailOutbox, InspectionReport, ReportVersion, ReportType, ReportStatus } from "@/types";
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
 
@@ -8,12 +8,22 @@ interface AppState {
   inspections: OutboundInspection[];
   notifications: Notification[];
   mailOutbox: MailOutbox[];
+  reports: InspectionReport[];
+  reportVersions: ReportVersion[];
   currentUser: AppUser | null;
   setCurrentUser: (user: AppUser | null) => void;
   addUser: (name: string, role_category: RoleCategory, department: Department) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at">) => void;
   updateInspection: (id: string, updates: Partial<OutboundInspection>) => void;
+  getReportsForInspection: (inspectionId: string, type: ReportType) => InspectionReport[];
+  addReport: (data: Omit<InspectionReport, "id" | "created_at" | "updated_at" | "completed_at" | "approved_at" | "approved_by">) => InspectionReport;
+  updateReport: (id: string, updates: Partial<InspectionReport>) => void;
+  completeReport: (reportId: string) => void;
+  requestApproval: (reportId: string) => void;
+  approveReport: (reportId: string, approverName: string) => void;
+  addReportVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
+  getReportVersions: (reportId: string) => ReportVersion[];
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -89,52 +99,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [inspections, setInspections] = useState<OutboundInspection[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [mailOutbox, setMailOutbox] = useState<MailOutbox[]>([]);
+  const [reports, setReports] = useState<InspectionReport[]>([]);
+  const [reportVersions, setReportVersions] = useState<ReportVersion[]>([]);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(seedUsers[0]);
 
   const triggerNotifications = useCallback((rec: OutboundInspection, oldStatus: StatusType | null, oldDueWarning: boolean | null) => {
     const now = new Date().toISOString();
-    // Status-based notifications
     if (rec.status !== oldStatus && rec.status !== "납기유의") {
       const cfg = statusMailMap[rec.status];
       if (cfg) {
         setNotifications(prev => [...prev, {
-          id: crypto.randomUUID(),
-          inspection_id: rec.id,
-          status_trigger: rec.status,
-          target_departments: cfg.target_departments,
-          message: cfg.body(rec),
-          created_at: now,
+          id: crypto.randomUUID(), inspection_id: rec.id, status_trigger: rec.status,
+          target_departments: cfg.target_departments, message: cfg.body(rec), created_at: now,
         }]);
         setMailOutbox(prev => [...prev, {
-          id: crypto.randomUUID(),
-          inspection_id: rec.id,
-          status_trigger: rec.status,
-          to_emails: cfg.to_emails,
-          subject: cfg.subject,
-          body: cfg.body(rec),
-          created_at: now,
+          id: crypto.randomUUID(), inspection_id: rec.id, status_trigger: rec.status,
+          to_emails: cfg.to_emails, subject: cfg.subject, body: cfg.body(rec), created_at: now,
         }]);
       }
     }
-    // Due warning notification
     if (rec.due_warning && !oldDueWarning) {
       const cfg = buildDueWarningMail(rec);
       setNotifications(prev => [...prev, {
-        id: crypto.randomUUID(),
-        inspection_id: rec.id,
-        status_trigger: "납기유의",
-        target_departments: cfg.target_departments,
-        message: cfg.body(rec),
-        created_at: now,
+        id: crypto.randomUUID(), inspection_id: rec.id, status_trigger: "납기유의",
+        target_departments: cfg.target_departments, message: cfg.body(rec), created_at: now,
       }]);
       setMailOutbox(prev => [...prev, {
-        id: crypto.randomUUID(),
-        inspection_id: rec.id,
-        status_trigger: "납기유의",
-        to_emails: cfg.to_emails,
-        subject: cfg.subject,
-        body: cfg.body(rec),
-        created_at: now,
+        id: crypto.randomUUID(), inspection_id: rec.id, status_trigger: "납기유의",
+        to_emails: cfg.to_emails, subject: cfg.subject, body: cfg.body(rec), created_at: now,
       }]);
     }
   }, []);
@@ -155,21 +147,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const now = new Date().toISOString();
       const inspectionId = crypto.randomUUID();
       const equipmentItems: OutboundEquipmentItem[] = (data.equipment_items || []).map((item) => ({
-        ...item,
-        id: crypto.randomUUID(),
-        outbound_inspection_id: inspectionId,
-        serial_no: null,
-        created_at: now,
-        updated_at: now,
+        ...item, id: crypto.randomUUID(), outbound_inspection_id: inspectionId,
+        serial_no: null, created_at: now, updated_at: now,
       }));
       const base: OutboundInspection = {
-        ...data,
-        id: inspectionId,
-        equipment_items: equipmentItems,
-        status: "확인필요",
-        due_warning: false,
-        created_at: now,
-        updated_at: now,
+        ...data, id: inspectionId, equipment_items: equipmentItems,
+        status: "확인필요", due_warning: false, created_at: now, updated_at: now,
       };
       const final = recalcStatus(base);
       setInspections((prev) => [...prev, final]);
@@ -185,16 +168,107 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const oldStatus = rec.status;
         const oldDueWarning = rec.due_warning;
         const updated = recalcStatus({ ...rec, ...updates });
-        // Fire notifications asynchronously after state update
         setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
         return updated;
       })
     );
   }, [triggerNotifications]);
 
+  /* ─── Report functions ─── */
+
+  const getReportsForInspection = useCallback((inspectionId: string, type: ReportType) => {
+    return reports.filter(r => r.inspection_id === inspectionId && r.report_type === type);
+  }, [reports]);
+
+  const addReport = useCallback((data: Omit<InspectionReport, "id" | "created_at" | "updated_at" | "completed_at" | "approved_at" | "approved_by">): InspectionReport => {
+    const now = new Date().toISOString();
+    const report: InspectionReport = {
+      ...data, id: crypto.randomUUID(),
+      created_at: now, updated_at: now,
+      completed_at: null, approved_at: null, approved_by: null,
+    };
+    setReports(prev => [...prev, report]);
+    return report;
+  }, []);
+
+  const updateReport = useCallback((id: string, updates: Partial<InspectionReport>) => {
+    setReports(prev => prev.map(r => r.id === id ? { ...r, ...updates, updated_at: new Date().toISOString() } : r));
+  }, []);
+
+  const completeReport = useCallback((reportId: string) => {
+    const now = new Date().toISOString();
+    setReports(prev => prev.map(r => {
+      if (r.id !== reportId) return r;
+      return { ...r, status: "completed" as ReportStatus, completed_at: now, updated_at: now };
+    }));
+
+    // Find the report and update inspection + equipment serial numbers
+    const report = reports.find(r => r.id === reportId);
+    if (report) {
+      // Write serial numbers back to equipment items
+      const serialNumbers = report.serial_numbers;
+      setInspections(prev => prev.map(insp => {
+        if (insp.id !== report.inspection_id) return insp;
+        const oldStatus = insp.status;
+        const oldDueWarning = insp.due_warning;
+
+        const updatedItems = insp.equipment_items.map(item => ({
+          ...item,
+          serial_no: serialNumbers[item.id] || item.serial_no,
+          updated_at: now,
+        }));
+
+        let dateUpdate: Partial<OutboundInspection> = {};
+        if (report.report_type === "first") {
+          dateUpdate = { first_inspection_done_date: now.split("T")[0] };
+        } else {
+          dateUpdate = { final_inspection_done_date: now.split("T")[0] };
+        }
+
+        const updated = recalcStatus({ ...insp, ...dateUpdate, equipment_items: updatedItems });
+        setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
+        return updated;
+      }));
+    }
+  }, [reports, triggerNotifications]);
+
+  const requestApproval = useCallback((reportId: string) => {
+    setReports(prev => prev.map(r =>
+      r.id === reportId ? { ...r, status: "approval_requested" as ReportStatus, updated_at: new Date().toISOString() } : r
+    ));
+  }, []);
+
+  const approveReport = useCallback((reportId: string, approverName: string) => {
+    const now = new Date().toISOString();
+    setReports(prev => prev.map(r =>
+      r.id === reportId ? { ...r, status: "approved" as ReportStatus, approved_at: now, approved_by: approverName, updated_at: now } : r
+    ));
+  }, []);
+
+  const addReportVersion = useCallback((reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => {
+    setReportVersions(prev => {
+      const existingVersions = prev.filter(v => v.report_id === reportId);
+      const nextVersion = existingVersions.length + 1;
+      return [...prev, {
+        id: crypto.randomUUID(), report_id: reportId,
+        version_number: nextVersion, file_name: fileName, file_url: fileUrl,
+        uploaded_by: uploadedBy, uploaded_at: new Date().toISOString(),
+      }];
+    });
+  }, []);
+
+  const getReportVersions = useCallback((reportId: string) => {
+    return reportVersions.filter(v => v.report_id === reportId);
+  }, [reportVersions]);
+
   return (
     <AppContext.Provider
-      value={{ users, inspections, notifications, mailOutbox, currentUser, setCurrentUser, addUser, updateUser, addInspection, updateInspection }}
+      value={{
+        users, inspections, notifications, mailOutbox, reports, reportVersions,
+        currentUser, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
+        getReportsForInspection, addReport, updateReport, completeReport,
+        requestApproval, approveReport, addReportVersion, getReportVersions,
+      }}
     >
       {children}
     </AppContext.Provider>
