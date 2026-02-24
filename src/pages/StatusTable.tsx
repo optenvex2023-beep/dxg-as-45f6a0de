@@ -85,12 +85,14 @@ export default function StatusTable() {
   const statusFilter = searchParams.get("status");
   const dueFilter = searchParams.get("due");
   const [createOpen, setCreateOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [csModalOpen, setCsModalOpen] = useState(false);
+  const [mfgModalOpen, setMfgModalOpen] = useState(false);
 
   const isAdmin = currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀";
   const isCS = currentUser?.department === "CS팀";
   const isManufacturing = currentUser?.department === "제조본부";
-  const canEdit = isAdmin || isCS || isManufacturing;
 
   const filtered = useMemo(() => {
     if (dueFilter === "7days") {
@@ -112,10 +114,16 @@ export default function StatusTable() {
     return inspections.filter((i) => i.status === statusFilter);
   }, [inspections, statusFilter, dueFilter]);
 
+  const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
+
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
     const doneIdx = allStatuses.indexOf("1차 점검완료");
     return idx >= doneIdx;
+  };
+
+  const handleRowClick = (id: string) => {
+    setSelectedId((prev) => (prev === id ? null : id));
   };
 
   return (
@@ -149,7 +157,6 @@ export default function StatusTable() {
               <TableHead className="min-w-[140px]">특이사항</TableHead>
               <TableHead className="min-w-[90px]">발주처 담당자</TableHead>
               <TableHead className="min-w-[100px]">발주처 연락처</TableHead>
-              {canEdit && <TableHead className="min-w-[60px]">작업</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,8 +164,11 @@ export default function StatusTable() {
               <TableRow
                 key={rec.id}
                 className={cn(
-                  rec.due_warning && "border-l-4 border-l-accent bg-accent/5"
+                  "cursor-pointer transition-colors",
+                  rec.due_warning && "border-l-4 border-l-accent bg-accent/5",
+                  selectedId === rec.id && "bg-primary/10 ring-1 ring-primary/30"
                 )}
+                onClick={() => handleRowClick(rec.id)}
               >
                 <TableCell>
                   <div className="flex flex-col gap-0.5">
@@ -207,34 +217,11 @@ export default function StatusTable() {
                 <TableCell className="text-xs max-w-[160px] truncate">{rec.special_note || "—"}</TableCell>
                 <TableCell className="text-xs">{rec.client_pic_name}</TableCell>
                 <TableCell className="text-xs">{rec.client_pic_phone}</TableCell>
-                {canEdit && (
-                  <TableCell>
-                    <Dialog open={editId === rec.id} onOpenChange={(open) => setEditId(open ? rec.id : null)}>
-                      <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => setEditId(rec.id)}>편집</Button>
-                      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>레코드 편집</DialogTitle>
-                        </DialogHeader>
-                        <EditForm
-                          record={rec}
-                          isAdmin={isAdmin}
-                          isCS={isCS}
-                          isManufacturing={isManufacturing}
-                          onSave={(updates) => {
-                            updateInspection(rec.id, updates);
-                            setEditId(null);
-                            toast.success("저장되었습니다.");
-                          }}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                )}
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canEdit ? 18 : 17} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
                   데이터가 없습니다.
                 </TableCell>
               </TableRow>
@@ -243,14 +230,25 @@ export default function StatusTable() {
         </Table>
       </div>
 
-      {/* Bottom fixed registration button - Admin only */}
-      {isAdmin && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex justify-end">
-          <Button onClick={() => setCreateOpen(true)} className="gap-1">
-            <Plus className="h-4 w-4" /> 등록
-          </Button>
-        </div>
-      )}
+      {/* Bottom fixed action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
+        {isAdmin && (
+          <>
+            {selectedId && selectedRecord && (
+              <Button variant="outline" onClick={() => setEditOpen(true)}>수정</Button>
+            )}
+            <Button onClick={() => setCreateOpen(true)} className="gap-1">
+              <Plus className="h-4 w-4" /> 등록
+            </Button>
+          </>
+        )}
+        {isCS && selectedId && selectedRecord && (
+          <Button onClick={() => setCsModalOpen(true)}>반출예정/반출일 입력</Button>
+        )}
+        {isManufacturing && selectedId && selectedRecord && (
+          <Button onClick={() => setMfgModalOpen(true)}>입고/점검 입력</Button>
+        )}
+      </div>
 
       {/* Registration modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -267,6 +265,113 @@ export default function StatusTable() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Admin edit modal */}
+      {selectedRecord && (
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>레코드 수정</DialogTitle>
+            </DialogHeader>
+            <EditForm
+              record={selectedRecord}
+              isAdmin={isAdmin}
+              isCS={false}
+              isManufacturing={false}
+              onSave={(updates) => {
+                updateInspection(selectedRecord.id, updates);
+                setEditOpen(false);
+                toast.success("저장되었습니다.");
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CS팀 modal */}
+      {selectedRecord && (
+        <Dialog open={csModalOpen} onOpenChange={setCsModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>반출예정/반출일 입력</DialogTitle>
+            </DialogHeader>
+            <CSForm
+              record={selectedRecord}
+              onSave={(updates) => {
+                updateInspection(selectedRecord.id, updates);
+                setCsModalOpen(false);
+                toast.success("저장되었습니다.");
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 제조본부 modal */}
+      {selectedRecord && (
+        <Dialog open={mfgModalOpen} onOpenChange={setMfgModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>입고/점검 입력</DialogTitle>
+            </DialogHeader>
+            <MfgForm
+              record={selectedRecord}
+              onSave={(updates) => {
+                updateInspection(selectedRecord.id, updates);
+                setMfgModalOpen(false);
+                toast.success("저장되었습니다.");
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+/* ─── CS팀 Form ─── */
+function CSForm({ record, onSave }: { record: OutboundInspection; onSave: (updates: Partial<OutboundInspection>) => void }) {
+  const [planned, setPlanned] = useState(record.planned_outbound_date);
+  const [outbound, setOutbound] = useState(record.outbound_date);
+  const [reinstall, setReinstall] = useState(record.reinstall_date);
+  const [confirmStatus, setConfirmStatus] = useState(record.reinstall_confirm_status);
+
+  return (
+    <div className="space-y-4">
+      <DateField label="반출예정일자" value={planned} onChange={setPlanned} />
+      <DateField label="반출일자" value={outbound} onChange={setOutbound} />
+      <DateField label="설치일자" value={reinstall} onChange={setReinstall} />
+      <div>
+        <label className="text-xs text-muted-foreground block mb-1">예정/확정</label>
+        <Select value={confirmStatus} onValueChange={(v) => setConfirmStatus(v as ReinstallConfirmStatus)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="예정">예정</SelectItem>
+            <SelectItem value="확정">확정</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus })}>
+        저장
+      </Button>
+    </div>
+  );
+}
+
+/* ─── 제조본부 Form ─── */
+function MfgForm({ record, onSave }: { record: OutboundInspection; onSave: (updates: Partial<OutboundInspection>) => void }) {
+  const [inbound, setInbound] = useState(record.inbound_date);
+  const [first, setFirst] = useState(record.first_inspection_done_date);
+  const [final_, setFinal] = useState(record.final_inspection_done_date);
+
+  return (
+    <div className="space-y-4">
+      <DateField label="입고일자" value={inbound} onChange={setInbound} />
+      <DateField label="1차 점검 완료일자" value={first} onChange={setFirst} />
+      <DateField label="최종 점검 완료일자" value={final_} onChange={setFinal} />
+      <Button className="w-full" onClick={() => onSave({ inbound_date: inbound, first_inspection_done_date: first, final_inspection_done_date: final_ })}>
+        저장
+      </Button>
     </div>
   );
 }
@@ -524,7 +629,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
   );
 }
 
-/* ─── Edit Form (role-based) ─── */
+/* ─── Edit Form (Admin full edit) ─── */
 function EditForm({
   record,
   isAdmin,
@@ -547,7 +652,6 @@ function EditForm({
 
   const handleSave = () => {
     if (isAdmin) {
-      // Rebuild equipment_items from drafts
       const now = new Date().toISOString();
       const items: OutboundEquipmentItem[] = equipmentDrafts.map((d, idx) => ({
         id: record.equipment_items[idx]?.id || crypto.randomUUID(),
@@ -566,30 +670,9 @@ function EditForm({
 
   return (
     <div className="space-y-4">
-      {/* Equipment display - editable for admin, read-only for others */}
-      {isAdmin ? (
-        <EquipmentInputGroup items={equipmentDrafts} onChange={setEquipmentDrafts} />
-      ) : (
-        <div>
-          <label className="text-sm font-medium">반출 장비 목록</label>
-          {form.equipment_items.length > 0 ? (
-            <div className="mt-1 space-y-1">
-              {form.equipment_items.map((item) => (
-                <div key={item.id} className="text-xs rounded border p-2 bg-muted/30">
-                  {item.equipment_name} ({item.qty_set} set)
-                  {item.serial_no && <span className="text-muted-foreground ml-1">/ S/N: {item.serial_no}</span>}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1">장비 없음</p>
-          )}
-        </div>
-      )}
-
-      {/* Admin editable fields */}
       {isAdmin && (
         <>
+          <EquipmentInputGroup items={equipmentDrafts} onChange={setEquipmentDrafts} />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">관리번호</label>
@@ -667,52 +750,21 @@ function EditForm({
               </div>
             )}
           </div>
+          {/* Read-only fields for admin */}
+          <div className="space-y-3 opacity-60">
+            <p className="text-xs font-medium text-muted-foreground">아래 항목은 담당 부서에서 입력합니다</p>
+            <DateField label="반출예정일자 (CS팀)" value={form.planned_outbound_date} onChange={() => {}} disabled />
+            <DateField label="반출일자 (CS팀)" value={form.outbound_date} onChange={() => {}} disabled />
+            <DateField label="입고일자 (제조본부)" value={form.inbound_date} onChange={() => {}} disabled />
+            <DateField label="1차 점검 완료일자 (제조본부)" value={form.first_inspection_done_date} onChange={() => {}} disabled />
+            <DateField label="최종 점검 완료일자 (제조본부)" value={form.final_inspection_done_date} onChange={() => {}} disabled />
+            <DateField label="재설치 일자 (CS팀)" value={form.reinstall_date} onChange={() => {}} disabled />
+            <div>
+              <label className="text-xs text-muted-foreground">예정/확정 (CS팀)</label>
+              <Input className="h-8 text-xs" value={form.reinstall_confirm_status} disabled />
+            </div>
+          </div>
         </>
-      )}
-
-      {/* Admin read-only fields */}
-      {isAdmin && (
-        <div className="space-y-3 opacity-60">
-          <p className="text-xs font-medium text-muted-foreground">아래 항목은 담당 부서에서 입력합니다</p>
-          <DateField label="반출예정일자 (CS팀)" value={form.planned_outbound_date} onChange={() => {}} disabled />
-          <DateField label="반출일자 (CS팀)" value={form.outbound_date} onChange={() => {}} disabled />
-          <DateField label="입고일자 (제조본부)" value={form.inbound_date} onChange={() => {}} disabled />
-          <DateField label="1차 점검 완료일자 (제조본부)" value={form.first_inspection_done_date} onChange={() => {}} disabled />
-          <DateField label="최종 점검 완료일자 (제조본부)" value={form.final_inspection_done_date} onChange={() => {}} disabled />
-          <DateField label="재설치 일자 (CS팀)" value={form.reinstall_date} onChange={() => {}} disabled />
-          <div>
-            <label className="text-xs text-muted-foreground">예정/확정 (CS팀)</label>
-            <Input className="h-8 text-xs" value={form.reinstall_confirm_status} disabled />
-          </div>
-        </div>
-      )}
-
-      {/* CS팀 fields */}
-      {isCS && (
-        <div className="space-y-3">
-          <DateField label="반출예정일자" value={form.planned_outbound_date} onChange={(v) => set("planned_outbound_date", v)} />
-          <DateField label="반출일자" value={form.outbound_date} onChange={(v) => set("outbound_date", v)} />
-          <DateField label="재설치 일자" value={form.reinstall_date} onChange={(v) => set("reinstall_date", v)} />
-          <div>
-            <label className="text-xs text-muted-foreground">예정/확정</label>
-            <Select value={form.reinstall_confirm_status} onValueChange={(v) => set("reinstall_confirm_status", v as ReinstallConfirmStatus)}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="예정">예정</SelectItem>
-                <SelectItem value="확정">확정</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
-
-      {/* 제조본부 fields */}
-      {isManufacturing && (
-        <div className="space-y-3">
-          <DateField label="입고일자" value={form.inbound_date} onChange={(v) => set("inbound_date", v)} />
-          <DateField label="1차 점검 완료일자" value={form.first_inspection_done_date} onChange={(v) => set("first_inspection_done_date", v)} />
-          <DateField label="최종 점검 완료일자" value={form.final_inspection_done_date} onChange={(v) => set("final_inspection_done_date", v)} />
-        </div>
       )}
 
       <Button onClick={handleSave} className="w-full">저장</Button>
