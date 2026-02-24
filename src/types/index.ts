@@ -72,3 +72,22 @@ export interface OutboundInspection {
   created_at: string;
   updated_at: string;
 }
+
+export interface Notification {
+  id: string;
+  inspection_id: string;
+  status_trigger: StatusType | "납기유의";
+  target_departments: Department[];
+  message: string;
+  created_at: string;
+}
+
+export interface MailOutbox {
+  id: string;
+  inspection_id: string;
+  status_trigger: StatusType | "납기유의";
+  to_emails: string[];
+  subject: string;
+  body: string;
+  created_at: string;
+}

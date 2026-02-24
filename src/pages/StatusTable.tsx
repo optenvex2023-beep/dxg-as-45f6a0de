@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import type { OutboundInspection, OutboundEquipmentItem, StatusType, DateMode, ReinstallConfirmStatus, RequestType } from "@/types";
+import type {
+  OutboundInspection,
+  OutboundEquipmentItem,
+  StatusType,
+  DateMode,
+  ReinstallConfirmStatus,
+  RequestType,
+} from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +24,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -27,8 +33,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const allStatuses: StatusType[] = [
   "확인필요", "반출예정", "반출완료", "입고완료",
@@ -82,6 +90,7 @@ export default function StatusTable() {
   const isAdmin = currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀";
   const isCS = currentUser?.department === "CS팀";
   const isManufacturing = currentUser?.department === "제조본부";
+  const canEdit = isAdmin || isCS || isManufacturing;
 
   const filtered = useMemo(() => {
     if (dueFilter === "7days") {
@@ -110,31 +119,13 @@ export default function StatusTable() {
   };
 
   return (
-    <div>
+    <div className="pb-20">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">
           현황표
           {statusFilter && <span className="text-sm text-muted-foreground ml-2">({statusFilter})</span>}
           {dueFilter === "7days" && <span className="text-sm text-muted-foreground ml-2">(계약납기 7일전)</span>}
         </h1>
-        {isAdmin && (
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">새 레코드</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>반출점검 등록</DialogTitle>
-              </DialogHeader>
-              <CreateForm
-                onSubmit={(data) => {
-                  addInspection(data);
-                  setCreateOpen(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
       <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
@@ -158,7 +149,7 @@ export default function StatusTable() {
               <TableHead className="min-w-[140px]">특이사항</TableHead>
               <TableHead className="min-w-[90px]">발주처 담당자</TableHead>
               <TableHead className="min-w-[100px]">발주처 연락처</TableHead>
-              <TableHead className="min-w-[60px]">작업</TableHead>
+              {canEdit && <TableHead className="min-w-[60px]">작업</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -166,12 +157,18 @@ export default function StatusTable() {
               <TableRow
                 key={rec.id}
                 className={cn(
-                  (rec.status === "납기유의" || rec.due_warning) &&
-                    "border-l-4 border-l-accent bg-accent/5"
+                  rec.due_warning && "border-l-4 border-l-accent bg-accent/5"
                 )}
               >
                 <TableCell>
-                  <StatusBadge status={rec.status} />
+                  <div className="flex flex-col gap-0.5">
+                    <StatusBadge status={rec.status} />
+                    {rec.due_warning && rec.status !== "납기유의" && rec.status !== "설치 완료" && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive text-destructive font-semibold">
+                        납기유의
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-xs">{rec.manage_no}</TableCell>
                 <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
@@ -210,12 +207,10 @@ export default function StatusTable() {
                 <TableCell className="text-xs max-w-[160px] truncate">{rec.special_note || "—"}</TableCell>
                 <TableCell className="text-xs">{rec.client_pic_name}</TableCell>
                 <TableCell className="text-xs">{rec.client_pic_phone}</TableCell>
-                <TableCell>
-                  {(isAdmin || isCS || isManufacturing) && (
+                {canEdit && (
+                  <TableCell>
                     <Dialog open={editId === rec.id} onOpenChange={(open) => setEditId(open ? rec.id : null)}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-6 text-xs px-2">편집</Button>
-                      </DialogTrigger>
+                      <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => setEditId(rec.id)}>편집</Button>
                       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>레코드 편집</DialogTitle>
@@ -228,17 +223,18 @@ export default function StatusTable() {
                           onSave={(updates) => {
                             updateInspection(rec.id, updates);
                             setEditId(null);
+                            toast.success("저장되었습니다.");
                           }}
                         />
                       </DialogContent>
                     </Dialog>
-                  )}
-                </TableCell>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={canEdit ? 18 : 17} className="text-center text-muted-foreground py-8">
                   데이터가 없습니다.
                 </TableCell>
               </TableRow>
@@ -246,10 +242,36 @@ export default function StatusTable() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Bottom fixed registration button - Admin only */}
+      {isAdmin && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex justify-end">
+          <Button onClick={() => setCreateOpen(true)} className="gap-1">
+            <Plus className="h-4 w-4" /> 등록
+          </Button>
+        </div>
+      )}
+
+      {/* Registration modal */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>반출점검 등록</DialogTitle>
+          </DialogHeader>
+          <CreateForm
+            onSubmit={(data) => {
+              addInspection(data);
+              setCreateOpen(false);
+              toast.success("등록이 완료되었습니다.");
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
+/* ─── Status Badge ─── */
 function StatusBadge({ status }: { status: StatusType }) {
   const colors: Record<StatusType, string> = {
     "확인필요": "bg-muted text-muted-foreground",
@@ -259,7 +281,7 @@ function StatusBadge({ status }: { status: StatusType }) {
     "1차 점검완료": "bg-accent/15 text-accent",
     "최종 점검완료": "bg-accent/20 text-accent",
     "설치 완료": "bg-primary/20 text-primary",
-    "납기유의": "bg-accent/10 text-accent font-semibold",
+    "납기유의": "border-destructive text-destructive font-semibold bg-destructive/10",
   };
   return (
     <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap", colors[status])}>
@@ -268,15 +290,17 @@ function StatusBadge({ status }: { status: StatusType }) {
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value: string | null; onChange: (v: string | null) => void }) {
+/* ─── Date Field ─── */
+function DateField({ label, value, onChange, disabled }: { label: string; value: string | null; onChange: (v: string | null) => void; disabled?: boolean }) {
   return (
     <div>
-      <label className="text-xs text-muted-foreground block mb-1">{label}</label>
+      {label && <label className="text-xs text-muted-foreground block mb-1">{label}</label>}
       <Input
         type="date"
         value={value || ""}
         onChange={(e) => onChange(e.target.value || null)}
         className="h-8 text-xs"
+        disabled={disabled}
       />
     </div>
   );
@@ -337,14 +361,46 @@ function EquipmentInputGroup({
   );
 }
 
+/* ─── Create Form ─── */
 function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) {
   const [form, setForm] = useState(emptyFormData());
   const [equipmentDrafts, setEquipmentDrafts] = useState<EquipmentDraft[]>([{ equipment_name: "", qty_set: 1 }]);
+  const [errors, setErrors] = useState<string[]>([]);
   const set = <K extends keyof CreateFormData>(key: K, val: CreateFormData[K]) =>
     setForm((p) => ({ ...p, [key]: val }));
 
+  const validate = (): string[] => {
+    const errs: string[] = [];
+    if (!form.manage_no.trim()) errs.push("관리번호를 입력해주세요.");
+    if (!form.project_name.trim()) errs.push("건명을 입력해주세요.");
+    if (equipmentDrafts.length === 0) errs.push("장비를 최소 1개 추가해주세요.");
+    else if (equipmentDrafts.some(d => !d.equipment_name.trim())) errs.push("모든 장비의 모델명을 입력해주세요.");
+    else if (equipmentDrafts.some(d => d.qty_set < 1)) errs.push("장비 수량은 1 이상이어야 합니다.");
+
+    if (form.outbound_request_date_mode === "단일") {
+      if (!form.outbound_request_date_single) errs.push("반출요청일자를 입력해주세요.");
+    } else {
+      if (!form.outbound_request_date_start || !form.outbound_request_date_end) errs.push("반출요청일자(기간)를 입력해주세요.");
+    }
+    if (form.reinstall_request_date_mode === "단일") {
+      if (!form.reinstall_request_date_single) errs.push("재설치 요청일자를 입력해주세요.");
+    } else {
+      if (!form.reinstall_request_date_start || !form.reinstall_request_date_end) errs.push("재설치 요청일자(기간)를 입력해주세요.");
+    }
+    if (!form.contract_due_date) errs.push("계약납기를 입력해주세요.");
+    if (!form.client_pic_name.trim()) errs.push("발주처 담당자를 입력해주세요.");
+    if (!form.client_pic_phone.trim()) errs.push("발주처 연락처를 입력해주세요.");
+    if (form.request_type === "고객지원요청서" && !form.support_request_file) errs.push("고객지원요청서 파일을 업로드해주세요.");
+    return errs;
+  };
+
   const handleSubmit = () => {
-    if (equipmentDrafts.length === 0 || equipmentDrafts.some(d => !d.equipment_name.trim())) return;
+    const errs = validate();
+    if (errs.length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setErrors([]);
     const now = new Date().toISOString();
     const items: OutboundEquipmentItem[] = equipmentDrafts.map((d) => ({
       id: crypto.randomUUID(),
@@ -360,13 +416,21 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
 
   return (
     <div className="space-y-4">
+      {errors.length > 0 && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3">
+          {errors.map((e, i) => (
+            <p key={i} className="text-xs text-destructive">{e}</p>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted-foreground">관리번호</label>
+          <label className="text-xs text-muted-foreground">관리번호 *</label>
           <Input className="h-8 text-xs" value={form.manage_no} onChange={(e) => set("manage_no", e.target.value)} />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">건명</label>
+          <label className="text-xs text-muted-foreground">건명 *</label>
           <Input className="h-8 text-xs" value={form.project_name} onChange={(e) => set("project_name", e.target.value)} />
         </div>
       </div>
@@ -375,7 +439,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
 
       {/* 반출요청일자 */}
       <div>
-        <label className="text-xs text-muted-foreground">반출요청일자</label>
+        <label className="text-xs text-muted-foreground">반출요청일자 *</label>
         <Select value={form.outbound_request_date_mode} onValueChange={(v) => set("outbound_request_date_mode", v as DateMode)}>
           <SelectTrigger className="h-8 text-xs w-24 mb-1"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -395,7 +459,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
 
       {/* 재설치 요청일자 */}
       <div>
-        <label className="text-xs text-muted-foreground">재설치 요청일자</label>
+        <label className="text-xs text-muted-foreground">재설치 요청일자 *</label>
         <Select value={form.reinstall_request_date_mode} onValueChange={(v) => set("reinstall_request_date_mode", v as DateMode)}>
           <SelectTrigger className="h-8 text-xs w-24 mb-1"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -413,15 +477,15 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
         )}
       </div>
 
-      <DateField label="계약납기" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
+      <DateField label="계약납기 *" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted-foreground">발주처 담당자</label>
+          <label className="text-xs text-muted-foreground">발주처 담당자 *</label>
           <Input className="h-8 text-xs" value={form.client_pic_name} onChange={(e) => set("client_pic_name", e.target.value)} />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">발주처 연락처</label>
+          <label className="text-xs text-muted-foreground">발주처 연락처 *</label>
           <Input className="h-8 text-xs" value={form.client_pic_phone} onChange={(e) => set("client_pic_phone", e.target.value)} />
         </div>
       </div>
@@ -432,7 +496,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground">요청 유형</label>
+        <label className="text-xs text-muted-foreground">요청 유형 *</label>
         <Select value={form.request_type} onValueChange={(v) => set("request_type", v as RequestType)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -442,17 +506,25 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
         </Select>
         {form.request_type === "고객지원요청서" && (
           <div className="mt-2">
-            <label className="text-xs text-muted-foreground">고객지원요청서 파일</label>
-            <Input type="file" className="h-8 text-xs" />
+            <label className="text-xs text-muted-foreground">고객지원요청서 파일 *</label>
+            <Input
+              type="file"
+              className="h-8 text-xs"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                set("support_request_file", file ? file.name : null);
+              }}
+            />
           </div>
         )}
       </div>
 
-      <Button onClick={handleSubmit} className="w-full">등록</Button>
+      <Button onClick={handleSubmit} className="w-full">완료</Button>
     </div>
   );
 }
 
+/* ─── Edit Form (role-based) ─── */
 function EditForm({
   record,
   isAdmin,
@@ -467,29 +539,55 @@ function EditForm({
   onSave: (updates: Partial<OutboundInspection>) => void;
 }) {
   const [form, setForm] = useState({ ...record });
+  const [equipmentDrafts, setEquipmentDrafts] = useState<EquipmentDraft[]>(
+    record.equipment_items.map(i => ({ equipment_name: i.equipment_name, qty_set: i.qty_set }))
+  );
   const set = <K extends keyof OutboundInspection>(key: K, val: OutboundInspection[K]) =>
     setForm((p) => ({ ...p, [key]: val }));
 
+  const handleSave = () => {
+    if (isAdmin) {
+      // Rebuild equipment_items from drafts
+      const now = new Date().toISOString();
+      const items: OutboundEquipmentItem[] = equipmentDrafts.map((d, idx) => ({
+        id: record.equipment_items[idx]?.id || crypto.randomUUID(),
+        outbound_inspection_id: record.id,
+        equipment_name: d.equipment_name,
+        qty_set: d.qty_set,
+        serial_no: record.equipment_items[idx]?.serial_no || null,
+        created_at: record.equipment_items[idx]?.created_at || now,
+        updated_at: now,
+      }));
+      onSave({ ...form, equipment_items: items });
+    } else {
+      onSave(form);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Equipment display (read-only) */}
-      <div>
-        <label className="text-sm font-medium">반출 장비 목록</label>
-        {form.equipment_items.length > 0 ? (
-          <div className="mt-1 space-y-1">
-            {form.equipment_items.map((item) => (
-              <div key={item.id} className="text-xs rounded border p-2 bg-muted/30">
-                {item.equipment_name} ({item.qty_set} set)
-                {item.serial_no && <span className="text-muted-foreground ml-1">/ S/N: {item.serial_no}</span>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground mt-1">장비 없음</p>
-        )}
-      </div>
+      {/* Equipment display - editable for admin, read-only for others */}
+      {isAdmin ? (
+        <EquipmentInputGroup items={equipmentDrafts} onChange={setEquipmentDrafts} />
+      ) : (
+        <div>
+          <label className="text-sm font-medium">반출 장비 목록</label>
+          {form.equipment_items.length > 0 ? (
+            <div className="mt-1 space-y-1">
+              {form.equipment_items.map((item) => (
+                <div key={item.id} className="text-xs rounded border p-2 bg-muted/30">
+                  {item.equipment_name} ({item.qty_set} set)
+                  {item.serial_no && <span className="text-muted-foreground ml-1">/ S/N: {item.serial_no}</span>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">장비 없음</p>
+          )}
+        </div>
+      )}
 
-      {/* Admin fields */}
+      {/* Admin editable fields */}
       {isAdmin && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -572,6 +670,23 @@ function EditForm({
         </>
       )}
 
+      {/* Admin read-only fields */}
+      {isAdmin && (
+        <div className="space-y-3 opacity-60">
+          <p className="text-xs font-medium text-muted-foreground">아래 항목은 담당 부서에서 입력합니다</p>
+          <DateField label="반출예정일자 (CS팀)" value={form.planned_outbound_date} onChange={() => {}} disabled />
+          <DateField label="반출일자 (CS팀)" value={form.outbound_date} onChange={() => {}} disabled />
+          <DateField label="입고일자 (제조본부)" value={form.inbound_date} onChange={() => {}} disabled />
+          <DateField label="1차 점검 완료일자 (제조본부)" value={form.first_inspection_done_date} onChange={() => {}} disabled />
+          <DateField label="최종 점검 완료일자 (제조본부)" value={form.final_inspection_done_date} onChange={() => {}} disabled />
+          <DateField label="재설치 일자 (CS팀)" value={form.reinstall_date} onChange={() => {}} disabled />
+          <div>
+            <label className="text-xs text-muted-foreground">예정/확정 (CS팀)</label>
+            <Input className="h-8 text-xs" value={form.reinstall_confirm_status} disabled />
+          </div>
+        </div>
+      )}
+
       {/* CS팀 fields */}
       {isCS && (
         <div className="space-y-3">
@@ -600,7 +715,7 @@ function EditForm({
         </div>
       )}
 
-      <Button onClick={() => onSave(form)} className="w-full">저장</Button>
+      <Button onClick={handleSave} className="w-full">저장</Button>
     </div>
   );
 }
