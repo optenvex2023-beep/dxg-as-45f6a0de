@@ -87,21 +87,26 @@ export default function FirstReport() {
     setSelectedEquipmentId("");
   };
 
+  const resolveUserName = (): string => {
+    return currentUser?.name || "";
+  };
+
   const handleComplete = () => {
     if (!existingReport) return;
-    // Auto-fill department head when 제조본부 completes
-    if (isManufacturing) {
-      updateReport(existingReport.id, {
-        inspection_data: { ...existingReport.inspection_data, department_head: currentUser?.name || "" },
-      });
-    }
+    const inspectorName = existingReport.inspector_name || resolveUserName();
+    const deptHead = existingReport.inspection_data.department_head || "김영기";
+    updateReport(existingReport.id, {
+      inspector_name: inspectorName,
+      inspection_data: { ...existingReport.inspection_data, department_head: deptHead },
+    });
     completeReport(existingReport.id);
     toast.success("1차 점검보고서가 완료되었습니다. 품질본부에 알림이 전송됩니다.");
   };
 
   const handleQAReviewComplete = () => {
     if (!existingReport) return;
-    approveReport(existingReport.id, currentUser?.name || "");
+    const qaName = resolveUserName();
+    approveReport(existingReport.id, qaName);
     toast.success("품질본부 검토가 완료되었습니다. 환경영업팀에 알림이 전송됩니다.");
   };
 
@@ -330,7 +335,9 @@ function DocumentView({
   const upd = (patch: Partial<InspectionReportData>) => setData(prev => ({ ...prev, ...patch }));
 
   const handleSave = () => {
+    const inspectorName = report.inspector_name || currentUserName;
     onUpdate(report.id, {
+      inspector_name: inspectorName,
       serial_numbers: { [equipment.id]: serialNo },
       inspection_data: { ...data, serial_no: serialNo },
     });

@@ -5,6 +5,13 @@ import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "
 
 const TEMPLATE_URL = "/templates/first-report-template.docx";
 
+/** Safely return a string – never "undefined" or "null" */
+function safe(val: unknown): string {
+  if (val === undefined || val === null) return "";
+  const s = String(val);
+  return s === "undefined" || s === "null" ? "" : s;
+}
+
 /* ─── Check item → template boolean key mapping ─── */
 const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
   { category: "광학부", item: "Beam Splitter", key: "BEAMSPLITTER" },
@@ -38,37 +45,39 @@ function buildTemplateData(
 ): Record<string, unknown> {
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
-  const serialNo = report.serial_numbers[report.equipment_item_id] || equipItem?.serial_no || "";
+  const serialNo = safe(report.serial_numbers[report.equipment_item_id]) || safe(equipItem?.serial_no);
 
-  // Build photo captions grouped by section (2-column rows)
   const buildPhotoCaptions = (slotKey: string) => {
     const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
     const rows: Array<{ LEFT_CAPTION: string; RIGHT_CAPTION: string }> = [];
     for (let i = 0; i < slotPhotos.length; i += 2) {
       rows.push({
-        LEFT_CAPTION: slotPhotos[i]?.caption || "",
-        RIGHT_CAPTION: slotPhotos[i + 1]?.caption || "",
+        LEFT_CAPTION: safe(slotPhotos[i]?.caption),
+        RIGHT_CAPTION: safe(slotPhotos[i + 1]?.caption),
       });
     }
     return rows;
   };
 
+  // QA stamp: only show after QA review is complete (status === "approved")
+  const qaReviewDone = report.status === "approved" && !!report.approved_by;
+
   return {
     // ── Cover page ──
-    INSPECTOR_NAM: report.inspector_name,
-    DEPT_HEAD_NAM: data.department_head || "",
-    QA_REVIEWER_NAM: report.approved_by || "",
-    QA_SIGNATURE: report.approved_by ? "검토완료" : "",
+    INSPECTOR_NAM: safe(report.inspector_name),
+    DEPT_HEAD_NAM: safe(data.department_head),
+    QA_REVIEWER_NAM: qaReviewDone ? safe(report.approved_by) : "",
+    QA_SIGNATURE: qaReviewDone ? "검토완료" : "",
 
-    CLIENT_NAME: data.client_name,
-    CLIENT_N: data.client_name,
+    CLIENT_NAME: safe(data.client_name),
+    CLIENT_N: safe(data.client_name),
     SERIAL_NO: serialNo,
     SERIAL: serialNo,
-    INBOUND_DATE: data.inbound_date,
-    REPORT_DATE: report.created_date,
-    MANAGEMENT_NO: inspection.manage_no,
+    INBOUND_DATE: safe(data.inbound_date),
+    REPORT_DATE: safe(report.created_date),
+    MANAGEMENT_NO: safe(inspection.manage_no),
 
-    // ── Model checkboxes (☑/☐ via sections) ──
+    // ── Model checkboxes ──
     IS_DGA_X: data.model_checks.includes("DGA-X"),
     IS_DSM_XG: data.model_checks.includes("DSM-XG"),
     IS_RGA_60: data.model_checks.includes("RGA-60"),
@@ -112,48 +121,47 @@ function buildTemplateData(
     // ── Section II: check item boolean flags ──
     ...buildCheckFlags(data.check_items),
 
-    // ── Section III: replacement parts list (row repeat) ──
+    // ── Section III: replacement parts list ──
     REPLACEMENT_LIST: (data.replacement_parts || []).map(p => ({
-      ITEM_NAME: p.name,
-      ITEM_QT: p.qty,
-      ITEM_STATUS: p.status,
-      ITEM_COMMENT: p.note,
+      ITEM_NAME: safe(p.name),
+      ITEM_QT: safe(p.qty),
+      ITEM_STATUS: safe(p.status),
+      ITEM_COMMENT: safe(p.note),
     })),
 
-    // ── Section IV: detail text fields (linebreaks preserved) ──
-    CPU_STATUS: data.main_control_cpu,
-    OPTICS_CONTAMINATION: data.optics_window_lens,
-    BEAMSPLITTER_CONTAMINATION: data.beam_splitter_contamination,
-    BEAMSPLITTER_COMMENT: data.beam_splitter_result,
-    SPECTROMETER_STATUS: data.spectrometer_status,
-    SPECTROMETER_COMMENT: data.spectrometer_result,
-    UVLAMP_STATUS: data.uv_lamp_note,
-    COOLINGFAN_STATUS: data.cooling_fan_status,
-    SMPS_STATUS: data.smps_note,
-    WIRING_STATUS: data.wiring_status,
+    // ── Section IV: detail text fields ──
+    CPU_STATUS: safe(data.main_control_cpu),
+    OPTICS_CONTAMINATION: safe(data.optics_window_lens),
+    BEAMSPLITTER_CONTAMINATION: safe(data.beam_splitter_contamination),
+    BEAMSPLITTER_COMMENT: safe(data.beam_splitter_result),
+    SPECTROMETER_STATUS: safe(data.spectrometer_status),
+    SPECTROMETER_COMMENT: safe(data.spectrometer_result),
+    UVLAMP_STATUS: safe(data.uv_lamp_note),
+    COOLINGFAN_STATUS: safe(data.cooling_fan_status),
+    SMPS_STATUS: safe(data.smps_note),
+    WIRING_STATUS: safe(data.wiring_status),
 
     // ── Probe detail ──
-    PROBE_APPEARANCE_DETAIL: data.probe_exterior,
-    PROBE_TEMPSENSOR_DETAIL: data.probe_temp_sensor,
-    PROBE_CORNERMIRROR_DETAIL: data.probe_corner_mirror,
-    PROBE_LENGTH_DETAIL: data.probe_length,
-    PROBE_MEASURE_SECTION_DETAIL: data.probe_measure_section,
-    GAS_DIRECTION_DETAIL: data.probe_gas_direction,
+    PROBE_APPEARANCE_DETAIL: safe(data.probe_exterior),
+    PROBE_TEMPSENSOR_DETAIL: safe(data.probe_temp_sensor),
+    PROBE_CORNERMIRROR_DETAIL: safe(data.probe_corner_mirror),
+    PROBE_LENGTH_DETAIL: safe(data.probe_length),
+    PROBE_MEASURE_SECTION_DETAIL: safe(data.probe_measure_section),
+    GAS_DIRECTION_DETAIL: safe(data.probe_gas_direction),
 
     // ── Summary ──
-    SUMMARY_FIRST_INSPECTION: data.summary_items[0] || "",
-    SUMMARY_SPECTROMETER_ALIGNMENT: data.summary_items[1] || "",
-    SUMMARY_PROBE_ALIGNMENT: data.summary_items[2] || "",
-    SUMMARY_STANDARD_GAS_CALIBRATION: data.summary_items[3] || "",
+    SUMMARY_FIRST_INSPECTION: safe(data.summary_items?.[0]),
+    SUMMARY_SPECTROMETER_ALIGNMENT: safe(data.summary_items?.[1]),
+    SUMMARY_PROBE_ALIGNMENT: safe(data.summary_items?.[2]),
+    SUMMARY_STANDARD_GAS_CALIBRATION: safe(data.summary_items?.[3]),
 
-    // ── Photo captions by section (images visible in app UI) ──
+    // ── Photo captions ──
     REPLACEMENT_PHOTO_ROWS: buildPhotoCaptions("replacement_parts"),
     OPTICAL_PHOTOS_ROWS: buildPhotoCaptions("body_optics"),
     ELECTRICAL_PHOTOS_ROWS: buildPhotoCaptions("cpu_smps"),
     PROBE_PHOTOS_ROWS: buildPhotoCaptions("ao_probe"),
     OTHER_PHOTOS_ROWS: buildPhotoCaptions("spectrometer"),
 
-    // Fallback for template's shared LEFT/RIGHT tags
     LEFT_IMAGE: "",
     RIGHT_IMAGE: "",
     LEFT_CAPTION: "",
@@ -167,31 +175,26 @@ export async function exportReportToWord(
   report: InspectionReport,
   reportTitle: string,
 ) {
-  // Fetch template
   const response = await fetch(TEMPLATE_URL);
   if (!response.ok) throw new Error("Template file not found");
   const templateBuffer = await response.arrayBuffer();
 
-  // Load template into PizZip
   const zip = new PizZip(templateBuffer);
 
-  // Create Docxtemplater instance with {{ }} delimiters
   const doc = new Docxtemplater(zip, {
     delimiters: { start: "{{", end: "}}" },
     paragraphLoop: true,
     linebreaks: true,
   });
 
-  // Build and render data
   const templateData = buildTemplateData(inspection, report);
   doc.render(templateData);
 
-  // Generate output blob
   const blob = doc.getZip().generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
 
-  const fileName = `${reportTitle}_${inspection.manage_no}_${report.created_date}.docx`;
+  const fileName = `${safe(reportTitle)}_${safe(inspection.manage_no)}_${safe(report.created_date)}.docx`;
   saveAs(blob, fileName);
 }
