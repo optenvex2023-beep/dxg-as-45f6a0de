@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import {
@@ -89,19 +89,20 @@ export default function FirstReport() {
 
   const handleComplete = () => {
     if (!existingReport) return;
+    // Auto-fill department head when 제조본부 completes
     if (isManufacturing) {
       updateReport(existingReport.id, {
-        inspection_data: { ...existingReport.inspection_data, department_head: "김영기" },
+        inspection_data: { ...existingReport.inspection_data, department_head: currentUser?.name || "" },
       });
     }
     completeReport(existingReport.id);
-    toast.success("1차 점검보고서가 완료되었습니다.");
+    toast.success("1차 점검보고서가 완료되었습니다. 품질본부에 알림이 전송됩니다.");
   };
 
-  const handleApprove = () => {
+  const handleQAReviewComplete = () => {
     if (!existingReport) return;
     approveReport(existingReport.id, currentUser?.name || "");
-    toast.success("보고서가 승인되었습니다.");
+    toast.success("품질본부 검토가 완료되었습니다. 환경영업팀에 알림이 전송됩니다.");
   };
 
   return (
@@ -129,7 +130,7 @@ export default function FirstReport() {
 
         {selectedInspection && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">장비 선택 (1 장비 = 1 보고서)</label>
+            <label className="text-xs font-medium text-muted-foreground">장비 선택 (1 Serial No = 1 보고서)</label>
             <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="장비를 선택하세요" />
@@ -158,10 +159,11 @@ export default function FirstReport() {
               canEdit={isManufacturing && existingReport.status === "draft"}
               canApprove={canApprove && existingReport.status === "approval_requested"}
               isManufacturing={isManufacturing}
+              isQC={isQC}
               onUpdate={updateReport}
               onComplete={handleComplete}
               onRequestApproval={() => { requestApproval(existingReport.id); toast.success("승인요청이 전송되었습니다."); }}
-              onApprove={handleApprove}
+              onQAReviewComplete={handleQAReviewComplete}
               onAddVersion={addReportVersion}
               getVersions={getReportVersions}
               currentUserName={currentUser?.name || ""}
@@ -248,7 +250,6 @@ function DocumentForm({
   const [serialNo, setSerialNo] = useState(equipment.serial_no || "");
   const [data, setData] = useState<InspectionReportData>(() => {
     const d = createDefaultReportData();
-    // Auto-fill inbound_date from inspection
     d.inbound_date = inspection.inbound_date || "";
     return d;
   });
@@ -282,6 +283,8 @@ function DocumentForm({
         inspectorName={inspectorName}
         createdDate={today}
         disabled={false}
+        reportStatus="draft"
+        qaReviewerName=""
       />
       <Button onClick={handleSubmit} className="w-full">임시저장</Button>
     </div>
@@ -292,8 +295,8 @@ function DocumentForm({
    Document View (existing report)
    ══════════════════════════════════════════════════════════════ */
 function DocumentView({
-  inspection, equipment, report, canEdit, canApprove, isManufacturing,
-  onUpdate, onComplete, onRequestApproval, onApprove,
+  inspection, equipment, report, canEdit, canApprove, isManufacturing, isQC,
+  onUpdate, onComplete, onRequestApproval, onQAReviewComplete,
   onAddVersion, getVersions, currentUserName,
 }: {
   inspection: OutboundInspection;
@@ -302,10 +305,11 @@ function DocumentView({
   canEdit: boolean;
   canApprove: boolean;
   isManufacturing: boolean;
+  isQC: boolean;
   onUpdate: (id: string, updates: Partial<InspectionReport>) => void;
   onComplete: () => void;
   onRequestApproval: () => void;
-  onApprove: () => void;
+  onQAReviewComplete: () => void;
   onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
   getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
@@ -316,7 +320,6 @@ function DocumentView({
   const [serialNo, setSerialNo] = useState(report.serial_numbers[equipment.id] || "");
   const [data, setData] = useState<InspectionReportData>(() => {
     const d = report.inspection_data || createDefaultReportData();
-    // Ensure inbound_date is populated from inspection if not overridden
     if (!d.inbound_date && inspection.inbound_date) {
       d.inbound_date = inspection.inbound_date;
     }
@@ -335,16 +338,14 @@ function DocumentView({
   };
 
   const handleWordDownload = async () => {
-    const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
-    await exportReportToWord(inspection, updatedReport, "1차 점검보고서");
-    toast.success("Word 파일이 다운로드되었습니다.");
-  };
-
-  const handlePdfDownload = async () => {
-    // Generate Word first, then inform user to convert
-    const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
-    await exportReportToWord(inspection, updatedReport, "1차 점검보고서");
-    toast.info("Word 파일이 다운로드되었습니다. Word에서 열어 PDF로 저장해 주세요.", { duration: 5000 });
+    try {
+      const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
+      await exportReportToWord(inspection, updatedReport, "1차 점검보고서");
+      toast.success("Word 파일이 다운로드되었습니다.");
+    } catch (error) {
+      console.error("Word export failed:", error);
+      toast.error("Word 다운로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -355,7 +356,6 @@ function DocumentView({
       toast.success(`수정본 v${versions.length + 1}이 업로드되었습니다.`);
     }
   };
-
 
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
 
@@ -385,6 +385,8 @@ function DocumentView({
           inspectorName={report.inspector_name}
           createdDate={report.created_date}
           disabled={!editable}
+          reportStatus={report.status}
+          qaReviewerName={report.approved_by || ""}
         />
       </div>
 
@@ -394,9 +396,6 @@ function DocumentView({
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleWordDownload}>
             <FileDown className="h-3.5 w-3.5" /> Word 다운로드
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handlePdfDownload}>
-            <FileDown className="h-3.5 w-3.5" /> PDF 다운로드
           </Button>
           <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
             <label className="cursor-pointer">
@@ -430,8 +429,15 @@ function DocumentView({
         {canEdit && report.status === "completed" && (
           <Button onClick={onRequestApproval} className="gap-1"><Send className="h-4 w-4" /> 승인요청</Button>
         )}
-        {canApprove && report.status === "approval_requested" && (
-          <Button onClick={onApprove} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
+        {/* QA review button - visible to 품질본부 when approval_requested */}
+        {isQC && report.status === "approval_requested" && (
+          <Button onClick={onQAReviewComplete} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
+            <ShieldCheck className="h-4 w-4" /> 품질본부 검토 완료
+          </Button>
+        )}
+        {/* Admin approve */}
+        {canApprove && !isQC && report.status === "approval_requested" && (
+          <Button onClick={onQAReviewComplete} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
             <Check className="h-4 w-4" /> 승인
           </Button>
         )}
@@ -452,6 +458,7 @@ function DocumentView({
 function TemplateBody({
   inspection, equipment, serialNo, onSerialChange,
   data, onDataChange, inspectorName, createdDate, disabled,
+  reportStatus, qaReviewerName,
 }: {
   inspection: OutboundInspection;
   equipment: OutboundEquipmentItem;
@@ -462,6 +469,8 @@ function TemplateBody({
   inspectorName: string;
   createdDate: string;
   disabled: boolean;
+  reportStatus: string;
+  qaReviewerName: string;
 }) {
   const upd = onDataChange || (() => {});
   const ro = disabled || !onDataChange;
@@ -543,18 +552,30 @@ function TemplateBody({
         <span>□ 기타 (긴급)</span>
       </div>
 
-      {/* Inspector table */}
+      {/* Inspector table — 4 columns matching Word template */}
       <table className="w-full border-collapse">
         <tbody>
           <tr>
-            <td className={thCls} style={{ width: "33%" }}>점검자</td>
-            <td className={thCls} style={{ width: "33%" }}>부서장</td>
-            <td className={thCls}>품질본부 확인</td>
+            <td className={thCls} style={{ width: "25%" }}>점검자</td>
+            <td className={thCls} style={{ width: "25%" }}>부서장</td>
+            <td className={thCls} style={{ width: "25%" }}>품질본부 확인</td>
+            <td className={thCls} style={{ width: "25%" }}>품질 서명</td>
           </tr>
           <tr>
             <td className={tdCls}>{inspectorName}</td>
             <td className={tdCls}>{data.department_head || ""}</td>
-            <td className={tdCls}></td>
+            <td className={tdCls}>{qaReviewerName || ""}</td>
+            <td className={cn(tdCls, "text-center")}>
+              {reportStatus === "approved" ? (
+                <img
+                  src="/images/qa-stamp.jpg"
+                  alt="품질 서명"
+                  className="inline-block h-12 w-auto"
+                />
+              ) : (
+                <span className="text-muted-foreground text-[10px]">—</span>
+              )}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -834,7 +855,7 @@ function TemplateBody({
                 <div className="text-xs mb-1">오염 상태:</div>
                 <EditableText value={data.beam_splitter_contamination} onChange={v => upd({ beam_splitter_contamination: v })} disabled={ro} />
                 <div className="text-xs mt-1 mb-1">점검결과:</div>
-                <EditableText value={data.beam_splitter_result} onChange={v => upd({ beam_splitter_result: v })} disabled={ro} />
+                <EditableTextarea value={data.beam_splitter_result} onChange={v => upd({ beam_splitter_result: v })} disabled={ro} rows={2} />
               </td>
             </tr>
             <tr>
@@ -843,12 +864,12 @@ function TemplateBody({
                 <div className="text-xs mb-1">상태:</div>
                 <EditableText value={data.spectrometer_status} onChange={v => upd({ spectrometer_status: v })} disabled={ro} />
                 <div className="text-xs mt-1 mb-1">점검결과:</div>
-                <EditableText value={data.spectrometer_result} onChange={v => upd({ spectrometer_result: v })} disabled={ro} />
+                <EditableTextarea value={data.spectrometer_result} onChange={v => upd({ spectrometer_result: v })} disabled={ro} rows={2} />
               </td>
             </tr>
             <tr>
               <td className={thCls}>UV Lamp</td>
-              <td className={tdCls}><EditableText value={data.uv_lamp_note} onChange={v => upd({ uv_lamp_note: v })} disabled={ro} /></td>
+              <td className={tdCls}><EditableTextarea value={data.uv_lamp_note} onChange={v => upd({ uv_lamp_note: v })} disabled={ro} rows={2} /></td>
             </tr>
             <tr>
               <td className={thCls}>냉각 팬</td>
@@ -859,7 +880,7 @@ function TemplateBody({
             </tr>
             <tr>
               <td className={thCls}>5V, 12V, 24V SMPS</td>
-              <td className={tdCls}><EditableText value={data.smps_note} onChange={v => upd({ smps_note: v })} disabled={ro} /></td>
+              <td className={tdCls}><EditableTextarea value={data.smps_note} onChange={v => upd({ smps_note: v })} disabled={ro} rows={2} /></td>
             </tr>
             <tr>
               <td className={thCls}>배선 결선 상태</td>
@@ -880,7 +901,7 @@ function TemplateBody({
             <tr><td className={thCls} style={{ width: "30%" }}>외관 상태</td><td className={tdCls}><EditableText value={data.probe_exterior} onChange={v => upd({ probe_exterior: v })} disabled={ro} /></td></tr>
             <tr><td className={thCls}>온도센서</td><td className={tdCls}><EditableText value={data.probe_temp_sensor} onChange={v => upd({ probe_temp_sensor: v })} disabled={ro} /></td></tr>
             <tr><td className={thCls}>코너 큐브 미러</td><td className={tdCls}><EditableText value={data.probe_corner_mirror} onChange={v => upd({ probe_corner_mirror: v })} disabled={ro} /></td></tr>
-            <tr><td className={thCls}>프로브 길이</td><td className={tdCls}><EditableText value={data.probe_length} onChange={v => upd({ probe_length: v })} disabled={ro} /></td></tr>
+            <tr><td className={thCls}>프로브 길이</td><td className={tdCls}><EditableText value={data.probe_length} onChange={v => upd({ probe_length: v })} disabled={ro} placeholder="mm" /></td></tr>
             <tr><td className={thCls}>측정구간</td><td className={tdCls}><EditableText value={data.probe_measure_section} onChange={v => upd({ probe_measure_section: v })} disabled={ro} /></td></tr>
             <tr><td className={thCls}>가스방향</td><td className={tdCls}><EditableText value={data.probe_gas_direction} onChange={v => upd({ probe_gas_direction: v })} disabled={ro} /></td></tr>
           </tbody>
@@ -900,7 +921,7 @@ function TemplateBody({
                 <td className={cn(thCls, "w-8 text-center")}>{idx + 1}</td>
                 <td className={cn(thCls, "w-1/3")}>{label}</td>
                 <td className={tdCls}>
-                  <EditableText value={data.summary_items[idx] || ""} onChange={v => updateSummary(idx, v)} disabled={ro} />
+                  <EditableTextarea value={data.summary_items[idx] || ""} onChange={v => updateSummary(idx, v)} disabled={ro} rows={2} />
                 </td>
               </tr>
             ))}
@@ -908,56 +929,73 @@ function TemplateBody({
         </table>
       </div>
 
-      {/* ═══ PAGES 6-12: Photo Sections ═══ */}
+      {/* ═══ PAGES 6-12: Photo Sections (2-column layout) ═══ */}
       <div className="space-y-6">
         <h3 className="text-sm font-bold">사진 첨부</h3>
         {PHOTO_SLOTS.map(slot => {
           const slotPhotos = (data.photos || []).filter(p => p.page_slot === slot.key);
+          // Group photos into rows of 2
+          const photoRows: Array<[ReportPhoto | null, ReportPhoto | null]> = [];
+          for (let i = 0; i < slotPhotos.length; i += 2) {
+            photoRows.push([slotPhotos[i] || null, slotPhotos[i + 1] || null]);
+          }
           return (
             <div key={slot.key} className="rounded-lg border bg-card p-4 space-y-3">
               <p className="text-xs font-semibold">{slot.title}</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {slotPhotos.map(photo => (
-                  <div key={photo.id} className="relative group border rounded overflow-hidden">
-                    <img src={photo.file_url} alt={photo.caption || slot.title} className="w-full h-32 object-cover" />
-                    {!ro && (
-                      <button
-                        onClick={() => removePhoto(photo.id)}
-                        className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                    <div className="p-2">
-                      <p className="text-[10px] font-medium text-muted-foreground mb-1">설명</p>
-                      {!ro ? (
-                        <Textarea
-                          className="text-xs min-h-[40px] resize-none"
-                          placeholder="사진 설명을 입력하세요"
-                          value={photo.caption}
-                          onChange={e => updatePhotoCaption(photo.id, e.target.value)}
-                          rows={2}
-                        />
+              {/* 2-column grid rows */}
+              {photoRows.map((row, rowIdx) => (
+                <div key={rowIdx} className="grid grid-cols-2 gap-3">
+                  {row.map((photo, colIdx) => (
+                    <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
+                      {photo ? (
+                        <div className="relative group border rounded overflow-hidden">
+                          <img src={photo.file_url} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
+                          {!ro && (
+                            <button
+                              onClick={() => removePhoto(photo.id)}
+                              className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                          <div className="p-2">
+                            <p className="text-[10px] font-medium text-muted-foreground mb-1">설명</p>
+                            {!ro ? (
+                              <Textarea
+                                className="text-xs min-h-[40px] resize-none"
+                                placeholder="사진 설명을 입력하세요"
+                                value={photo.caption}
+                                onChange={e => updatePhotoCaption(photo.id, e.target.value)}
+                                rows={2}
+                              />
+                            ) : (
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{photo.caption || "—"}</p>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">{photo.caption || "—"}</p>
+                        <div className="h-40 border-2 border-dashed rounded flex items-center justify-center">
+                          <span className="text-[10px] text-muted-foreground">빈 칸</span>
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
-                {!ro && (
-                  <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50 transition-colors">
-                    <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
-                    <span className="text-[10px] text-muted-foreground">드래그 또는 클릭</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={e => handlePhotoUpload(slot.key, e.target.files)}
-                    />
-                  </label>
-                )}
-              </div>
+                  ))}
+                </div>
+              ))}
+              {/* Upload area */}
+              {!ro && (
+                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50 transition-colors">
+                  <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
+                  <span className="text-[10px] text-muted-foreground">드래그 또는 클릭하여 사진 추가</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={e => handlePhotoUpload(slot.key, e.target.files)}
+                  />
+                </label>
+              )}
               {slotPhotos.length === 0 && ro && (
                 <p className="text-xs text-muted-foreground text-center py-4">첨부된 사진 없음</p>
               )}
