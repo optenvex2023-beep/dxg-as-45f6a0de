@@ -17,6 +17,7 @@ export type Department = "환경영업팀" | "품질본부" | "CS팀" | "제조�
 
 export interface AppUser {
   id: string;
+  emp_no: string;
   name: string;
   role_category: RoleCategory;
   department: Department;
