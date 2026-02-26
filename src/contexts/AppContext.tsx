@@ -101,7 +101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mailOutbox, setMailOutbox] = useState<MailOutbox[]>([]);
   const [reports, setReports] = useState<InspectionReport[]>([]);
   const [reportVersions, setReportVersions] = useState<ReportVersion[]>([]);
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(seedUsers[0]);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
 
   const triggerNotifications = useCallback((rec: OutboundInspection, oldStatus: StatusType | null, oldDueWarning: boolean | null) => {
     const now = new Date().toISOString();
