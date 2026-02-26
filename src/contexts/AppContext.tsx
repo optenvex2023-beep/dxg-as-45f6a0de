@@ -12,7 +12,7 @@ interface AppState {
   reportVersions: ReportVersion[];
   currentUser: AppUser | null;
   setCurrentUser: (user: AppUser | null) => void;
-  addUser: (name: string, role_category: RoleCategory, department: Department) => void;
+  addUser: (name: string, emp_no: string, role_category: RoleCategory, department: Department) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at">) => void;
   updateInspection: (id: string, updates: Partial<OutboundInspection>) => void;
@@ -131,10 +131,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addUser = useCallback((name: string, role_category: RoleCategory, department: Department) => {
+  const addUser = useCallback((name: string, emp_no: string, role_category: RoleCategory, department: Department) => {
     setUsers((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name, role_category, department, is_active: true },
+      { id: crypto.randomUUID(), emp_no, name, role_category, department, is_active: true },
     ]);
   }, []);
 
