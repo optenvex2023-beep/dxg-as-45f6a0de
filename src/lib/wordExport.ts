@@ -3,7 +3,8 @@ import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
 import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "@/types";
 
-const TEMPLATE_URL = "/templates/first-report-template.docx";
+const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
+const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
@@ -18,6 +19,7 @@ const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }>
   { category: "광학부", item: "Focusing Lens", key: "FOCUSINGLENS" },
   { category: "광학부", item: "M/U Window", key: "MUWINDOW" },
   { category: "Spectrometer", item: "스펙트럼 형상", key: "SPECTRUM" },
+  { category: "Spectrometer", item: "신호 상태", key: "SIGNAL" },
   { category: "UV Lamp", item: "UV Lamp 광원", key: "UVLAMP" },
   { category: "UV Lamp Driver", item: "DC 출력 상태", key: "DCOUTPUT" },
   { category: "SMPS", item: "동작 상태 (5V, 12V, 24V)", key: "SMPS" },
@@ -26,6 +28,7 @@ const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }>
   { category: "냉각 팬", item: "동작 상태", key: "COOLINGFAN_OPERATION" },
   { category: "프로브", item: "외관 상태", key: "PROBE_APPEARANCE" },
   { category: "프로브", item: "온도센서 / 동작 상태", key: "PROBE_TEMPSENSOR" },
+  { category: "프로브", item: "코너큐브 미러", key: "PROBE_CORNERMIRROR" },
 ];
 
 function buildCheckFlags(items: InspectionCheckItem[]): Record<string, boolean> {
@@ -175,7 +178,8 @@ export async function exportReportToWord(
   report: InspectionReport,
   reportTitle: string,
 ) {
-  const response = await fetch(TEMPLATE_URL);
+  const templateUrl = report.report_type === "final" ? FINAL_TEMPLATE_URL : FIRST_TEMPLATE_URL;
+  const response = await fetch(templateUrl);
   if (!response.ok) throw new Error("Template file not found");
   const templateBuffer = await response.arrayBuffer();
 
