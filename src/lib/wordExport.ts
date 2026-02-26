@@ -1,293 +1,197 @@
-import { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, HeadingLevel, Packer, ImageRun } from "docx";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-import type { OutboundInspection, InspectionReport, ReportPhoto } from "@/types";
+import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "@/types";
 
-function border() {
-  return { style: BorderStyle.SINGLE, size: 1, color: "000000" };
-}
-function cellBorders() {
-  return { top: border(), bottom: border(), left: border(), right: border() };
-}
+const TEMPLATE_URL = "/templates/first-report-template.docx";
 
-function headerCell(text: string, width?: number): TableCell {
-  return new TableCell({
-    borders: cellBorders(),
-    width: width ? { size: width, type: WidthType.DXA } : undefined,
-    shading: { fill: "F2F2F2" },
-    children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 20 })] })],
-  });
-}
+/* ─── Check item → template boolean key mapping ─── */
+const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
+  { category: "광학부", item: "Beam Splitter", key: "BEAMSPLITTER" },
+  { category: "광학부", item: "Focusing Lens", key: "FOCUSINGLENS" },
+  { category: "광학부", item: "M/U Window", key: "MUWINDOW" },
+  { category: "Spectrometer", item: "스펙트럼 형상", key: "SPECTRUM" },
+  { category: "UV Lamp", item: "UV Lamp 광원", key: "UVLAMP" },
+  { category: "UV Lamp Driver", item: "DC 출력 상태", key: "DCOUTPUT" },
+  { category: "SMPS", item: "동작 상태 (5V, 12V, 24V)", key: "SMPS" },
+  { category: "배선 결선", item: "배선 단락, 단선", key: "WIRING" },
+  { category: "Main Control CPU Board", item: "부팅 여부 / 동작 상태", key: "CPU" },
+  { category: "냉각 팬", item: "동작 상태", key: "COOLINGFAN_OPERATION" },
+  { category: "프로브", item: "외관 상태", key: "PROBE_APPEARANCE" },
+  { category: "프로브", item: "온도센서 / 동작 상태", key: "PROBE_TEMPSENSOR" },
+];
 
-function textCell(text: string, width?: number): TableCell {
-  return new TableCell({
-    borders: cellBorders(),
-    width: width ? { size: width, type: WidthType.DXA } : undefined,
-    children: [new Paragraph({ children: [new TextRun({ text, size: 20 })] })],
-  });
-}
-
-const PHOTO_SLOT_TITLES: Record<string, string> = {
-  replacement_parts: "교체 필요 부품 사진",
-  body_optics: "본체, 광학 (렌즈) 관련 부품 점검 사진",
-  cpu_smps: "Main Control CPU Board, SMPS, 기타 부품 점검 사진",
-  ao_probe: "AO 출력 / 프로브 점검 사진",
-  probe_detail: "프로브 상세 점검 사진",
-  spectrometer: "Spectrometer 얼라인먼트 / 기타 사진",
-  final_assembly: "프로브 결합후 Spectrometer 형상",
-};
-
-const PHOTO_SLOT_ORDER = ["replacement_parts", "body_optics", "cpu_smps", "ao_probe", "probe_detail", "spectrometer", "final_assembly"];
-
-async function fetchImageAsBuffer(url: string): Promise<{ buf: ArrayBuffer; w: number; h: number } | null> {
-  try {
-    const resp = await fetch(url);
-    const blob = await resp.blob();
-    const buf = await blob.arrayBuffer();
-    // Default dimensions for Word
-    return { buf, w: 300, h: 200 };
-  } catch {
-    return null;
+function buildCheckFlags(items: InspectionCheckItem[]): Record<string, boolean> {
+  const flags: Record<string, boolean> = {};
+  for (const mapping of CHECK_ITEM_KEY_MAP) {
+    const item = items.find(i => i.category === mapping.category && i.item === mapping.item);
+    flags[`CHECK_${mapping.key}_OK`] = item?.result === "양호";
+    flags[`CHECK_${mapping.key}_NEED`] = item?.result === "추가점검 필요";
   }
+  return flags;
 }
 
+/* ─── Build full template data object ─── */
+function buildTemplateData(
+  inspection: OutboundInspection,
+  report: InspectionReport,
+): Record<string, unknown> {
+  const data = report.inspection_data;
+  const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
+  const serialNo = report.serial_numbers[report.equipment_item_id] || equipItem?.serial_no || "";
+
+  // Build photo captions grouped by section (2-column rows)
+  const buildPhotoCaptions = (slotKey: string) => {
+    const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
+    const rows: Array<{ LEFT_CAPTION: string; RIGHT_CAPTION: string }> = [];
+    for (let i = 0; i < slotPhotos.length; i += 2) {
+      rows.push({
+        LEFT_CAPTION: slotPhotos[i]?.caption || "",
+        RIGHT_CAPTION: slotPhotos[i + 1]?.caption || "",
+      });
+    }
+    return rows;
+  };
+
+  return {
+    // ── Cover page ──
+    INSPECTOR_NAM: report.inspector_name,
+    DEPT_HEAD_NAM: data.department_head || "",
+    QA_REVIEWER_NAM: report.approved_by || "",
+    QA_SIGNATURE: report.approved_by ? "검토완료" : "",
+
+    CLIENT_NAME: data.client_name,
+    CLIENT_N: data.client_name,
+    SERIAL_NO: serialNo,
+    SERIAL: serialNo,
+    INBOUND_DATE: data.inbound_date,
+    REPORT_DATE: report.created_date,
+    MANAGEMENT_NO: inspection.manage_no,
+
+    // ── Model checkboxes (☑/☐ via sections) ──
+    IS_DGA_X: data.model_checks.includes("DGA-X"),
+    IS_DSM_XG: data.model_checks.includes("DSM-XG"),
+    IS_RGA_60: data.model_checks.includes("RGA-60"),
+    IS_RSM_61: data.model_checks.includes("RSM-61"),
+    IS_TGA_50: data.model_checks.includes("TGA-50"),
+    IS_LSM_30: data.model_checks.includes("LSM-30"),
+    IS_GGA_70_1: data.model_checks.includes("GGA-70-1"),
+    IS_PGA_91: data.model_checks.includes("PGA-91"),
+    IS_OTHER_MODEL: false,
+    OTHER_MODEL_NAME: "",
+
+    // ── Inbound items ──
+    IS_MAIN_UNIT: data.inbound_items.includes("Main Unit"),
+    IS_ACU: data.inbound_items.includes("ACU"),
+    IS_PROBE: data.inbound_items.includes("Probe"),
+    IS_PURGE_AIR_UNIT: data.inbound_items.includes("Purge Air Unit"),
+
+    // ── Inspection type ──
+    IS_REGULAR_INSPECTION: data.inbound_type.includes("정기 반출 점검"),
+    IS_EMERGENCY_INSPECTION: data.inbound_type.includes("긴급 점검"),
+    IS_INCOMING_INSPECTION: data.inbound_type.includes("입고 점검"),
+
+    // ── Basic check: gas ──
+    CHECK_GAS_NOX: data.measure_gas.includes("NOx"),
+    CHECK_GAS_NO2: data.measure_gas.includes("NO2"),
+    CHECK_GAS_SO2: data.measure_gas.includes("SO2"),
+    CHECK_GAS_NH3: data.measure_gas.includes("NH3"),
+    CHECK_GAS_CO: data.measure_gas.includes("CO"),
+    CHECK_GAS_HCL: data.measure_gas.includes("HCl"),
+    CHECK_GAS_O2: data.measure_gas.includes("O2"),
+
+    // ── Basic check: install type ──
+    CHECK_INSTALL_BLR: data.install_type.includes("BLR"),
+    CHECK_INSTALL_SCR: data.install_type.includes("SCR"),
+    CHECK_INSTALL_ESP: data.install_type.includes("ESP"),
+    CHECK_INSTALL_FGD: data.install_type.includes("FGD"),
+    CHECK_INSTALL_TMS: data.install_type.includes("TMS"),
+    CHECK_INSTALL_ETC: false,
+    INSTALL_ETC_TEXT: "",
+
+    // ── Section II: check item boolean flags ──
+    ...buildCheckFlags(data.check_items),
+
+    // ── Section III: replacement parts list (row repeat) ──
+    REPLACEMENT_LIST: (data.replacement_parts || []).map(p => ({
+      ITEM_NAME: p.name,
+      ITEM_QT: p.qty,
+      ITEM_STATUS: p.status,
+      ITEM_COMMENT: p.note,
+    })),
+
+    // ── Section IV: detail text fields (linebreaks preserved) ──
+    CPU_STATUS: data.main_control_cpu,
+    OPTICS_CONTAMINATION: data.optics_window_lens,
+    BEAMSPLITTER_CONTAMINATION: data.beam_splitter_contamination,
+    BEAMSPLITTER_COMMENT: data.beam_splitter_result,
+    SPECTROMETER_STATUS: data.spectrometer_status,
+    SPECTROMETER_COMMENT: data.spectrometer_result,
+    UVLAMP_STATUS: data.uv_lamp_note,
+    COOLINGFAN_STATUS: data.cooling_fan_status,
+    SMPS_STATUS: data.smps_note,
+    WIRING_STATUS: data.wiring_status,
+
+    // ── Probe detail ──
+    PROBE_APPEARANCE_DETAIL: data.probe_exterior,
+    PROBE_TEMPSENSOR_DETAIL: data.probe_temp_sensor,
+    PROBE_CORNERMIRROR_DETAIL: data.probe_corner_mirror,
+    PROBE_LENGTH_DETAIL: data.probe_length,
+    PROBE_MEASURE_SECTION_DETAIL: data.probe_measure_section,
+    GAS_DIRECTION_DETAIL: data.probe_gas_direction,
+
+    // ── Summary ──
+    SUMMARY_FIRST_INSPECTION: data.summary_items[0] || "",
+    SUMMARY_SPECTROMETER_ALIGNMENT: data.summary_items[1] || "",
+    SUMMARY_PROBE_ALIGNMENT: data.summary_items[2] || "",
+    SUMMARY_STANDARD_GAS_CALIBRATION: data.summary_items[3] || "",
+
+    // ── Photo captions by section (images visible in app UI) ──
+    REPLACEMENT_PHOTO_ROWS: buildPhotoCaptions("replacement_parts"),
+    OPTICAL_PHOTOS_ROWS: buildPhotoCaptions("body_optics"),
+    ELECTRICAL_PHOTOS_ROWS: buildPhotoCaptions("cpu_smps"),
+    PROBE_PHOTOS_ROWS: buildPhotoCaptions("ao_probe"),
+    OTHER_PHOTOS_ROWS: buildPhotoCaptions("spectrometer"),
+
+    // Fallback for template's shared LEFT/RIGHT tags
+    LEFT_IMAGE: "",
+    RIGHT_IMAGE: "",
+    LEFT_CAPTION: "",
+    RIGHT_CAPTION: "",
+  };
+}
+
+/* ─── Export function ─── */
 export async function exportReportToWord(
   inspection: OutboundInspection,
   report: InspectionReport,
   reportTitle: string,
 ) {
-  const data = report.inspection_data;
-  const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
-  const serialNo = report.serial_numbers[report.equipment_item_id] || equipItem?.serial_no || "";
+  // Fetch template
+  const response = await fetch(TEMPLATE_URL);
+  if (!response.ok) throw new Error("Template file not found");
+  const templateBuffer = await response.arrayBuffer();
 
-  // Build check items rows — renamed columns
-  const checkRows = (data?.check_items || []).map(item => {
-    // Build the last column value from dropdown option + detail
-    const resultOption = item.inspection_result_option || "사용 가능";
-    const resultText = resultOption === "직접 기입" && item.inspection_result_detail
-      ? `${resultOption} - ${item.inspection_result_detail}`
-      : resultOption;
+  // Load template into PizZip
+  const zip = new PizZip(templateBuffer);
 
-    return new TableRow({
-      children: [
-        textCell(item.category, 1200),
-        textCell(item.item, 1600),
-        textCell(item.result, 1800),
-        textCell(item.action, 2200),
-        textCell(resultText, 2200),
-      ],
-    });
+  // Create Docxtemplater instance with {{ }} delimiters
+  const doc = new Docxtemplater(zip, {
+    delimiters: { start: "{{", end: "}}" },
+    paragraphLoop: true,
+    linebreaks: true,
   });
 
-  // Build replacement parts rows
-  const partRows = (data?.replacement_parts || []).map(part =>
-    new TableRow({
-      children: [
-        textCell(part.name, 2500),
-        textCell(part.qty, 1000),
-        textCell(part.status, 2500),
-        textCell(part.note, 3000),
-      ],
-    })
-  );
+  // Build and render data
+  const templateData = buildTemplateData(inspection, report);
+  doc.render(templateData);
 
-  // Build photo pages
-  const photoSections: Paragraph[] = [];
-  for (const slotKey of PHOTO_SLOT_ORDER) {
-    const slotTitle = PHOTO_SLOT_TITLES[slotKey];
-    const photos = (data?.photos || []).filter((p: ReportPhoto) => p.page_slot === slotKey);
-
-    // Always add the page title (even if no photos)
-    photoSections.push(
-      new Paragraph({ spacing: { before: 400 }, children: [] }),
-      new Paragraph({
-        heading: HeadingLevel.HEADING_2,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: slotTitle, bold: true, size: 24 })],
-      }),
-    );
-
-    if (photos.length === 0) {
-      photoSections.push(
-        new Paragraph({
-          spacing: { after: 200 },
-          children: [new TextRun({ text: "(사진 없음)", size: 20, color: "999999" })],
-        }),
-      );
-    } else {
-      for (const photo of photos) {
-        try {
-          const imgData = await fetchImageAsBuffer(photo.file_url);
-          if (imgData) {
-            photoSections.push(
-              new Paragraph({
-                spacing: { after: 100 },
-                children: [
-                  new ImageRun({
-                    data: imgData.buf,
-                    transformation: { width: imgData.w, height: imgData.h },
-                    type: "jpg",
-                  }),
-                ],
-              }),
-            );
-          }
-        } catch {
-          // Skip failed images
-        }
-        if (photo.caption) {
-          photoSections.push(
-            new Paragraph({
-              spacing: { after: 100 },
-              children: [new TextRun({ text: photo.caption, size: 18, italics: true })],
-            }),
-          );
-        }
-      }
-    }
-  }
-
-  const doc = new Document({
-    sections: [
-      {
-        children: [
-          // Title
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-            children: [new TextRun({ text: "DXG", bold: true, size: 36 })],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 200 },
-            children: [new TextRun({ text: "점 검 보 고 서", bold: true, size: 36 })],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-            children: [new TextRun({ text: `[${reportTitle}]`, bold: true, size: 28 })],
-          }),
-
-          // Report type
-          new Paragraph({
-            spacing: { after: 200 },
-            children: [new TextRun({
-              text: report.report_type === "first"
-                ? "■ 입고  □ 중간  □ 완료  □ 기타 (긴급)"
-                : "□ 입고  □ 중간  ■ 완료  □ 기타 (긴급)",
-              size: 20,
-            })],
-          }),
-
-          // Inspector info table — no 점/수 placeholders
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("점검자", 3000), headerCell("부서장", 3000), headerCell("품질본부 확인", 3000)] }),
-              new TableRow({ children: [textCell(report.inspector_name, 3000), textCell(data?.department_head || "", 3000), textCell("", 3000)] }),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 200, after: 100 }, children: [] }),
-
-          // Basic info table
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("Client", 2000), textCell(data?.client_name || "", 2500), headerCell("Serial No", 1500), textCell(serialNo, 3000)] }),
-              new TableRow({ children: [headerCell("관리번호", 2000), textCell(inspection.manage_no, 2500), headerCell("건명", 1500), textCell(inspection.project_name, 3000)] }),
-              new TableRow({ children: [headerCell("입고일", 2000), textCell(data?.inbound_date || "", 2500), headerCell("작성일", 1500), textCell(report.created_date, 3000)] }),
-              new TableRow({ children: [headerCell("반출장비", 2000), textCell(equipItem?.equipment_name || "", 2500), headerCell("수량", 1500), textCell(String(equipItem?.qty_set || ""), 3000)] }),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
-
-          // Ⅰ. 기본 Check
-          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅰ. 기본 Check 항목", bold: true, size: 24 })] }),
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("전압", 3000), headerCell("측정가스", 3000), headerCell("설치 구분", 3000)] }),
-              new TableRow({
-                children: [
-                  textCell(`Main Unit: ${(data?.voltage_main || []).join(", ")}\nPurge Air: ${(data?.voltage_purge || []).join(", ")}`, 3000),
-                  textCell((data?.measure_gas || []).join(", "), 3000),
-                  textCell((data?.install_type || []).join(", "), 3000),
-                ],
-              }),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
-
-          // Ⅱ. Inspection checklist — renamed columns
-          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅱ. 점검 내용 및 조치 사항", bold: true, size: 24 })] }),
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({
-                children: [
-                  headerCell("구분", 1500), headerCell("점검 항목", 2000),
-                  headerCell("점검 결과", 1800), headerCell("점검 내용", 1800), headerCell("점검 결과", 1800),
-                ],
-              }),
-              ...checkRows,
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
-
-          // Ⅲ. Replacement parts
-          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅲ. 교체 (필요) 품목 List", bold: true, size: 24 })] }),
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("품목", 2500), headerCell("수량", 1000), headerCell("Status", 2500), headerCell("점검내용", 3000)] }),
-              ...(partRows.length > 0 ? partRows : [new TableRow({ children: [textCell("—", 2500), textCell("", 1000), textCell("", 2500), textCell("", 3000)] })]),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
-
-          // Ⅳ. Special notes — Updated labels
-          new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { after: 100 }, children: [new TextRun({ text: "Ⅳ. 기타 특이사항 (세부 설명)", bold: true, size: 24 })] }),
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("Main Control CPU Board", 3000), textCell(data?.main_control_cpu || "", 6000)] }),
-              new TableRow({ children: [headerCell("광학부품 (윈도우, 볼록렌즈)", 3000), textCell(data?.optics_window_lens || "", 6000)] }),
-              new TableRow({ children: [headerCell("광학부품 (Beam Splitter)", 3000), textCell(`오염 상태: ${data?.beam_splitter_contamination || ""}\n점검결과: ${data?.beam_splitter_result || ""}`, 6000)] }),
-              new TableRow({ children: [headerCell("Spectrometer 형상/신호 상태", 3000), textCell(`상태: ${data?.spectrometer_status || ""}\n점검결과: ${data?.spectrometer_result || ""}`, 6000)] }),
-              new TableRow({ children: [headerCell("UV Lamp", 3000), textCell(data?.uv_lamp_note || "", 6000)] }),
-              new TableRow({ children: [headerCell("냉각 팬", 3000), textCell(`동작 상태: ${data?.cooling_fan_status || ""}`, 6000)] }),
-              new TableRow({ children: [headerCell("5V, 12V, 24V SMPS", 3000), textCell(data?.smps_note || "", 6000)] }),
-              new TableRow({ children: [headerCell("배선 결선 상태", 3000), textCell(`단락, 단선, 연결상태: ${data?.wiring_status || ""}`, 6000)] }),
-            ],
-          }),
-
-          new Paragraph({ spacing: { before: 300, after: 100 }, children: [] }),
-
-          // Summary
-          new Paragraph({ spacing: { before: 300 }, heading: HeadingLevel.HEADING_2, children: [new TextRun({ text: "점검 사항 요약", bold: true, size: 24 })] }),
-          new Table({
-            width: { size: 9000, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: [headerCell("No", 800), headerCell("항목", 3000), headerCell("내용", 5200)] }),
-              ...["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"].map((label, i) =>
-                new TableRow({ children: [textCell(String(i + 1), 800), textCell(label, 3000), textCell(data?.summary_items?.[i] || "", 5200)] })
-              ),
-            ],
-          }),
-
-          // Photo pages (6-12)
-          ...photoSections,
-        ],
-      },
-    ],
+  // Generate output blob
+  const blob = doc.getZip().generate({
+    type: "blob",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
 
-  const blob = await Packer.toBlob(doc);
   const fileName = `${reportTitle}_${inspection.manage_no}_${report.created_date}.docx`;
   saveAs(blob, fileName);
 }
