@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, Sparkles, X } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import {
@@ -322,11 +322,6 @@ function DocumentView({
     }
     return d;
   });
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [aiOriginal, setAiOriginal] = useState<Record<string, string>>({});
-  const [aiCorrected, setAiCorrected] = useState<Record<string, string>>({});
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiEditMode, setAiEditMode] = useState(false);
   const versions = getVersions(report.id);
 
   const upd = (patch: Partial<InspectionReportData>) => setData(prev => ({ ...prev, ...patch }));
@@ -361,96 +356,6 @@ function DocumentView({
     }
   };
 
-  /* ─── AI Proofreading ─── */
-  const collectTextFields = (): Record<string, string> => {
-    const fields: Record<string, string> = {};
-    data.check_items.forEach((item, idx) => {
-      if (item.action) fields[`check_action_${idx}`] = item.action;
-      if (item.action_result) fields[`check_result_${idx}`] = item.action_result;
-      if (item.inspection_result_option === "직접 기입" && item.inspection_result_detail) {
-        fields[`check_detail_${idx}`] = item.inspection_result_detail;
-      }
-    });
-    if (data.detail_notes) fields.detail_notes = data.detail_notes;
-    if (data.main_control_cpu) fields.main_control_cpu = data.main_control_cpu;
-    if (data.optics_window_lens) fields.optics_window_lens = data.optics_window_lens;
-    if (data.beam_splitter_contamination) fields.beam_splitter_contamination = data.beam_splitter_contamination;
-    if (data.beam_splitter_result) fields.beam_splitter_result = data.beam_splitter_result;
-    if (data.spectrometer_status) fields.spectrometer_status = data.spectrometer_status;
-    if (data.spectrometer_result) fields.spectrometer_result = data.spectrometer_result;
-    if (data.site_situation) fields.site_situation = data.site_situation;
-    if (data.client_request) fields.client_request = data.client_request;
-    data.summary_items.forEach((s, i) => { if (s) fields[`summary_${i}`] = s; });
-    return fields;
-  };
-
-  const handleAiReview = async () => {
-    // Check if AI service is configured (edge function / API key)
-    const aiConfigured = false; // MVP: not configured yet
-    if (!aiConfigured) {
-      toast.error("AI 기능을 사용하려면 관리자에게 API 설정을 요청하세요.", { duration: 4000 });
-      return;
-    }
-
-    const fields = collectTextFields();
-    if (Object.keys(fields).length === 0) {
-      toast.error("교정할 텍스트가 없습니다.");
-      return;
-    }
-    setAiOriginal(fields);
-    setAiLoading(true);
-    setAiModalOpen(true);
-
-    setTimeout(() => {
-      const corrected: Record<string, string> = {};
-      for (const [key, val] of Object.entries(fields)) {
-        corrected[key] = val
-          .replace(/\s{2,}/g, " ")
-          .replace(/\s+:/g, " :")
-          .replace(/\s+\./g, ".")
-          .trim();
-      }
-      setAiCorrected(corrected);
-      setAiLoading(false);
-    }, 1500);
-  };
-
-  const applyAiCorrections = (corrected: Record<string, string>) => {
-    const newData = { ...data };
-    const newItems = [...newData.check_items];
-    const newSummary = [...newData.summary_items];
-
-    for (const [key, val] of Object.entries(corrected)) {
-      if (key.startsWith("check_action_")) {
-        const idx = parseInt(key.replace("check_action_", ""));
-        newItems[idx] = { ...newItems[idx], action: val };
-      } else if (key.startsWith("check_result_")) {
-        const idx = parseInt(key.replace("check_result_", ""));
-        newItems[idx] = { ...newItems[idx], action_result: val };
-      } else if (key.startsWith("check_detail_")) {
-        const idx = parseInt(key.replace("check_detail_", ""));
-        newItems[idx] = { ...newItems[idx], inspection_result_detail: val };
-      } else if (key.startsWith("summary_")) {
-        const idx = parseInt(key.replace("summary_", ""));
-        newSummary[idx] = val;
-      } else if (key === "detail_notes") newData.detail_notes = val;
-      else if (key === "main_control_cpu") newData.main_control_cpu = val;
-      else if (key === "optics_window_lens") newData.optics_window_lens = val;
-      else if (key === "beam_splitter_contamination") newData.beam_splitter_contamination = val;
-      else if (key === "beam_splitter_result") newData.beam_splitter_result = val;
-      else if (key === "spectrometer_status") newData.spectrometer_status = val;
-      else if (key === "spectrometer_result") newData.spectrometer_result = val;
-      else if (key === "site_situation") newData.site_situation = val;
-      else if (key === "client_request") newData.client_request = val;
-    }
-
-    newData.check_items = newItems;
-    newData.summary_items = newSummary;
-    setData(newData);
-    setAiModalOpen(false);
-    setAiEditMode(false);
-    toast.success("AI 교정이 적용되었습니다.");
-  };
 
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
 
@@ -499,11 +404,6 @@ function DocumentView({
               <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
             </label>
           </Button>
-          {isManufacturing && (
-            <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleAiReview}>
-              <Sparkles className="h-3.5 w-3.5" /> AI 검토
-            </Button>
-          )}
         </div>
         {versions.length > 0 && (
           <div className="space-y-1">
@@ -530,11 +430,6 @@ function DocumentView({
         {canEdit && report.status === "completed" && (
           <Button onClick={onRequestApproval} className="gap-1"><Send className="h-4 w-4" /> 승인요청</Button>
         )}
-        {isManufacturing && (
-          <Button variant="outline" onClick={handleAiReview} className="gap-1">
-            <Sparkles className="h-4 w-4" /> AI 검토
-          </Button>
-        )}
         {canApprove && report.status === "approval_requested" && (
           <Button onClick={onApprove} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
             <Check className="h-4 w-4" /> 승인
@@ -547,70 +442,6 @@ function DocumentView({
         )}
       </div>
 
-      {/* AI Review Modal */}
-      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" /> AI 문장 교정
-            </DialogTitle>
-          </DialogHeader>
-          {aiLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-              <p className="text-sm text-muted-foreground">AI가 검토 중입니다...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="font-semibold text-center py-2 bg-muted rounded">기존 작성본</div>
-                <div className="font-semibold text-center py-2 bg-primary/10 rounded">AI 교정본</div>
-              </div>
-              <div className="max-h-[50vh] overflow-y-auto space-y-3">
-                {Object.entries(aiOriginal).map(([key, original]) => {
-                  const corrected = aiCorrected[key] || original;
-                  const changed = original !== corrected;
-                  return (
-                    <div key={key} className="grid grid-cols-2 gap-4">
-                      <div className={cn("text-xs p-2 rounded border", changed ? "bg-destructive/5 border-destructive/20" : "border-border")}>
-                        <p className="text-[10px] font-medium text-muted-foreground mb-1">{key}</p>
-                        {original}
-                      </div>
-                      <div className={cn("text-xs p-2 rounded border", changed ? "bg-primary/5 border-primary/20" : "border-border")}>
-                        {aiEditMode ? (
-                          <textarea
-                            className="w-full text-xs bg-transparent border-0 resize-none focus:outline-none min-h-[40px]"
-                            value={corrected}
-                            onChange={e => setAiCorrected(prev => ({ ...prev, [key]: e.target.value }))}
-                          />
-                        ) : (
-                          <>
-                            <p className="text-[10px] font-medium text-muted-foreground mb-1">{key}</p>
-                            {corrected}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <Button variant="outline" size="sm" onClick={() => { setAiModalOpen(false); setAiEditMode(false); }}>
-                  취소
-                </Button>
-                {!aiEditMode && (
-                  <Button variant="outline" size="sm" onClick={() => setAiEditMode(true)}>
-                    수정 후 적용
-                  </Button>
-                )}
-                <Button size="sm" onClick={() => applyAiCorrections(aiCorrected)}>
-                  {aiEditMode ? "완료" : "AI 수정안 적용"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
