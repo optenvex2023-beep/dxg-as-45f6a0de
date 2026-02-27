@@ -40,7 +40,7 @@ export default function Login() {
 
         {/* Title */}
         <h1 className="text-center text-[24px] font-bold text-foreground mb-1">
-          DXG 현장관리
+          DXG 반출점검·교정가스 관리
         </h1>
         <p className="text-center text-sm text-muted-foreground mb-8">
           사번과 이름으로 로그인하세요
