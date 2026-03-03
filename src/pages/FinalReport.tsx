@@ -95,6 +95,29 @@ export default function FinalReport() {
     );
   }, [reports, selectedInspectionId]);
 
+  // Map equipment to first report QA review status for dropdown labels
+  const firstReportQAStatus = useMemo(() => {
+    if (!selectedInspectionId) return new Map<string, "검토완료" | "미검토" | "미작성">();
+    const firstReports = reports.filter(
+      r => r.inspection_id === selectedInspectionId && r.report_type === "first"
+    );
+    const statusMap = new Map<string, "검토완료" | "미검토" | "미작성">();
+    const inspection = inspections.find(i => i.id === selectedInspectionId);
+    if (inspection) {
+      for (const item of inspection.equipment_items) {
+        const fr = firstReports.find(r => r.equipment_item_id === item.id);
+        if (!fr) {
+          statusMap.set(item.id, "미작성");
+        } else if (fr.qa_review_status === "검토완료") {
+          statusMap.set(item.id, "검토완료");
+        } else {
+          statusMap.set(item.id, "미검토");
+        }
+      }
+    }
+    return statusMap;
+  }, [reports, inspections, selectedInspectionId]);
+
   // Completed final reports for the list section
   const completedFinalReports = useMemo(() => {
     return reports
@@ -172,12 +195,20 @@ export default function FinalReport() {
                 <SelectValue placeholder="장비를 선택하세요" />
               </SelectTrigger>
               <SelectContent className="bg-popover z-[60]">
-                {selectedInspection.equipment_items.map(item => (
-                  <SelectItem key={item.id} value={item.id} className="text-xs">
-                    {item.equipment_name} ({item.qty_set} set)
-                    {equipmentWithReports.has(item.id) && " ✓ 보고서 있음"}
-                  </SelectItem>
-                ))}
+                {selectedInspection.equipment_items.map(item => {
+                  const qaStatus = firstReportQAStatus.get(item.id) ?? "미작성";
+                  const qaLabel = qaStatus === "검토완료"
+                    ? " ✅ 1차 점검(품질검토완료)"
+                    : qaStatus === "미검토"
+                      ? " ⏳ 1차 점검(미검토)"
+                      : " ⛔ 1차 점검 미작성";
+                  return (
+                    <SelectItem key={item.id} value={item.id} className="text-xs">
+                      {item.equipment_name} ({item.qty_set} set){qaLabel}
+                      {equipmentWithReports.has(item.id) && " | 완료보고서 있음"}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
