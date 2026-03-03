@@ -214,8 +214,8 @@ export default function FirstReport() {
       {/* Create modal */}
       {selectedInspection && selectedEquipment && (
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-            <DialogHeader className="p-6 pb-0">
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-0 shrink-0">
               <DialogTitle>1차 점검보고서 작성</DialogTitle>
             </DialogHeader>
             <DocumentForm
@@ -289,8 +289,8 @@ export default function FirstReport() {
       {/* Detail modal for completed report */}
       {detailReport && detailInspection && detailEquipment && (
         <Dialog open={!!detailReportId} onOpenChange={(open) => { if (!open) setDetailReportId(null); }}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-            <DialogHeader className="p-6 pb-0">
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-0 shrink-0">
               <DialogTitle>1차 점검보고서 상세</DialogTitle>
             </DialogHeader>
             <DocumentView
@@ -386,7 +386,7 @@ function DocumentForm({
   };
 
   return (
-    <div className="p-6 pt-2 space-y-6">
+    <div className="p-6 pt-2 space-y-6 overflow-y-auto flex-1">
       <TemplateBody
         inspection={inspection}
         equipment={equipment}
@@ -500,68 +500,70 @@ function DocumentView({
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
 
   return (
-    <div className="space-y-4">
-      {/* Status bar */}
-      <div className="flex items-center justify-between rounded-lg border bg-card p-3">
-        <span className="text-sm font-medium">1차 점검보고서</span>
-        <Badge className={cn("text-[10px]",
-          report.status === "draft" ? "bg-muted text-muted-foreground" :
-          report.status === "approved" ? "bg-primary/20 text-primary" :
-          "bg-accent/15 text-accent"
-        )}>
-          {statusLabel[report.status]}
-        </Badge>
-      </div>
-
-      {/* Document body */}
-      <div className="rounded-lg border bg-card p-6 space-y-6">
-        <TemplateBody
-          inspection={inspection}
-          equipment={equipment}
-          serialNo={serialNo}
-          onSerialChange={editable ? setSerialNo : undefined}
-          data={data}
-          onDataChange={editable ? upd : undefined}
-          inspectorName={report.inspector_name}
-          createdDate={report.created_date}
-          disabled={!editable}
-          reportStatus={report.status}
-          qaReviewerName={report.qa_signature_applied ? (report.approved_by || report.qa_reviewer_name || "") : ""}
-          qaSignatureApplied={report.qa_signature_applied}
-        />
-      </div>
-
-      {/* Document management */}
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        <p className="text-sm font-medium">문서 관리</p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleWordDownload}>
-            <FileDown className="h-3.5 w-3.5" /> Word 다운로드
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
-            <label className="cursor-pointer">
-              <Upload className="h-3.5 w-3.5" /> 수정본 업로드
-              <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
-            </label>
-          </Button>
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-20 space-y-4 p-6 pt-2">
+        {/* Status bar */}
+        <div className="flex items-center justify-between rounded-lg border bg-card p-3">
+          <span className="text-sm font-medium">1차 점검보고서</span>
+          <Badge className={cn("text-[10px]",
+            report.status === "draft" ? "bg-muted text-muted-foreground" :
+            report.status === "approved" ? "bg-primary/20 text-primary" :
+            "bg-accent/15 text-accent"
+          )}>
+            {statusLabel[report.status]}
+          </Badge>
         </div>
-        {versions.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">업로드 이력</p>
-            {versions.map(v => (
-              <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <FileText className="h-3 w-3" />
-                <span>v{v.version_number}: {v.file_name}</span>
-                <span className="text-[10px]">({v.uploaded_by}, {v.uploaded_at.split("T")[0]})</span>
-              </div>
-            ))}
+
+        {/* Document body */}
+        <div className="rounded-lg border bg-card p-6 space-y-6">
+          <TemplateBody
+            inspection={inspection}
+            equipment={equipment}
+            serialNo={serialNo}
+            onSerialChange={editable ? setSerialNo : undefined}
+            data={data}
+            onDataChange={editable ? upd : undefined}
+            inspectorName={report.inspector_name}
+            createdDate={report.created_date}
+            disabled={!editable}
+            reportStatus={report.status}
+            qaReviewerName={report.qa_signature_applied ? (report.approved_by || report.qa_reviewer_name || "") : ""}
+            qaSignatureApplied={report.qa_signature_applied}
+          />
+        </div>
+
+        {/* Document management */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <p className="text-sm font-medium">문서 관리</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleWordDownload}>
+              <FileDown className="h-3.5 w-3.5" /> Word 다운로드
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
+              <label className="cursor-pointer">
+                <Upload className="h-3.5 w-3.5" /> 수정본 업로드
+                <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
+              </label>
+            </Button>
           </div>
-        )}
+          {versions.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">업로드 이력</p>
+              {versions.map(v => (
+                <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  <span>v{v.version_number}: {v.file_name}</span>
+                  <span className="text-[10px]">({v.uploaded_by}, {v.uploaded_at.split("T")[0]})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
-        {/* Draft: 임시저장 + 완료 (manufacturing only) */}
+      {/* Sticky action bar */}
+      <div className="sticky bottom-0 z-50 border-t bg-background px-6 py-3 flex items-center justify-end gap-2 shrink-0">
         {draftEditable && !isEditing && !isQAReviewing && (
           <>
             <Button variant="outline" onClick={handleSave}>임시저장</Button>
@@ -569,14 +571,12 @@ function DocumentView({
           </>
         )}
 
-        {/* 수정 button for completed reports - visible to 환경영업팀/제조본부/품질본부 */}
         {!isDraft && !isEditing && !isQAReviewing && canModify && (
           <Button variant="outline" onClick={() => setIsEditing(true)} className="gap-1">
             수정
           </Button>
         )}
 
-        {/* Editing mode save button */}
         {isEditing && (
           <>
             <Button variant="outline" onClick={() => setIsEditing(false)}>취소</Button>
@@ -584,14 +584,12 @@ function DocumentView({
           </>
         )}
 
-        {/* QA: 품질 검토 button - only for 품질본부 when 미검토 and not draft */}
         {isQC && !isDraft && !isEditing && !isQAReviewing && report.qa_review_status === "미검토" && (
           <Button onClick={() => setIsQAReviewing(true)} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
             <ShieldCheck className="h-4 w-4" /> 품질 검토
           </Button>
         )}
 
-        {/* QA reviewing mode: 품질본부 검토 완료 */}
         {isQAReviewing && (
           <>
             <Button variant="outline" onClick={() => setIsQAReviewing(false)}>취소</Button>
@@ -601,14 +599,12 @@ function DocumentView({
           </>
         )}
 
-        {/* Word download for read-only viewers */}
         {!editable && !canModify && (
           <Button variant="outline" onClick={handleWordDownload} className="gap-1">
             <FileDown className="h-4 w-4" /> Word 다운로드
           </Button>
         )}
       </div>
-
     </div>
   );
 }
