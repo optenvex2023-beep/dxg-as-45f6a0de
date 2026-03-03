@@ -3,12 +3,22 @@ import { useApp } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import type { InAppNotification } from "@/types";
 
 export default function NotificationCenter() {
   const { inAppNotifications, currentUser, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"all" | "unread">("all");
+  const [selected, setSelected] = useState<InAppNotification | null>(null);
 
   const myNotifications = inAppNotifications
     .filter((n) => n.recipient_user_id === currentUser?.id)
@@ -17,13 +27,16 @@ export default function NotificationCenter() {
   const filtered = tab === "unread" ? myNotifications.filter((n) => !n.read_at) : myNotifications;
   const unreadCount = myNotifications.filter((n) => !n.read_at).length;
 
-  const handleClick = (noti: typeof myNotifications[0]) => {
+  const handleClick = (noti: InAppNotification) => {
     if (!noti.read_at) {
       markNotificationRead(noti.id);
     }
-    if (noti.link_url) {
-      navigate(noti.link_url);
-    }
+    setSelected(noti);
+  };
+
+  const handleNavigate = (url: string) => {
+    setSelected(null);
+    navigate(url);
   };
 
   return (
@@ -97,6 +110,31 @@ export default function NotificationCenter() {
           </button>
         ))}
       </div>
+
+      {/* Detail Modal */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base leading-snug">{selected?.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <p className="text-sm text-foreground whitespace-pre-line leading-relaxed py-1">
+              {selected?.body}
+            </p>
+          </ScrollArea>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-xs text-muted-foreground">
+              {selected ? formatRelative(selected.created_at) : ""}
+            </span>
+            {selected?.link_url && (
+              <Button size="sm" variant="default" onClick={() => handleNavigate(selected.link_url!)}>
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                바로가기
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
