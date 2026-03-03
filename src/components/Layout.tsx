@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import AppSidebar from "@/components/AppSidebar";
+import NotificationBell from "@/components/NotificationBell";
 import { useApp } from "@/contexts/AppContext";
 import {
   Select,
@@ -18,6 +19,8 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header className="h-12 border-b flex items-center justify-end px-4 gap-3 bg-background shrink-0">
+          <NotificationBell />
+          <div className="h-4 w-px bg-border" />
           <span className="text-xs text-muted-foreground">사용자 전환:</span>
           <Select
             value={currentUser?.id ?? ""}
