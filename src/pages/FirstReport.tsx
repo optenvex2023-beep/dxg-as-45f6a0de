@@ -55,7 +55,8 @@ export default function FirstReport() {
 
   const isManufacturing = currentUser?.department === "제조본부";
   const isQC = currentUser?.department === "품질본부";
-  const isAdmin = currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀";
+  const isSales = currentUser?.department === "환경영업팀";
+  const isAdmin = currentUser?.role_category === "관리자" && isSales;
   const canApprove = isQC || isAdmin;
 
   const eligibleInspections = useMemo(() =>
@@ -182,9 +183,10 @@ export default function FirstReport() {
               equipment={selectedEquipment}
               report={existingReport}
               canEdit={isManufacturing && existingReport.status === "draft"}
-              canApprove={canApprove && existingReport.status === "approval_requested"}
+              canApprove={canApprove}
               isManufacturing={isManufacturing}
               isQC={isQC}
+              isSales={isSales}
               onUpdate={updateReport}
               onComplete={handleComplete}
               onRequestApproval={() => { requestApproval(existingReport.id); toast.success("승인요청이 전송되었습니다."); }}
@@ -296,9 +298,10 @@ export default function FirstReport() {
               equipment={detailEquipment}
               report={detailReport}
               canEdit={false}
-              canApprove={isQC && detailReport.status === "approval_requested"}
+              canApprove={canApprove}
               isManufacturing={isManufacturing}
               isQC={isQC}
+              isSales={isSales}
               onUpdate={updateReport}
               onComplete={() => {}}
               onRequestApproval={() => {}}
@@ -396,6 +399,7 @@ function DocumentForm({
         disabled={false}
         reportStatus="draft"
         qaReviewerName=""
+        qaSignatureApplied={false}
       />
       <Button onClick={handleSubmit} className="w-full">임시저장</Button>
     </div>
@@ -406,7 +410,7 @@ function DocumentForm({
    Document View (existing report)
    ══════════════════════════════════════════════════════════════ */
 function DocumentView({
-  inspection, equipment, report, canEdit, canApprove, isManufacturing, isQC,
+  inspection, equipment, report, canEdit, canApprove, isManufacturing, isQC, isSales,
   onUpdate, onComplete, onRequestApproval, onQAReviewComplete,
   onAddVersion, getVersions, currentUserName,
 }: {
@@ -417,6 +421,7 @@ function DocumentView({
   canApprove: boolean;
   isManufacturing: boolean;
   isQC: boolean;
+  isSales: boolean;
   onUpdate: (id: string, updates: Partial<InspectionReport>) => void;
   onComplete: () => void;
   onRequestApproval: () => void;
@@ -425,8 +430,16 @@ function DocumentView({
   getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
 }) {
-  const isLocked = report.status !== "draft";
-  const editable = canEdit && !isLocked;
+  const isDraft = report.status === "draft";
+  const draftEditable = canEdit && isDraft;
+
+  // Edit mode for completed reports (수정)
+  const [isEditing, setIsEditing] = useState(false);
+  // QA review editing mode
+  const [isQAReviewing, setIsQAReviewing] = useState(false);
+
+  const canModify = isSales || isManufacturing || isQC;
+  const editable = draftEditable || isEditing || isQAReviewing;
 
   const [serialNo, setSerialNo] = useState(report.serial_numbers[equipment.id] || "");
   const [data, setData] = useState<InspectionReportData>(() => {
@@ -447,7 +460,21 @@ function DocumentView({
       serial_numbers: { [equipment.id]: serialNo },
       inspection_data: { ...data, serial_no: serialNo },
     });
-    toast.success("임시저장되었습니다.");
+    if (isEditing) setIsEditing(false);
+    toast.success("저장되었습니다.");
+  };
+
+  const handleQAReviewFinalize = () => {
+    // Save any QA edits first
+    const inspectorName = report.inspector_name || currentUserName;
+    onUpdate(report.id, {
+      inspector_name: inspectorName,
+      serial_numbers: { [equipment.id]: serialNo },
+      inspection_data: { ...data, serial_no: serialNo },
+    });
+    // Then perform QA completion
+    onQAReviewComplete();
+    setIsQAReviewing(false);
   };
 
   const handleWordDownload = async () => {
@@ -499,7 +526,8 @@ function DocumentView({
           createdDate={report.created_date}
           disabled={!editable}
           reportStatus={report.status}
-          qaReviewerName={report.approved_by || ""}
+          qaReviewerName={report.qa_signature_applied ? (report.approved_by || report.qa_reviewer_name || "") : ""}
+          qaSignatureApplied={report.qa_signature_applied}
         />
       </div>
 
@@ -533,28 +561,48 @@ function DocumentView({
 
       {/* Action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
-        {editable && (
+        {/* Draft: 임시저장 + 완료 (manufacturing only) */}
+        {draftEditable && !isEditing && !isQAReviewing && (
           <>
             <Button variant="outline" onClick={handleSave}>임시저장</Button>
             <Button onClick={onComplete} className="gap-1"><Check className="h-4 w-4" /> 완료</Button>
           </>
         )}
-        {canEdit && report.status === "completed" && (
-          <Button onClick={onRequestApproval} className="gap-1"><Send className="h-4 w-4" /> 승인요청</Button>
-        )}
-        {/* QA review button - visible to 품질본부 when approval_requested */}
-        {isQC && report.status === "approval_requested" && (
-          <Button onClick={onQAReviewComplete} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
-            <ShieldCheck className="h-4 w-4" /> 품질본부 검토 완료
+
+        {/* 수정 button for completed reports - visible to 환경영업팀/제조본부/품질본부 */}
+        {!isDraft && !isEditing && !isQAReviewing && canModify && (
+          <Button variant="outline" onClick={() => setIsEditing(true)} className="gap-1">
+            수정
           </Button>
         )}
-        {/* Admin approve */}
-        {canApprove && !isQC && report.status === "approval_requested" && (
-          <Button onClick={onQAReviewComplete} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
-            <Check className="h-4 w-4" /> 승인
+
+        {/* Editing mode save button */}
+        {isEditing && (
+          <>
+            <Button variant="outline" onClick={() => setIsEditing(false)}>취소</Button>
+            <Button onClick={handleSave} className="gap-1"><Check className="h-4 w-4" /> 저장</Button>
+          </>
+        )}
+
+        {/* QA: 품질 검토 button - only for 품질본부 when 미검토 and not draft */}
+        {isQC && !isDraft && !isEditing && !isQAReviewing && report.qa_review_status === "미검토" && (
+          <Button onClick={() => setIsQAReviewing(true)} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
+            <ShieldCheck className="h-4 w-4" /> 품질 검토
           </Button>
         )}
-        {!editable && !canApprove && !isManufacturing && (
+
+        {/* QA reviewing mode: 품질본부 검토 완료 */}
+        {isQAReviewing && (
+          <>
+            <Button variant="outline" onClick={() => setIsQAReviewing(false)}>취소</Button>
+            <Button onClick={handleQAReviewFinalize} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
+              <ShieldCheck className="h-4 w-4" /> 품질본부 검토 완료
+            </Button>
+          </>
+        )}
+
+        {/* Word download for read-only viewers */}
+        {!editable && !canModify && (
           <Button variant="outline" onClick={handleWordDownload} className="gap-1">
             <FileDown className="h-4 w-4" /> Word 다운로드
           </Button>
@@ -571,7 +619,7 @@ function DocumentView({
 function TemplateBody({
   inspection, equipment, serialNo, onSerialChange,
   data, onDataChange, inspectorName, createdDate, disabled,
-  reportStatus, qaReviewerName,
+  reportStatus, qaReviewerName, qaSignatureApplied,
 }: {
   inspection: OutboundInspection;
   equipment: OutboundEquipmentItem;
@@ -584,6 +632,7 @@ function TemplateBody({
   disabled: boolean;
   reportStatus: string;
   qaReviewerName: string;
+  qaSignatureApplied?: boolean;
 }) {
   const upd = onDataChange || (() => {});
   const ro = disabled || !onDataChange;
@@ -679,7 +728,7 @@ function TemplateBody({
             <td className={tdCls}>{data.department_head || ""}</td>
             <td className={tdCls}>{qaReviewerName || ""}</td>
             <td className={cn(tdCls, "text-center")}>
-              {(reportStatus === "approved" || qaReviewerName) ? (
+              {qaSignatureApplied ? (
                 <img
                   src="/images/qa-signature.png"
                   alt="품질 서명"
