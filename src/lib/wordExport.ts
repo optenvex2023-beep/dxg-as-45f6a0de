@@ -41,7 +41,130 @@ function rewriteImageTags(zip: PizZip) {
   // Replace both possible placeholder variants with image module syntax
   content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
   content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{%QA_SIGNATURE_IMAGE}");
-  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
+  content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "{%QA_SIGNATURE}");
+  zip.file("word/document.xml", content);
+}
+
+/* ─── Post-process: center-align name cells in the exported document ─── */
+function postProcessNameAlignment(zip: PizZip) {
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+
+  // Find rendered name values and ensure their paragraph has center alignment
+  // The names appear as plain text runs after rendering. We look for paragraphs
+  // containing INSPECTOR_NAME / DEPT_HEAD_NAME / QA_REVIEWER_NAME text or their
+  // rendered values, and ensure the paragraph properties include center justification.
+  // Strategy: Add w:jc center to all <w:p> that are inside table cells containing these names.
+  // Simpler approach: find all <w:tc> cells, and for ones that appear to be name cells
+  // in the QA signature table row, add center alignment.
+
+  // More robust: ensure any paragraph in the document that had these template keys
+  // gets center alignment. After render, the keys are replaced with actual names.
+  // We'll look for the signature table pattern and center-align all cells in those rows.
+
+  // Alternative simple approach: add center alignment to all paragraphs globally is too broad.
+  // Instead, patch paragraphs that don't have w:jc and are inside signature table cells.
+  // For simplicity, we'll scan for known patterns around the name cells.
+
+  // The safest approach: find runs that might contain the rendered names near 점검자/부서장/품질
+  // and add center justification to their parent paragraphs.
+  // We use a regex to find <w:p> elements that don't have <w:jc> and add center alignment.
+
+  // Find paragraphs that are right after cells containing 점검자, 부서장, 품질본부 확인
+  const nameKeys = ["점검자", "부서장", "품질본부"];
+  for (const key of nameKeys) {
+    // Pattern: find the table cell containing the key, then the NEXT cell (which has the name value)
+    // and center-align the paragraph in that next cell
+    const cellPattern = new RegExp(
+      `(<w:tc[^>]*>(?:(?!<\\/w:tc>).)*?${key}(?:(?!<\\/w:tc>).)*?<\\/w:tc>\\s*<w:tc[^>]*>\\s*<w:tcPr>(?:(?!<\\/w:tcPr>).)*?<\\/w:tcPr>\\s*<w:p[^>]*>)(\\s*<w:pPr>)((?:(?!<\\/w:pPr>).)*?)(<\\/w:pPr>)`,
+      "gs"
+    );
+    content = content.replace(cellPattern, (match, before, pprOpen, pprContent, pprClose) => {
+      if (pprContent.includes("<w:jc")) {
+        // Replace existing alignment with center
+        return before + pprOpen + pprContent.replace(/<w:jc\s+w:val="[^"]*"\s*\/?>/, '<w:jc w:val="center"/>') + pprClose;
+      }
+      return before + pprOpen + pprContent + '<w:jc w:val="center"/>' + pprClose;
+    });
+  }
+
+  zip.file("word/document.xml", content);
+}
+
+/* ─── Post-process: embed QA signature image directly into XML ─── */
+function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
+  if (!signatureBase64) return;
+
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+
+  // Check if there are still unresolved QA_SIGNATURE placeholders as text
+  const placeholderPatterns = [
+    /\{%QA_SIGNATURE_IMAGE\}/g,
+    /\{%QA_SIGNATURE_IMAG\}/g,
+    /\{%QA_SIGNATURE\}/g,
+    /\{\{QA_SIGNATURE_IMAGE\}\}/g,
+    /\{\{QA_SIGNATURE_IMAG\}\}/g,
+    /\{\{QA_SIGNATURE\}\}/g,
+    /QA_SIGNATURE_IMAGE/g,
+    /QA_SIGNATURE_IMAG/g,
+  ];
+
+  let hasPlaceholder = false;
+  for (const p of placeholderPatterns) {
+    if (p.test(content)) {
+      hasPlaceholder = true;
+      break;
+    }
+  }
+
+  if (!hasPlaceholder) return; // Image module handled it successfully
+
+  // Add the image to the docx media folder
+  const binary = atob(signatureBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const mediaPath = "word/media/qa_signature.png";
+  zip.file(mediaPath, bytes);
+
+  // Add relationship for the image
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (!relsFile) return;
+  let relsContent = relsFile.asText();
+  const rId = "rIdQASig";
+  if (!relsContent.includes(rId)) {
+    relsContent = relsContent.replace(
+      "</Relationships>",
+      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/qa_signature.png"/></Relationships>`
+    );
+    zip.file("word/_rels/document.xml.rels", relsContent);
+  }
+
+  // Build inline image XML (width ~80px = 762000 EMU, height ~40px = 381000 EMU)
+  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+
+  // Replace placeholder text runs with the image
+  // Find <w:r> elements containing the placeholder text and replace with image run
+  for (const p of placeholderPatterns) {
+    // Replace the text content within <w:t> tags
+    content = content.replace(
+      new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:QA_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
+      `<w:r>${imgXml}</w:r>`
+    );
+  }
+
+  // Also clean up any remaining plain-text placeholders
+  content = content.replace(/\{%QA_SIGNATURE_IMAGE\}/g, "");
+  content = content.replace(/\{%QA_SIGNATURE_IMAG\}/g, "");
+  content = content.replace(/\{%QA_SIGNATURE\}/g, "");
+  content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "");
+  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "");
+  content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "");
+
   zip.file("word/document.xml", content);
 }
 
@@ -277,16 +400,14 @@ export async function exportReportToWord(
 
   const zip = new PizZip(templateBuffer);
 
-  // Rewrite image tags in XML before docxtemplater processes them
-  if (report.report_type === "first") {
-    rewriteImageTags(zip);
-  }
+  // Rewrite image tags in XML before docxtemplater processes them (BOTH report types)
+  rewriteImageTags(zip);
 
   // Configure image module
   const imageModule = new ImageModule({
     centered: false,
     getImage: (tagValue: string) => {
-      if (!tagValue) return Buffer.from("");
+      if (!tagValue) return new Uint8Array(0).buffer;
       // tagValue is base64 string
       const binary = atob(tagValue);
       const bytes = new Uint8Array(binary.length);
@@ -308,7 +429,16 @@ export async function exportReportToWord(
   const templateData = buildTemplateData(inspection, report, qaSignatureBase64);
   doc.render(templateData);
 
-  const blob = doc.getZip().generate({
+  // Post-process: center-align name cells
+  const outputZip = doc.getZip();
+  postProcessNameAlignment(outputZip);
+
+  // Post-process: embed QA signature image if image module didn't handle it
+  if (qaNeeded && qaSignatureBase64) {
+    postProcessQASignatureImage(outputZip, qaSignatureBase64);
+  }
+
+  const blob = outputZip.generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
