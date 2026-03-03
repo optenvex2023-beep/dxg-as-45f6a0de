@@ -1,16 +1,42 @@
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
+import ImageModule from "docxtemplater-image-module-free";
 import { saveAs } from "file-saver";
 import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "@/types";
 
 const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
+const QA_SIGNATURE_IMAGE_URL = "/images/qa-signature.png";
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
   if (val === undefined || val === null) return "";
   const s = String(val);
   return s === "undefined" || s === "null" ? "" : s;
+}
+
+/* ─── Fetch image as base64 ─── */
+async function fetchImageBase64(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) return "";
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/* ─── Rewrite template XML to convert {{QA_SIGNATURE_IMAG}} to {%QA_SIGNATURE_IMAG} ─── */
+function rewriteImageTags(zip: PizZip) {
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+  // The tag may be split across XML runs; handle simple case and fragmented
+  // Simple: replace literal {{QA_SIGNATURE_IMAG}} with {%QA_SIGNATURE_IMAG}
+  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
+  zip.file("word/document.xml", content);
 }
 
 /* ─── Check item → template boolean key mapping ─── */
@@ -45,6 +71,7 @@ function buildCheckFlags(items: InspectionCheckItem[]): Record<string, boolean> 
 function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
+  qaSignatureBase64: string,
 ): Record<string, unknown> {
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
@@ -62,15 +89,17 @@ function buildTemplateData(
     return rows;
   };
 
-  // QA stamp: only show after QA review is complete
-  const qaReviewDone = report.qa_signature_applied || (report.status === "approved" && !!report.approved_by);
+  // QA signature: only when explicitly reviewed
+  const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
 
   return {
     // ── Cover page ──
     INSPECTOR_NAM: safe(report.inspector_name),
     DEPT_HEAD_NAM: safe(data.department_head),
-    QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name || report.approved_by) : "",
-    QA_SIGNATURE: qaReviewDone ? "검토완료" : "",
+    QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name) : "",
+
+    // Image tag – base64 data for image module (empty string = no image)
+    QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
     CLIENT_NAME: safe(data.client_name),
     CLIENT_N: safe(data.client_name),
@@ -92,11 +121,17 @@ function buildTemplateData(
     IS_OTHER_MODEL: false,
     OTHER_MODEL_NAME: "",
 
-    // ── Inbound items ──
+    // ── Inbound items (both old & new template key names) ──
     IS_MAIN_UNIT: data.inbound_items.includes("Main Unit"),
     IS_ACU: data.inbound_items.includes("ACU"),
     IS_PROBE: data.inbound_items.includes("Probe"),
     IS_PURGE_AIR_UNIT: data.inbound_items.includes("Purge Air Unit"),
+    CHECK_MAIN_UNIT: data.inbound_items.includes("Main Unit"),
+    CHECK_ACU: data.inbound_items.includes("ACU"),
+    CHECK_PROBE: data.inbound_items.includes("Probe"),
+    CHECK_PURGE: data.inbound_items.includes("Purge Air Unit"),
+    CHECK_ETC: false,
+    INCOMING_ETC_TEXT: "",
 
     // ── Inspection type ──
     IS_REGULAR_INSPECTION: data.inbound_type.includes("정기 반출 점검"),
@@ -179,19 +214,48 @@ export async function exportReportToWord(
   reportTitle: string,
 ) {
   const templateUrl = report.report_type === "final" ? FINAL_TEMPLATE_URL : FIRST_TEMPLATE_URL;
-  const response = await fetch(templateUrl);
-  if (!response.ok) throw new Error("Template file not found");
-  const templateBuffer = await response.arrayBuffer();
+
+  // Fetch template and QA signature image in parallel
+  const qaNeeded = report.qa_review_status === "검토완료" && report.qa_signature_applied;
+  const [templateResponse, qaSignatureBase64] = await Promise.all([
+    fetch(templateUrl),
+    qaNeeded ? fetchImageBase64(QA_SIGNATURE_IMAGE_URL) : Promise.resolve(""),
+  ]);
+
+  if (!templateResponse.ok) throw new Error("Template file not found");
+  const templateBuffer = await templateResponse.arrayBuffer();
 
   const zip = new PizZip(templateBuffer);
+
+  // Rewrite image tags in XML before docxtemplater processes them
+  if (report.report_type === "first") {
+    rewriteImageTags(zip);
+  }
+
+  // Configure image module
+  const imageModule = new ImageModule({
+    centered: false,
+    getImage: (tagValue: string) => {
+      if (!tagValue) return Buffer.from("");
+      // tagValue is base64 string
+      const binary = atob(tagValue);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes.buffer;
+    },
+    getSize: () => [80, 40], // width x height in pixels – fits table cell
+  });
 
   const doc = new Docxtemplater(zip, {
     delimiters: { start: "{{", end: "}}" },
     paragraphLoop: true,
     linebreaks: true,
+    modules: [imageModule],
   });
 
-  const templateData = buildTemplateData(inspection, report);
+  const templateData = buildTemplateData(inspection, report, qaSignatureBase64);
   doc.render(templateData);
 
   const blob = doc.getZip().generate({
