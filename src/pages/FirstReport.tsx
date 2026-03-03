@@ -39,7 +39,7 @@ const PHOTO_SLOTS = [
   { key: "final_assembly", title: "프로브 결합후 Spectrometer 형상" },
 ];
 
-const RESULT_OPTIONS: InspectionResultOption[] = ["사용 가능", "추후 교체 권장", "직접 기입"];
+const RESULT_OPTIONS: InspectionResultOption[] = ["사용 가능", "교체 필요", "추후 교체 권장", "직접 기입"];
 
 export default function FirstReport() {
   const {
