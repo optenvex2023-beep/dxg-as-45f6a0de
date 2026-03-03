@@ -96,7 +96,7 @@ export interface MailOutbox {
 export type ReportType = "first" | "final";
 export type ReportStatus = "draft" | "completed" | "approval_requested" | "approved";
 
-export type InspectionResultOption = "추후 교체 권장" | "사용 가능" | "직접 기입" | "";
+export type InspectionResultOption = "사용 가능" | "교체 필요" | "추후 교체 권장" | "직접 기입" | "";
 
 export interface InspectionCheckItem {
   category: string;
