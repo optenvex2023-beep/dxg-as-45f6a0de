@@ -33,8 +33,9 @@ function rewriteImageTags(zip: PizZip) {
   const contentFile = zip.file("word/document.xml");
   if (!contentFile) return;
   let content = contentFile.asText();
-  // The tag may be split across XML runs; handle simple case and fragmented
-  // Simple: replace literal {{QA_SIGNATURE_IMAG}} with {%QA_SIGNATURE_IMAG}
+  // Replace both possible placeholder variants with image module syntax
+  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
+  content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{%QA_SIGNATURE_IMAGE}");
   content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
   zip.file("word/document.xml", content);
 }
@@ -117,12 +118,16 @@ function buildTemplateData(
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
 
   const raw: Record<string, unknown> = {
-    // ── Cover page ──
+    // ── Cover page ── (keys must match template placeholders exactly)
+    INSPECTOR_NAME: safe(report.inspector_name),
     INSPECTOR_NAM: safe(report.inspector_name),
+    DEPT_HEAD_NAME: safe(data.department_head),
     DEPT_HEAD_NAM: safe(data.department_head),
+    QA_REVIEWER_NAME: qaReviewDone ? safe(report.qa_reviewer_name) : "",
     QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name) : "",
 
     // Image tag – base64 data for image module (empty string = no image)
+    QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
     CLIENT_NAME: safe(data.client_name),
@@ -230,8 +235,14 @@ function buildTemplateData(
     RIGHT_CAPTION: "",
   };
 
-  // Dev-mode safety log
+  // Dev-mode safety log: show critical keys and detect undefined
   if (import.meta.env.DEV) {
+    console.log("[WordExport] exportContext critical keys:", {
+      INSPECTOR_NAME: raw.INSPECTOR_NAME,
+      DEPT_HEAD_NAME: raw.DEPT_HEAD_NAME,
+      QA_REVIEWER_NAME: raw.QA_REVIEWER_NAME,
+      QA_SIGNATURE_IMAGE: raw.QA_SIGNATURE_IMAGE ? "(base64 present)" : "(empty)",
+    });
     const undefinedKeys = Object.entries(raw).filter(([, v]) => v === undefined || v === null).map(([k]) => k);
     if (undefinedKeys.length > 0) {
       console.warn("[WordExport] undefined keys detected before sanitize:", undefinedKeys);
