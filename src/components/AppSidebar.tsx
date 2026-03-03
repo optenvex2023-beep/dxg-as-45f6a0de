@@ -7,6 +7,7 @@ import {
   FileText,
   FlaskConical,
   Users,
+  Bell,
   ChevronDown,
   ChevronRight,
   Menu,
@@ -36,6 +37,11 @@ const navItems: NavItem[] = [
     label: "교정가스",
     path: "/calibration-gas",
     icon: <FlaskConical className="h-4 w-4" />,
+  },
+  {
+    label: "알림센터",
+    path: "/notifications",
+    icon: <Bell className="h-4 w-4" />,
   },
   {
     label: "담당자관리",

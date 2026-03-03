@@ -12,6 +12,7 @@ import CalibrationGas from "@/pages/CalibrationGas";
 import FirstReport from "@/pages/FirstReport";
 import FinalReport from "@/pages/FinalReport";
 import Login from "@/pages/Login";
+import NotificationCenter from "@/pages/NotificationCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const AppRoutes = () => (
       <Route path="/calibration-gas" element={<CalibrationGas />} />
       <Route path="/first-report" element={<FirstReport />} />
       <Route path="/final-report" element={<FinalReport />} />
+      <Route path="/notifications" element={<NotificationCenter />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

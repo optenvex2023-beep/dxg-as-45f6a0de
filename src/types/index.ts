@@ -72,8 +72,31 @@ export interface OutboundInspection {
   due_warning: boolean;
   created_at: string;
   updated_at: string;
+
+  // Notification dedup flags
+  noti_confirm_needed_sent_at: string | null;
+  noti_dispatch_plan_sent_at: string | null;
+  noti_dispatch_done_sent_at: string | null;
+  noti_first_check_done_sent_at: string | null;
+  noti_final_check_done_sent_at: string | null;
+  noti_install_done_sent_at: string | null;
+  due_alert_sent_at: string | null;
 }
 
+// In-app notification
+export interface InAppNotification {
+  id: string;
+  recipient_user_id: string;
+  title: string;
+  body: string;
+  link_url: string | null;
+  entity_type: string; // "status" | "first_report" | "final_report"
+  entity_id: string | null;
+  created_at: string;
+  read_at: string | null;
+}
+
+// Legacy notification/mail types (kept for backward compat)
 export interface Notification {
   id: string;
   inspection_id: string;
@@ -120,44 +143,36 @@ export interface ReportPhoto {
   report_id: string;
   file_url: string;
   caption: string;
-  page_slot: string; // e.g. "replacement_parts", "body_optics", "cpu_smps", "ao_probe", "probe_detail", "spectrometer", "other"
+  page_slot: string;
   order_index: number;
   uploaded_by: string;
   uploaded_at: string;
 }
 
 export interface InspectionReportData {
-  // Page 1: Cover info
   client_name: string;
   serial_no: string;
   inbound_date: string;
   related_doc: string;
-  model_checks: string[]; // e.g. ["DGA-X", "DSM-XG"]
-  inbound_items: string[]; // e.g. ["Main Unit", "ACU"]
+  model_checks: string[];
+  inbound_items: string[];
 
-  // Page 2: Context
-  inbound_type: string[]; // 정기 반출 점검, 긴급 점검, 입고 점검
+  inbound_type: string[];
   site_situation: string;
   client_request: string;
 
-  // Basic check
-  voltage_main: string[]; // 110V, 220V
-  voltage_purge: string[]; // 220V, 380-480V
+  voltage_main: string[];
+  voltage_purge: string[];
   measure_gas: string[];
   install_type: string[];
 
-  // Inspection checklist
   check_items: InspectionCheckItem[];
-
-  // Replacement parts
   replacement_parts: ReplacementPart[];
 
-  // Detailed notes (Ⅳ)
   detail_notes: string;
-  main_control_cpu: string; // "부팅 상태, AO 신호, DO 신호 : "
-  optics_window_lens: string; // "광학부품 (윈도우, 볼록렌즈) / 오염상태 : "
+  main_control_cpu: string;
+  optics_window_lens: string;
 
-  // Page 4: Detail sections
   beam_splitter_contamination: string;
   beam_splitter_result: string;
   spectrometer_status: string;
@@ -167,7 +182,6 @@ export interface InspectionReportData {
   smps_note: string;
   wiring_status: string;
 
-  // Probe
   probe_exterior: string;
   probe_temp_sensor: string;
   probe_corner_mirror: string;
@@ -175,13 +189,8 @@ export interface InspectionReportData {
   probe_measure_section: string;
   probe_gas_direction: string;
 
-  // Summary
   summary_items: string[];
-
-  // Department head
   department_head: string;
-
-  // Photos
   photos: ReportPhoto[];
 }
 
@@ -190,11 +199,11 @@ export type QAReviewStatus = "미검토" | "검토완료";
 export interface InspectionReport {
   id: string;
   inspection_id: string;
-  equipment_item_id: string; // links to one OutboundEquipmentItem
+  equipment_item_id: string;
   report_type: ReportType;
   status: ReportStatus;
 
-  serial_numbers: Record<string, string>; // kept for backward compat
+  serial_numbers: Record<string, string>;
   inspection_data: InspectionReportData;
 
   inspection_result: string;
@@ -208,7 +217,6 @@ export interface InspectionReport {
   approved_at: string | null;
   approved_by: string | null;
 
-  // QA review fields
   qa_review_status: QAReviewStatus;
   qa_reviewer_name: string | null;
   qa_reviewed_at: string | null;

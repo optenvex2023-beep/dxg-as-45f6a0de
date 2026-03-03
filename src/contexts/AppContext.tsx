@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department, StatusType, Notification, MailOutbox, InspectionReport, ReportVersion, ReportType, ReportStatus } from "@/types";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department, StatusType, Notification, MailOutbox, InspectionReport, ReportVersion, ReportType, ReportStatus, InAppNotification } from "@/types";
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
+import { createNotificationsForDepts } from "@/lib/notificationHelper";
 
 interface AppState {
   users: AppUser[];
@@ -10,11 +11,12 @@ interface AppState {
   mailOutbox: MailOutbox[];
   reports: InspectionReport[];
   reportVersions: ReportVersion[];
+  inAppNotifications: InAppNotification[];
   currentUser: AppUser | null;
   setCurrentUser: (user: AppUser | null) => void;
   addUser: (name: string, emp_no: string, role_category: RoleCategory, department: Department) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => void;
-  addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at">) => void;
+  addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at">) => void;
   updateInspection: (id: string, updates: Partial<OutboundInspection>) => void;
   getReportsForInspection: (inspectionId: string, type: ReportType) => InspectionReport[];
   addReport: (data: Omit<InspectionReport, "id" | "created_at" | "updated_at" | "completed_at" | "approved_at" | "approved_by">) => InspectionReport;
@@ -24,6 +26,8 @@ interface AppState {
   approveReport: (reportId: string, approverName: string) => void;
   addReportVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
   getReportVersions: (reportId: string) => ReportVersion[];
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -39,7 +43,7 @@ function recalcStatus(rec: OutboundInspection): OutboundInspection {
   return { ...rec, status, due_warning, updated_at: new Date().toISOString() };
 }
 
-/* ─── Notification / Mail logic ─── */
+/* ─── Notification / Mail logic (legacy) ─── */
 
 interface StatusMailConfig {
   target_departments: Department[];
@@ -101,8 +105,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mailOutbox, setMailOutbox] = useState<MailOutbox[]>([]);
   const [reports, setReports] = useState<InspectionReport[]>([]);
   const [reportVersions, setReportVersions] = useState<ReportVersion[]>([]);
+  const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
 
+  /* ─── In-app notification helpers ─── */
+  const pushInAppNotifications = useCallback((newNotis: InAppNotification[]) => {
+    if (newNotis.length > 0) {
+      setInAppNotifications(prev => [...prev, ...newNotis]);
+    }
+  }, []);
+
+  const markNotificationRead = useCallback((id: string) => {
+    setInAppNotifications(prev => prev.map(n =>
+      n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+    ));
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    if (!currentUser) return;
+    const now = new Date().toISOString();
+    setInAppNotifications(prev => prev.map(n =>
+      n.recipient_user_id === currentUser.id && !n.read_at ? { ...n, read_at: now } : n
+    ));
+  }, [currentUser]);
+
+  /* ─── Legacy trigger logic ─── */
   const triggerNotifications = useCallback((rec: OutboundInspection, oldStatus: StatusType | null, oldDueWarning: boolean | null) => {
     const now = new Date().toISOString();
     if (rec.status !== oldStatus && rec.status !== "납기유의") {
@@ -131,6 +158,109 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /* ─── In-app notification trigger (C-1 ~ C-8) ─── */
+  const triggerInAppNotifications = useCallback((rec: OutboundInspection, updated: OutboundInspection): OutboundInspection => {
+    const now = new Date().toISOString();
+    let mutated = { ...updated };
+
+    // C-1: 확인필요 (new registration)
+    if (mutated.status === "확인필요" && !mutated.noti_confirm_needed_sent_at) {
+      const body = `FE/FS팀에서는 반출 예정 건을 확인 후 반출 예정일자를 입력해 주세요.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
+      pushInAppNotifications(createNotificationsForDepts(
+        users, ["품질본부", "CS팀", "제조본부"],
+        "반출 예정 건 등록 알림", body,
+        `/status-table?status=${encodeURIComponent("확인필요")}`, "status", mutated.id
+      ));
+      mutated.noti_confirm_needed_sent_at = now;
+    }
+
+    // C-2: 반출예정
+    if (mutated.planned_outbound_date && !mutated.noti_dispatch_plan_sent_at) {
+      const body = `아래 건에 대해 반출 예정일이 등록되었습니다.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
+      pushInAppNotifications(createNotificationsForDepts(
+        users, ["환경영업팀"],
+        "반출 예정일 등록", body,
+        `/status-table?status=${encodeURIComponent("반출예정")}`, "status", mutated.id
+      ));
+      mutated.noti_dispatch_plan_sent_at = now;
+    }
+
+    // C-3: 반출완료
+    if (mutated.outbound_date) {
+      const outDate = new Date(mutated.outbound_date);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (outDate <= today && !mutated.noti_dispatch_done_sent_at) {
+        const body = `아래 건에 대해 반출이 완료되었습니다.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
+        pushInAppNotifications(createNotificationsForDepts(
+          users, ["환경영업팀", "제조본부"],
+          "반출 완료 알림", body,
+          `/status-table?status=${encodeURIComponent("반출완료")}`, "status", mutated.id
+        ));
+        mutated.noti_dispatch_done_sent_at = now;
+      }
+    }
+
+    // C-4: 입고완료 - no notification per design
+
+    // C-5: 1차 점검완료
+    if (mutated.first_inspection_done_date && !mutated.noti_first_check_done_sent_at) {
+      const body = `아래 건에 대한 1차 점검이 완료되었습니다. 1차 점검 보고서를 확인해 주세요.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
+      pushInAppNotifications(createNotificationsForDepts(
+        users, ["품질본부", "환경영업팀"],
+        "1차 점검 완료 알림", body,
+        `/first-report`, "first_report", mutated.id
+      ));
+      mutated.noti_first_check_done_sent_at = now;
+    }
+
+    // C-6: 최종 점검완료
+    if (mutated.final_inspection_done_date && !mutated.noti_final_check_done_sent_at) {
+      const body = `아래 건에 대한 최종 점검이 완료되었습니다. 완료 점검 보고서를 확인해 주세요.\nFE/FS팀에서는 재설치 예정일자를 기입해 주세요.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
+      pushInAppNotifications(createNotificationsForDepts(
+        users, ["품질본부", "CS팀", "환경영업팀"],
+        "최종 점검 완료 알림", body,
+        `/final-report`, "final_report", mutated.id
+      ));
+      mutated.noti_final_check_done_sent_at = now;
+    }
+
+    // C-7: 설치완료 (requires 확정)
+    if (mutated.reinstall_date && mutated.reinstall_confirm_status === "확정") {
+      const installDate = new Date(mutated.reinstall_date);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (installDate <= today && !mutated.noti_install_done_sent_at) {
+        const body = `아래 건의 설치가 완료 처리되었습니다.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}\n- 설치일자: ${mutated.reinstall_date}`;
+        pushInAppNotifications(createNotificationsForDepts(
+          users, ["환경영업팀", "CS팀"],
+          "설치 완료 처리", body,
+          `/status-table?status=${encodeURIComponent("설치 완료")}`, "status", mutated.id
+        ));
+        mutated.noti_install_done_sent_at = now;
+      }
+    }
+
+    // C-8: 계약납기 7일전 (evaluated inline)
+    if (mutated.contract_due_date && !mutated.due_alert_sent_at) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const dueDate = new Date(mutated.contract_due_date); dueDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= 7) {
+        let body = `${mutated.manage_no} / ${mutated.project_name} 계약납기 7일 전입니다. 일정 확인 바랍니다.`;
+        if (mutated.reinstall_confirm_status === "확정" && mutated.reinstall_date) {
+          body += `\n- 재설치 일자: ${mutated.reinstall_date}`;
+        }
+        pushInAppNotifications(createNotificationsForDepts(
+          users, ["제조본부", "품질본부", "CS팀", "환경영업팀"],
+          "계약납기 도래 알림", body,
+          `/status-table?status=${encodeURIComponent("납기유의")}`, "status", mutated.id
+        ));
+        mutated.due_alert_sent_at = now;
+      }
+    }
+
+    return mutated;
+  }, [users, pushInAppNotifications]);
+
   const addUser = useCallback((name: string, emp_no: string, role_category: RoleCategory, department: Department) => {
     setUsers((prev) => [
       ...prev,
@@ -143,7 +273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addInspection = useCallback(
-    (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at">) => {
+    (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at">) => {
       const now = new Date().toISOString();
       const inspectionId = crypto.randomUUID();
       const equipmentItems: OutboundEquipmentItem[] = (data.equipment_items || []).map((item) => ({
@@ -153,12 +283,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const base: OutboundInspection = {
         ...data, id: inspectionId, equipment_items: equipmentItems,
         status: "확인필요", due_warning: false, created_at: now, updated_at: now,
+        noti_confirm_needed_sent_at: null, noti_dispatch_plan_sent_at: null,
+        noti_dispatch_done_sent_at: null, noti_first_check_done_sent_at: null,
+        noti_final_check_done_sent_at: null, noti_install_done_sent_at: null,
+        due_alert_sent_at: null,
       };
-      const final = recalcStatus(base);
+      let final = recalcStatus(base);
+      final = triggerInAppNotifications(base, final);
       setInspections((prev) => [...prev, final]);
       triggerNotifications(final, null, null);
     },
-    [triggerNotifications]
+    [triggerNotifications, triggerInAppNotifications]
   );
 
   const updateInspection = useCallback((id: string, updates: Partial<OutboundInspection>) => {
@@ -167,12 +302,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (rec.id !== id) return rec;
         const oldStatus = rec.status;
         const oldDueWarning = rec.due_warning;
-        const updated = recalcStatus({ ...rec, ...updates });
+        let updated = recalcStatus({ ...rec, ...updates });
+        updated = triggerInAppNotifications(rec, updated);
         setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
         return updated;
       })
     );
-  }, [triggerNotifications]);
+  }, [triggerNotifications, triggerInAppNotifications]);
+
+  // C-8: Check due alerts on page load (run once on inspections change)
+  useEffect(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let hasChanges = false;
+    const updatedInspections = inspections.map((rec) => {
+      if (!rec.contract_due_date || rec.due_alert_sent_at) return rec;
+      const dueDate = new Date(rec.contract_due_date); dueDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= 7) {
+        hasChanges = true;
+        const now = new Date().toISOString();
+        let body = `${rec.manage_no} / ${rec.project_name} 계약납기 7일 전입니다. 일정 확인 바랍니다.`;
+        if (rec.reinstall_confirm_status === "확정" && rec.reinstall_date) {
+          body += `\n- 재설치 일자: ${rec.reinstall_date}`;
+        }
+        pushInAppNotifications(createNotificationsForDepts(
+          users, ["제조본부", "품질본부", "CS팀", "환경영업팀"],
+          "계약납기 도래 알림", body,
+          `/status-table?status=${encodeURIComponent("납기유의")}`, "status", rec.id
+        ));
+        return { ...rec, due_alert_sent_at: now };
+      }
+      return rec;
+    });
+    if (hasChanges) {
+      setInspections(updatedInspections);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspections.length]);
 
   /* ─── Report functions ─── */
 
@@ -207,7 +373,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...r, status: "completed" as ReportStatus, completed_at: now, updated_at: now };
     }));
 
-    // Find the report and update inspection + equipment serial numbers
     const report = reports.find(r => r.id === reportId);
     if (report) {
       const serialNumbers = report.serial_numbers;
@@ -216,7 +381,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const oldStatus = insp.status;
         const oldDueWarning = insp.due_warning;
 
-        // Write serial numbers back to equipment items (per-equipment or legacy)
         const updatedItems = insp.equipment_items.map(item => {
           const newSerial = serialNumbers[item.id];
           if (newSerial) {
@@ -232,12 +396,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           dateUpdate = { final_inspection_done_date: now.split("T")[0] };
         }
 
-        const updated = recalcStatus({ ...insp, ...dateUpdate, equipment_items: updatedItems });
+        let updated = recalcStatus({ ...insp, ...dateUpdate, equipment_items: updatedItems });
+        updated = triggerInAppNotifications(insp, updated);
         setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
         return updated;
       }));
     }
-  }, [reports, triggerNotifications]);
+  }, [reports, triggerNotifications, triggerInAppNotifications]);
 
   const requestApproval = useCallback((reportId: string) => {
     setReports(prev => prev.map(r =>
@@ -261,7 +426,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qa_signature_applied: true,
       };
     }));
-    // Send one-time notification to 환경영업팀
     const report = reports.find(r => r.id === reportId);
     if (report && !report.qa_notification_sent_to_sales) {
       const insp = inspections.find(i => i.id === report.inspection_id);
@@ -274,7 +438,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           created_at: now,
         }]);
       }
-      // Mark notification sent
       setReports(prev2 => prev2.map(r =>
         r.id === reportId ? { ...r, qa_notification_sent_to_sales: true } : r
       ));
@@ -300,10 +463,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        users, inspections, notifications, mailOutbox, reports, reportVersions,
+        users, inspections, notifications, mailOutbox, reports, reportVersions, inAppNotifications,
         currentUser, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions,
+        markNotificationRead, markAllNotificationsRead,
       }}
     >
       {children}
