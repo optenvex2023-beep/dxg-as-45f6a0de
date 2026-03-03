@@ -67,6 +67,30 @@ function buildCheckFlags(items: InspectionCheckItem[]): Record<string, boolean> 
   return flags;
 }
 
+/** Deep-sanitise: replace any undefined/null with "" in the final context */
+function sanitizeExportContext(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined || value === null) {
+      result[key] = "";
+    } else if (Array.isArray(value)) {
+      result[key] = value.map(item => {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          return sanitizeExportContext(item as Record<string, unknown>);
+        }
+        return item === undefined || item === null ? "" : item;
+      });
+    } else if (typeof value === "object") {
+      result[key] = sanitizeExportContext(value as Record<string, unknown>);
+    } else if (typeof value === "string" && (value === "undefined" || value === "null")) {
+      result[key] = "";
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 /* ─── Build full template data object ─── */
 function buildTemplateData(
   inspection: OutboundInspection,
@@ -92,7 +116,7 @@ function buildTemplateData(
   // QA signature: only when explicitly reviewed
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
 
-  return {
+  const raw: Record<string, unknown> = {
     // ── Cover page ──
     INSPECTOR_NAM: safe(report.inspector_name),
     DEPT_HEAD_NAM: safe(data.department_head),
@@ -205,6 +229,16 @@ function buildTemplateData(
     LEFT_CAPTION: "",
     RIGHT_CAPTION: "",
   };
+
+  // Dev-mode safety log
+  if (import.meta.env.DEV) {
+    const undefinedKeys = Object.entries(raw).filter(([, v]) => v === undefined || v === null).map(([k]) => k);
+    if (undefinedKeys.length > 0) {
+      console.warn("[WordExport] undefined keys detected before sanitize:", undefinedKeys);
+    }
+  }
+
+  return sanitizeExportContext(raw);
 }
 
 /* ─── Export function ─── */
