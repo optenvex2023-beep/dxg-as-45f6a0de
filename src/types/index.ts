@@ -185,6 +185,8 @@ export interface InspectionReportData {
   photos: ReportPhoto[];
 }
 
+export type QAReviewStatus = "미검토" | "검토완료";
+
 export interface InspectionReport {
   id: string;
   inspection_id: string;
@@ -205,6 +207,13 @@ export interface InspectionReport {
   completed_at: string | null;
   approved_at: string | null;
   approved_by: string | null;
+
+  // QA review fields
+  qa_review_status: QAReviewStatus;
+  qa_reviewer_name: string | null;
+  qa_reviewed_at: string | null;
+  qa_signature_applied: boolean;
+  qa_notification_sent_to_sales: boolean;
 }
 
 export interface ReportVersion {

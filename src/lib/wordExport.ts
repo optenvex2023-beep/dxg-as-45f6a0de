@@ -62,14 +62,14 @@ function buildTemplateData(
     return rows;
   };
 
-  // QA stamp: only show after QA review is complete (status === "approved")
-  const qaReviewDone = report.status === "approved" && !!report.approved_by;
+  // QA stamp: only show after QA review is complete
+  const qaReviewDone = report.qa_signature_applied || (report.status === "approved" && !!report.approved_by);
 
   return {
     // ── Cover page ──
     INSPECTOR_NAM: safe(report.inspector_name),
     DEPT_HEAD_NAM: safe(data.department_head),
-    QA_REVIEWER_NAM: qaReviewDone ? safe(report.approved_by) : "",
+    QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name || report.approved_by) : "",
     QA_SIGNATURE: qaReviewDone ? "검토완료" : "",
 
     CLIENT_NAME: safe(data.client_name),

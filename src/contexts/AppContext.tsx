@@ -186,6 +186,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...data, id: crypto.randomUUID(),
       created_at: now, updated_at: now,
       completed_at: null, approved_at: null, approved_by: null,
+      qa_review_status: data.qa_review_status ?? "미검토",
+      qa_reviewer_name: data.qa_reviewer_name ?? null,
+      qa_reviewed_at: data.qa_reviewed_at ?? null,
+      qa_signature_applied: data.qa_signature_applied ?? false,
+      qa_notification_sent_to_sales: data.qa_notification_sent_to_sales ?? false,
     };
     setReports(prev => [...prev, report]);
     return report;
@@ -242,19 +247,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const approveReport = useCallback((reportId: string, approverName: string) => {
     const now = new Date().toISOString();
-    setReports(prev => prev.map(r =>
-      r.id === reportId ? { ...r, status: "approved" as ReportStatus, approved_at: now, approved_by: approverName, updated_at: now } : r
-    ));
-    // Send notification to 환경영업팀 on QA approval
+    setReports(prev => prev.map(r => {
+      if (r.id !== reportId) return r;
+      return {
+        ...r,
+        status: "approved" as ReportStatus,
+        approved_at: now,
+        approved_by: approverName,
+        updated_at: now,
+        qa_review_status: "검토완료" as const,
+        qa_reviewer_name: approverName,
+        qa_reviewed_at: now,
+        qa_signature_applied: true,
+      };
+    }));
+    // Send one-time notification to 환경영업팀
     const report = reports.find(r => r.id === reportId);
-    if (report) {
+    if (report && !report.qa_notification_sent_to_sales) {
       const insp = inspections.find(i => i.id === report.inspection_id);
       if (insp) {
+        const reportLabel = report.report_type === "first" ? "1차 점검보고서" : "완료 점검보고서";
         setNotifications(prev => [...prev, {
           id: crypto.randomUUID(), inspection_id: insp.id, status_trigger: "1차 점검완료",
-          target_departments: ["환경영업팀"], message: `품질본부 검토가 완료되었습니다. (검토자: ${approverName})\n- 관리번호: ${insp.manage_no}\n- 건명: ${insp.project_name}`, created_at: now,
+          target_departments: ["환경영업팀"],
+          message: `품질본부 검토가 완료되었습니다. (검토자: ${approverName})\n[${insp.manage_no}] ${insp.project_name} ${reportLabel} 품질 검토가 완료되었습니다.`,
+          created_at: now,
         }]);
       }
+      // Mark notification sent
+      setReports(prev2 => prev2.map(r =>
+        r.id === reportId ? { ...r, qa_notification_sent_to_sales: true } : r
+      ));
     }
   }, [reports, inspections]);
 

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useApp } from "@/contexts/AppContext";
 import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto, InspectionResultOption } from "@/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +51,7 @@ export default function FirstReport() {
   const [selectedInspectionId, setSelectedInspectionId] = useState("");
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [detailReportId, setDetailReportId] = useState<string | null>(null);
 
   const isManufacturing = currentUser?.department === "제조본부";
   const isQC = currentUser?.department === "품질본부";
@@ -81,6 +83,24 @@ export default function FirstReport() {
         .map(r => r.equipment_item_id)
     );
   }, [reports, selectedInspectionId]);
+
+  // Completed first reports for the list section
+  const completedFirstReports = useMemo(() => {
+    return reports
+      .filter(r => r.report_type === "first" && r.status !== "draft")
+      .sort((a, b) => b.created_date.localeCompare(a.created_date));
+  }, [reports]);
+
+  const detailReport = detailReportId ? reports.find(r => r.id === detailReportId) ?? null : null;
+  const detailInspection = detailReport ? inspections.find(i => i.id === detailReport.inspection_id) ?? null : null;
+  const detailEquipment = detailInspection?.equipment_items.find(e => e.id === detailReport?.equipment_item_id) ?? null;
+
+  const handleDetailQAReview = () => {
+    if (!detailReport) return;
+    const qaName = resolveUserName();
+    approveReport(detailReport.id, qaName);
+    toast.success("품질본부 검토가 완료되었습니다. 환경영업팀에 알림이 전송됩니다.");
+  };
 
   const handleInspectionChange = (id: string) => {
     setSelectedInspectionId(id);
@@ -209,6 +229,87 @@ export default function FirstReport() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ═══ Completed Reports List ═══ */}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <h2 className="text-sm font-semibold">작성완료된 보고서 리스트</h2>
+        {completedFirstReports.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">완료된 1차 점검보고서가 없습니다.</p>
+        ) : (
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">관리번호</TableHead>
+                  <TableHead className="text-xs">건명</TableHead>
+                  <TableHead className="text-xs">모델/장비</TableHead>
+                  <TableHead className="text-xs">Serial No</TableHead>
+                  <TableHead className="text-xs">작성일</TableHead>
+                  <TableHead className="text-xs">작성자(점검자)</TableHead>
+                  <TableHead className="text-xs">품질검토상태</TableHead>
+                  <TableHead className="text-xs">작업</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {completedFirstReports.map(r => {
+                  const insp = inspections.find(i => i.id === r.inspection_id);
+                  const equip = insp?.equipment_items.find(e => e.id === r.equipment_item_id);
+                  const serial = r.serial_numbers[r.equipment_item_id] || equip?.serial_no || "";
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-xs">{insp?.manage_no || ""}</TableCell>
+                      <TableCell className="text-xs">{insp?.project_name || ""}</TableCell>
+                      <TableCell className="text-xs">{equip?.equipment_name || ""}</TableCell>
+                      <TableCell className="text-xs">{serial}</TableCell>
+                      <TableCell className="text-xs">{r.created_date}</TableCell>
+                      <TableCell className="text-xs">{r.inspector_name}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge className={cn("text-[10px]",
+                          r.qa_review_status === "검토완료" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                        )}>
+                          {r.qa_review_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setDetailReportId(r.id)}>
+                          상세보기
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      {/* Detail modal for completed report */}
+      {detailReport && detailInspection && detailEquipment && (
+        <Dialog open={!!detailReportId} onOpenChange={(open) => { if (!open) setDetailReportId(null); }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle>1차 점검보고서 상세</DialogTitle>
+            </DialogHeader>
+            <DocumentView
+              inspection={detailInspection}
+              equipment={detailEquipment}
+              report={detailReport}
+              canEdit={false}
+              canApprove={isQC && detailReport.status === "approval_requested"}
+              isManufacturing={isManufacturing}
+              isQC={isQC}
+              onUpdate={updateReport}
+              onComplete={() => {}}
+              onRequestApproval={() => {}}
+              onQAReviewComplete={handleDetailQAReview}
+              onAddVersion={addReportVersion}
+              getVersions={getReportVersions}
+              currentUserName={currentUser?.name || ""}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -273,6 +374,11 @@ function DocumentForm({
       special_notes: "",
       inspector_name: inspectorName,
       created_date: today,
+      qa_review_status: "미검토",
+      qa_reviewer_name: null,
+      qa_reviewed_at: null,
+      qa_signature_applied: false,
+      qa_notification_sent_to_sales: false,
     });
   };
 
@@ -573,9 +679,9 @@ function TemplateBody({
             <td className={tdCls}>{data.department_head || ""}</td>
             <td className={tdCls}>{qaReviewerName || ""}</td>
             <td className={cn(tdCls, "text-center")}>
-              {reportStatus === "approved" ? (
+              {(reportStatus === "approved" || qaReviewerName) ? (
                 <img
-                  src="/images/qa-stamp.jpg"
+                  src="/images/qa-signature.png"
                   alt="품질 서명"
                   className="inline-block h-12 w-auto"
                 />
