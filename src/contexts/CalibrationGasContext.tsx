@@ -239,7 +239,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     setNotifications((prev) => prev.map((n) => (n.read_at ? n : { ...n, read_at: now })));
   }, []);
 
-  /* ── Check for expiry/low remaining on mount ── */
+  /* ── Check for expiry/low remaining + inspection due on mount ── */
   useEffect(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -279,6 +279,44 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
             `/calibration-gas/inventory`,
             item.id
           );
+        }
+      }
+
+      // Gas inspection due (P열 within 60 days)
+      if (item.gas_inspection_next) {
+        const nextDate = new Date(item.gas_inspection_next);
+        if (!isNaN(nextDate.getTime()) && nextDate >= today && nextDate <= sixtyDaysLater) {
+          const existing = notifications.find(
+            (n) => n.type === "gas_inspection_due" && n.related_id === `gas-${item.id}`
+          );
+          if (!existing) {
+            pushNotification(
+              "gas_inspection_due",
+              "가스상 정도검사 예정 알림",
+              `아래 사업장의 가스상 정도검사 유효기간이 만료 예정 (60일 전)입니다.\n\n사업장명: ${item.site_name}\n호기: ${item.unit_no}\n가스상 정도검사 예정일: ${item.gas_inspection_next}`,
+              `/calibration-gas/inventory`,
+              `gas-${item.id}`
+            );
+          }
+        }
+      }
+
+      // Velocity inspection due (V열 within 60 days)
+      if (item.velocity_inspection_next) {
+        const nextDate = new Date(item.velocity_inspection_next);
+        if (!isNaN(nextDate.getTime()) && nextDate >= today && nextDate <= sixtyDaysLater) {
+          const existing = notifications.find(
+            (n) => n.type === "velocity_inspection_due" && n.related_id === `vel-${item.id}`
+          );
+          if (!existing) {
+            pushNotification(
+              "velocity_inspection_due",
+              "유속계 정도검사 예정 알림",
+              `아래 사업장의 유속계 정도검사 유효기간이 만료 예정 (60일 전)입니다.\n\n사업장명: ${item.site_name}\n호기: ${item.unit_no}\n유속계 정도검사 예정일: ${item.velocity_inspection_next}`,
+              `/calibration-gas/inventory`,
+              `vel-${item.id}`
+            );
+          }
         }
       }
     }
