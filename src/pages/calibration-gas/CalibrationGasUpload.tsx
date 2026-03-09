@@ -5,77 +5,149 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, FileText, X, CheckCircle2, AlertCircle, Info, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { CalibrationGasExtraction, CalibrationGasExtractionItem, CalibrationGasUploadFile } from "@/types/calibrationGas";
+import { isPdfTextBased, extractGasDataFromFile } from "@/lib/gasExtraction";
 
-const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
-const ACCEPTED_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".xlsx"];
+const ACCEPTED_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+const ACCEPTED_EXT = [".pdf", ".xlsx"];
+
+type FileEntry = {
+  file: File;
+  id: string;
+  progress: number;
+  status: "uploading" | "extracting" | "done" | "error";
+  errorMsg?: string;
+  extractedSite?: string;
+  extractedUnit?: string;
+  extractedItems?: CalibrationGasExtractionItem[];
+};
 
 export default function CalibrationGasUpload() {
   const { addUploadFile, addExtraction, normalizeSiteName, findMatchingInventory, inventory } = useCalGas();
   const { currentUser } = useApp();
-  const [files, setFiles] = useState<{ file: File; id: string; progress: number; status: "uploading" | "done" | "error" }[]>([]);
-  const [showExtractionForm, setShowExtractionForm] = useState(false);
-  const [currentFileId, setCurrentFileId] = useState<string | null>(null);
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [formSite, setFormSite] = useState("");
   const [formUnit, setFormUnit] = useState("");
   const [formItems, setFormItems] = useState<CalibrationGasExtractionItem[]>([
     { gas_name: "", remaining_percent: "", expiry_date: "" },
   ]);
 
+  const validateAndFilterFiles = async (rawFiles: File[]): Promise<File[]> => {
+    const valid: File[] = [];
+    for (const f of rawFiles) {
+      const ext = "." + f.name.split(".").pop()?.toLowerCase();
+      if (!ACCEPTED_EXT.includes(ext)) {
+        toast.error(`${f.name}: 지원하지 않는 파일 형식입니다. 텍스트 PDF 또는 엑셀(.xlsx) 파일만 업로드 가능합니다.`);
+        continue;
+      }
+      if (ext === ".pdf") {
+        const isText = await isPdfTextBased(f);
+        if (!isText) {
+          toast.error(`${f.name}: 이 파일은 텍스트 추출이 불가능한 스캔 PDF입니다. 텍스트가 선택되는 PDF 또는 엑셀 파일을 업로드해 주세요.`);
+          continue;
+        }
+      }
+      valid.push(f);
+    }
+    return valid;
+  };
+
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
-      const droppedFiles = Array.from(e.dataTransfer.files).filter((f) => {
-        const ext = "." + f.name.split(".").pop()?.toLowerCase();
-        return ACCEPTED_EXT.includes(ext);
-      });
-      processFiles(droppedFiles);
+      const dropped = Array.from(e.dataTransfer.files);
+      const valid = await validateAndFilterFiles(dropped);
+      if (valid.length > 0) processFiles(valid);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      processFiles(Array.from(e.target.files));
+      const valid = await validateAndFilterFiles(Array.from(e.target.files));
+      if (valid.length > 0) processFiles(valid);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const processFiles = (newFiles: File[]) => {
-    const processed = newFiles.map((f) => {
-      const id = crypto.randomUUID();
-      return { file: f, id, progress: 0, status: "uploading" as const };
-    });
-    setFiles((prev) => [...prev, ...processed]);
+    const entries: FileEntry[] = newFiles.map((f) => ({
+      file: f,
+      id: crypto.randomUUID(),
+      progress: 0,
+      status: "uploading" as const,
+    }));
+    setFiles((prev) => [...prev, ...entries]);
 
-    // Simulate upload progress
-    processed.forEach((pf) => {
+    // Simulate upload then auto-extract
+    entries.forEach((entry) => {
       let progress = 0;
       const interval = setInterval(() => {
         progress += Math.random() * 30 + 10;
         if (progress >= 100) {
           progress = 100;
           clearInterval(interval);
-          setFiles((prev) =>
-            prev.map((f) => (f.id === pf.id ? { ...f, progress: 100, status: "done" } : f))
-          );
+
           // Create upload record
-          const ext = pf.file.name.split(".").pop()?.toLowerCase() || "pdf";
+          const ext = entry.file.name.split(".").pop()?.toLowerCase() || "pdf";
           const uploadFile: CalibrationGasUploadFile = {
-            id: pf.id,
-            file_name: pf.file.name,
+            id: entry.id,
+            file_name: entry.file.name,
             file_type: ext,
-            file_size: pf.file.size,
+            file_size: entry.file.size,
             uploaded_at: new Date().toISOString(),
             uploaded_by: currentUser?.name || "시스템",
             status: "pending",
           };
           addUploadFile(uploadFile);
+
+          // Move to extraction phase
+          setFiles((prev) =>
+            prev.map((f) => (f.id === entry.id ? { ...f, progress: 100, status: "extracting" } : f))
+          );
+
+          // Auto-extract data
+          extractGasDataFromFile(entry.file)
+            .then((result) => {
+              const normalizedSite = result.site_name ? normalizeSiteName(result.site_name) : "";
+              setFiles((prev) =>
+                prev.map((f) =>
+                  f.id === entry.id
+                    ? {
+                        ...f,
+                        status: "done",
+                        extractedSite: normalizedSite,
+                        extractedUnit: result.unit_no,
+                        extractedItems: result.items.length > 0
+                          ? result.items
+                          : [{ gas_name: "", remaining_percent: "", expiry_date: "" }],
+                      }
+                    : f
+                )
+              );
+              if (result.items.length > 0) {
+                toast.success(`${entry.file.name}: ${result.items.length}건의 가스 데이터를 추출했습니다.`);
+              } else {
+                toast.info(`${entry.file.name}: 자동 추출된 데이터가 없습니다. 수동으로 입력해 주세요.`);
+              }
+            })
+            .catch(() => {
+              setFiles((prev) =>
+                prev.map((f) =>
+                  f.id === entry.id
+                    ? { ...f, status: "error", errorMsg: "데이터 추출에 실패했습니다." }
+                    : f
+                )
+              );
+            });
         }
         setFiles((prev) =>
-          prev.map((f) => (f.id === pf.id ? { ...f, progress: Math.min(progress, 100) } : f))
+          prev.map((f) => (f.id === entry.id ? { ...f, progress: Math.min(progress, 100) } : f))
         );
       }, 200);
     });
@@ -83,21 +155,16 @@ export default function CalibrationGasUpload() {
 
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
+    if (editingFileId === id) setEditingFileId(null);
   };
 
-  const startExtraction = (fileId: string) => {
-    setCurrentFileId(fileId);
-    const file = files.find((f) => f.id === fileId);
-    // Try to guess site name from filename
-    if (file) {
-      const name = file.file.name;
-      // Common patterns: "WTC_점검일지", "LS전선_점검일지"
-      const siteGuess = name.split("_")[0]?.replace(/점검일지|최종|첨부|\d+/g, "").trim();
-      if (siteGuess) setFormSite(siteGuess);
-    }
-    setFormUnit("");
-    setFormItems([{ gas_name: "", remaining_percent: "", expiry_date: "" }]);
-    setShowExtractionForm(true);
+  const startEditing = (fileId: string) => {
+    const f = files.find((x) => x.id === fileId);
+    if (!f) return;
+    setEditingFileId(fileId);
+    setFormSite(f.extractedSite || "");
+    setFormUnit(f.extractedUnit || "");
+    setFormItems(f.extractedItems?.length ? [...f.extractedItems] : [{ gas_name: "", remaining_percent: "", expiry_date: "" }]);
   };
 
   const addFormItem = () => {
@@ -113,12 +180,11 @@ export default function CalibrationGasUpload() {
   };
 
   const submitExtraction = () => {
-    if (!currentFileId || !formSite || !formUnit) return;
+    if (!editingFileId || !formSite || !formUnit) return;
 
     const normalizedSite = normalizeSiteName(formSite);
     const validItems = formItems.filter((i) => i.gas_name);
 
-    // Match logic
     let allMatched: string[] = [];
     let matchStatus: "matched" | "review_needed" | "match_failed" = "matched";
 
@@ -135,10 +201,10 @@ export default function CalibrationGasUpload() {
     allMatched = [...new Set(allMatched)];
     if (allMatched.length === 0) matchStatus = "match_failed";
 
-    const file = files.find((f) => f.id === currentFileId);
+    const file = files.find((f) => f.id === editingFileId);
     const extraction: CalibrationGasExtraction = {
       id: crypto.randomUUID(),
-      upload_file_id: currentFileId,
+      upload_file_id: editingFileId,
       file_name: file?.file.name || "",
       detected_site: normalizedSite,
       detected_unit: formUnit,
@@ -150,16 +216,25 @@ export default function CalibrationGasUpload() {
     };
 
     addExtraction(extraction);
-    setShowExtractionForm(false);
-    setCurrentFileId(null);
+    setEditingFileId(null);
+    toast.success("매칭 검토에 제출되었습니다.");
   };
 
-  // Get list of unique gas names from inventory for suggestions
   const gasNameSuggestions = [...new Set(inventory.map((i) => i.gas_name))].sort();
 
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">점검보고서 업로드</h2>
+
+      {/* Notice - no OCR */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-xs leading-relaxed">
+          ※ 업로드 가능 파일 형식: 텍스트 PDF, 엑셀(.xlsx)
+          <br />- 텍스트가 선택되지 않는 스캔 PDF 및 이미지 파일은 지원하지 않습니다.
+          <br />- 점검보고서에서 Zero Span Test의 '점검후' 항목 기준으로 표준가스잔량, 유효기간을 추출합니다.
+        </AlertDescription>
+      </Alert>
 
       {/* Drop zone */}
       <div
@@ -170,7 +245,7 @@ export default function CalibrationGasUpload() {
       >
         <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
         <p className="text-sm font-medium">파일을 드래그하거나 클릭하여 업로드</p>
-        <p className="text-xs text-muted-foreground mt-1">지원 형식: PDF, JPG, PNG, XLSX</p>
+        <p className="text-xs text-muted-foreground mt-1">지원 형식: 텍스트 PDF, 엑셀(.xlsx)</p>
         <p className="text-xs text-muted-foreground">여러 파일 동시 업로드 가능 (파일 1개 = 1호기)</p>
         <input
           id="calgas-file-input"
@@ -197,17 +272,35 @@ export default function CalibrationGasUpload() {
                 {f.status === "uploading" && (
                   <Progress value={f.progress} className="mt-1 h-1.5" />
                 )}
+                {f.status === "extracting" && (
+                  <p className="text-xs text-primary flex items-center gap-1 mt-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> 데이터 추출 중...
+                  </p>
+                )}
+                {f.status === "error" && (
+                  <p className="text-xs text-destructive mt-1">{f.errorMsg}</p>
+                )}
+                {f.status === "done" && f.extractedItems && f.extractedItems.some((i) => i.gas_name) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    추출: {f.extractedSite || "미감지"} / {f.extractedUnit || "미감지"}호기 / {f.extractedItems.filter((i) => i.gas_name).length}건 가스
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {f.status === "done" && (
                   <>
                     <Badge className="bg-primary/10 text-primary text-xs">
-                      <CheckCircle2 className="h-3 w-3 mr-1" /> 완료
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> 추출완료
                     </Badge>
-                    <Button size="sm" variant="outline" onClick={() => startExtraction(f.id)}>
-                      데이터 입력
+                    <Button size="sm" variant="outline" onClick={() => startEditing(f.id)}>
+                      확인/수정
                     </Button>
                   </>
+                )}
+                {f.status === "error" && (
+                  <Button size="sm" variant="outline" onClick={() => startEditing(f.id)}>
+                    수동 입력
+                  </Button>
                 )}
                 <button onClick={() => removeFile(f.id)} className="text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
@@ -218,21 +311,21 @@ export default function CalibrationGasUpload() {
         </div>
       )}
 
-      {/* Extraction form */}
-      {showExtractionForm && (
+      {/* Edit/Review extracted data */}
+      {editingFileId && (
         <div className="border rounded-lg p-4 space-y-4 bg-card">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-primary" />
-              점검보고서 데이터 입력 (Zero Span Test 점검후 값)
+              추출 데이터 확인/수정 (Zero Span Test 점검후 값)
             </h3>
-            <Button size="sm" variant="ghost" onClick={() => setShowExtractionForm(false)}>
+            <Button size="sm" variant="ghost" onClick={() => setEditingFileId(null)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            점검보고서의 "6. Zero Span Test" 섹션에서 <strong>점검후</strong> 값을 입력해 주세요.
-            <br />정도검사 기간은 무시하고, 표준가스잔량과 유효기간만 입력합니다.
+            자동 추출된 값을 확인하고, 필요시 수정한 후 제출하세요.
+            <br />정도검사 기간은 무시하고, 표준가스잔량과 유효기간만 반영됩니다.
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -248,7 +341,7 @@ export default function CalibrationGasUpload() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold">가스별 데이터 (점검후 값만 입력)</label>
+              <label className="text-xs font-semibold">가스별 데이터 (점검후 값)</label>
               <Button size="sm" variant="outline" onClick={addFormItem}>+ 가스 추가</Button>
             </div>
             {formItems.map((item, idx) => (
@@ -292,7 +385,7 @@ export default function CalibrationGasUpload() {
           </datalist>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowExtractionForm(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setEditingFileId(null)}>취소</Button>
             <Button onClick={submitExtraction} disabled={!formSite || !formUnit || formItems.every((i) => !i.gas_name)}>
               매칭 검토 제출
             </Button>
