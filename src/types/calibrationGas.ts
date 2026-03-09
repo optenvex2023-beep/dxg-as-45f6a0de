@@ -2,25 +2,44 @@
 
 export interface CalibrationGasInventoryItem {
   id: string;
-  contract_end_date: string | null;
-  site_name: string;           // 사업장명
-  tms_status: string;          // 전송/비전송/미전송
-  unit_no: string;             // 호기
-  analyzer_range: string;      // 분석기 Range
-  gas_name: string;            // 교정가스 종류 (e.g. "NO 200ppm", "O2 25%")
-  concentration: string;       // 농도 (ppm, %)
-  volume_L: string;            // 용량(L)
-  expiry_date: string | null;  // 유효기간
-  remaining_percent: string;   // 잔량(%)
-  purchase_entity: string;     // 구매 주체
-  so_issue: string;            // S/O 발행
-  arrival_status: string;      // 도착예정
-  branch: string;              // 지점
-  inspection_date: string;     // 점검일
-  inspection_cycle: string;    // 점검주기
-  md: string;                  // M/D
-  monthly_amount: string;      // 월 금액
-  notes: string;               // 비고
+  contract_end_date: string | null;  // A열: 유지보수 계약 종료일
+  site_name: string;                 // B열: 사업장명
+  tms_status: string;                // C열: TMS 전송 유무
+  unit_no: string;                   // D열: 호기
+  analyzer_range: string;            // E열: 분석기 Range
+  gas_name: string;                  // F열: 교정가스 종류
+  concentration: string;             // F열: 농도 (ppm, %)
+  volume_L: string;                  // G열: 용량(L)
+  expiry_date: string | null;        // H열: 유효기간
+  remaining_percent: string;         // I열: 잔량(%)
+  purchase_entity: string;           // J열: 구매 주체
+  so_issue: string;                  // K열: S/O 발행
+  arrival_status: string;            // L열: 도착예정
+  branch: string;                    // M열: 지점
+
+  /* ── 가스상 정도검사 (N~S열) ── */
+  gas_inspection_first: string;      // N열: 최초
+  gas_inspection_last: string;       // O열: 최종
+  gas_inspection_next: string;       // P열: 예정
+  gas_inspection_round: string;      // Q열: 차수
+  gas_inspection_so: string;         // R열: S/O 발행
+  gas_inspection_so_arrival: string; // S열: S/O 도착
+
+  /* ── 유속계 정도검사 (T~X열) ── */
+  velocity_inspection_first: string;  // T열: 최초
+  velocity_inspection_last: string;   // U열: 최종
+  velocity_inspection_next: string;   // V열: 예정
+  velocity_inspection_round: string;  // W열: 차수
+  velocity_inspection_so: string;     // X열: S/O 발행
+
+  /* ── Y~AE열 ── */
+  inspection_notes: string;           // Y열: 비고사항
+  inspection_date: string;            // Z열: 점검일
+  inspection_cycle: string;           // AA열: 점검주기
+  md: string;                         // AB열: M/D
+  monthly_amount: string;             // AC열: 월 금액
+  contract_consumables: string;       // AD열: 계약 내 소모품 포함 항목
+  notes: string;                      // AE열: 비고
 }
 
 /** Site name alias map for normalization */
