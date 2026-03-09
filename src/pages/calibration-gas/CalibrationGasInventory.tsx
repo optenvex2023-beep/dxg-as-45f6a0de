@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2 } from "lucide-react";
+import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
@@ -103,6 +103,12 @@ export default function CalibrationGasInventory() {
     setEditMode(true);
   }, []);
 
+  const handleCancelEdit = useCallback(() => {
+    setEditBuffer({});
+    setEditMode(false);
+    toast.info("편집이 취소되었습니다.");
+  }, []);
+
   const handleSave = useCallback(() => {
     let count = 0;
     for (const [id, updates] of Object.entries(editBuffer)) {
@@ -187,7 +193,7 @@ export default function CalibrationGasInventory() {
       return (
         <td className={`${td} ${extraClass} p-0.5`}>
           <input
-            className="w-full h-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
             value={val}
             onChange={(e) => handleCellChange(item.id, field, e.target.value)}
           />
@@ -211,7 +217,7 @@ export default function CalibrationGasInventory() {
       return (
         <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
           <input
-            className="w-full h-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
             value={val}
             onChange={(e) => handleCellChange(item.id, field, e.target.value)}
           />
@@ -238,9 +244,14 @@ export default function CalibrationGasInventory() {
               <Pencil className="h-3.5 w-3.5" /> 등록
             </Button>
           ) : (
-            <Button size="sm" onClick={handleSave} className="gap-1.5">
-              <Save className="h-3.5 w-3.5" /> 저장
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleCancelEdit} className="gap-1.5">
+                <X className="h-3.5 w-3.5" /> 취소
+              </Button>
+              <Button size="sm" onClick={handleSave} className="gap-1.5">
+                <Save className="h-3.5 w-3.5" /> 저장
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -400,7 +411,7 @@ export default function CalibrationGasInventory() {
                       <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
                         {editMode ? (
                           <input
-                            className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                             value={getCellValue(item, "gas_inspection_next")}
                             onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
                           />
@@ -413,16 +424,23 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {renderMergedCell(item, "gas_inspection_round", s.unit, "text-center")}
-                    {/* 완료 button */}
+                    {/* 완료 column: 예정 status + 완료 확인 button */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
                         {item.gas_inspection_first && (
-                          <button
-                            onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> 완료
-                          </button>
+                          item.gas_inspection_last ? (
+                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">완료</span>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                              <button
+                                onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" /> 완료 확인
+                              </button>
+                            </div>
+                          )
                         )}
                       </td>
                     )}
@@ -437,7 +455,7 @@ export default function CalibrationGasInventory() {
                       <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
                         {editMode ? (
                           <input
-                            className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                             value={getCellValue(item, "velocity_inspection_next")}
                             onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
                           />
@@ -450,16 +468,23 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {renderMergedCell(item, "velocity_inspection_round", s.unit, "text-center")}
-                    {/* 완료 button */}
+                    {/* 완료 column: 예정 status + 완료 확인 button */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
                         {item.velocity_inspection_first && (
-                          <button
-                            onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> 완료
-                          </button>
+                          item.velocity_inspection_last ? (
+                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">완료</span>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                              <button
+                                onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" /> 완료 확인
+                              </button>
+                            </div>
+                          )
                         )}
                       </td>
                     )}
