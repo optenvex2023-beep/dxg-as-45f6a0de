@@ -468,16 +468,23 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {renderMergedCell(item, "velocity_inspection_round", s.unit, "text-center")}
-                    {/* 완료 button */}
+                    {/* 완료 column: 예정 status + 완료 확인 button */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
                         {item.velocity_inspection_first && (
-                          <button
-                            onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> 완료
-                          </button>
+                          item.velocity_inspection_last ? (
+                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">완료</span>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                              <button
+                                onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" /> 완료 확인
+                              </button>
+                            </div>
+                          )
                         )}
                       </td>
                     )}
