@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 
-/** Editable field keys (N~Y columns + Z~AE management columns + notes) */
 const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
   "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
   "gas_inspection_round", "gas_inspection_so", "gas_inspection_so_arrival",
@@ -108,7 +107,6 @@ export default function CalibrationGasInventory() {
     let count = 0;
     for (const [id, updates] of Object.entries(editBuffer)) {
       if (Object.keys(updates).length > 0) {
-        // Apply first-entry auto-calc for gas inspection
         if (updates.gas_inspection_first) {
           const item = inventory.find((i) => i.id === id);
           if (item && !item.gas_inspection_last && !updates.gas_inspection_last) {
@@ -117,7 +115,6 @@ export default function CalibrationGasInventory() {
             updates.gas_inspection_round = auto.round;
           }
         }
-        // Apply first-entry auto-calc for velocity inspection
         if (updates.velocity_inspection_first) {
           const item = inventory.find((i) => i.id === id);
           if (item && !item.velocity_inspection_last && !updates.velocity_inspection_last) {
@@ -177,17 +174,18 @@ export default function CalibrationGasInventory() {
     setCompletionTarget(null);
   }, [completionTarget, inventory, updateInventoryItem]);
 
-  /* ── Shared cell classes ── */
+  /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-foreground bg-primary/10 border-r border-b border-border/50 py-2 px-2 text-center text-[11px]";
-  const tdBase = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
+  const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
 
+  /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
     const val = getCellValue(item, field);
     if (isEditable) {
       return (
-        <td className={`${tdBase} ${extraClass} p-0.5`}>
+        <td className={`${td} ${extraClass} p-0.5`}>
           <input
             className="w-full h-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
             value={val}
@@ -196,10 +194,33 @@ export default function CalibrationGasInventory() {
         </td>
       );
     }
-    return <td className={`${tdBase} ${extraClass}`}>{val || ""}</td>;
+    return <td className={`${td} ${extraClass}`}>{val || ""}</td>;
   };
 
-  /* ── 60-day due highlight checks ── */
+  /** Render a merged (rowspan) editable/read-only cell — only rendered when span > 0 */
+  const renderMergedCell = (
+    item: CalibrationGasInventoryItem,
+    field: keyof CalibrationGasInventoryItem,
+    span: number,
+    extraClass = ""
+  ) => {
+    if (span === 0) return null;
+    const isEditable = editMode && EDITABLE_FIELDS.includes(field);
+    const val = getCellValue(item, field);
+    if (isEditable) {
+      return (
+        <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
+          <input
+            className="w-full h-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+            value={val}
+            onChange={(e) => handleCellChange(item.id, field, e.target.value)}
+          />
+        </td>
+      );
+    }
+    return <td rowSpan={span} className={`${td} ${extraClass}`}>{val || ""}</td>;
+  };
+
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
   const velocityInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.velocity_inspection_next);
 
@@ -260,9 +281,7 @@ export default function CalibrationGasInventory() {
       <div className="border rounded-lg bg-background shadow-sm">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)]" style={{ scrollbarGutter: "stable" }}>
           <table className="min-w-[3600px] w-full border-collapse text-sm">
-            {/* ── Multi-row header ── */}
             <thead className="sticky top-0 z-10">
-              {/* Row 1: Group headers */}
               <tr className="bg-primary/10">
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>계약종료일</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px]`}>사업장명</th>
@@ -285,13 +304,11 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[90px]`}>소모품포함</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px] border-r-0`}>비고</th>
               </tr>
-              {/* Row 2: Sub headers */}
               <tr className="bg-primary/5">
                 <th className={`${thBase} min-w-[80px]`}>농도</th>
                 <th className={`${thBase} min-w-[60px]`}>용량(L)</th>
                 <th className={`${thBase} min-w-[80px]`}>유효기간</th>
                 <th className={`${thBase} min-w-[60px]`}>잔량</th>
-                {/* 가스상 정도검사 sub */}
                 <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>최종</th>
                 <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>예정</th>
@@ -299,7 +316,6 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[40px] bg-blue-500/10`}>완료</th>
                 <th className={`${thBase} min-w-[80px] bg-blue-500/10`}>S/O발행</th>
                 <th className={`${thBase} min-w-[90px] bg-blue-500/10`}>S/O도착</th>
-                {/* 유속계 정도검사 sub */}
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최종</th>
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>예정</th>
@@ -312,7 +328,7 @@ export default function CalibrationGasInventory() {
               {filtered.map((item, idx) => {
                 const expSoon = isExpirySoon(item.expiry_date);
                 const lowRem = isLowRemaining(item.remaining_percent);
-                const spanData = rowSpanData[idx];
+                const s = rowSpanData[idx]; // { site, tms, unit }
                 const gasDue = gasInspectionDue(item);
                 const velDue = velocityInspectionDue(item);
                 const isEvenGroup = (() => {
@@ -324,147 +340,139 @@ export default function CalibrationGasInventory() {
                 const rowBg = expSoon || lowRem
                   ? "bg-destructive/5"
                   : isEvenGroup ? "bg-muted/20" : "bg-background";
-
-                // Check if this site group has any inspection due (for site name highlighting)
-                const siteHasInspectionDue = gasDue || velDue;
+                const anyInspDue = gasDue || velDue;
 
                 return (
                   <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors border-b border-border/20`}>
-                    {/* A: 계약종료일 */}
-                    {spanData.site > 0 && (
-                      <td rowSpan={spanData.site} className={`${tdBase} text-center bg-muted/20 font-medium whitespace-nowrap`}>
+                    {/* ── Site-level merged (A, B) ── */}
+                    {s.site > 0 && (
+                      <td rowSpan={s.site} className={`${td} text-center bg-muted/20 font-medium whitespace-nowrap`}>
                         {item.contract_end_date || "-"}
                       </td>
                     )}
-                    {/* B: 사업장명 - pink if inspection due */}
-                    {spanData.site > 0 && (
-                      <td rowSpan={spanData.site} className={`${tdBase} font-semibold whitespace-nowrap ${siteHasInspectionDue ? pinkBg : "bg-muted/30"}`}>
+                    {s.site > 0 && (
+                      <td rowSpan={s.site} className={`${td} font-semibold whitespace-nowrap ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
                         {item.site_name}
-                        {siteHasInspectionDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
+                        {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
                       </td>
                     )}
-                    {/* C: TMS */}
-                    {spanData.tms > 0 && (
-                      <td rowSpan={spanData.tms} className={`${tdBase} text-center`}>
+
+                    {/* ── TMS-level merged (C) ── */}
+                    {s.tms > 0 && (
+                      <td rowSpan={s.tms} className={`${td} text-center`}>
                         <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
                           {item.tms_status}
                         </Badge>
                       </td>
                     )}
-                    {/* D: 호기 */}
-                    {spanData.unit > 0 && (
-                      <td rowSpan={spanData.unit} className={`${tdBase} text-center font-medium`}>
+
+                    {/* ── Unit-level merged (D, J~M, N~X inspection, Y~AE management) ── */}
+                    {s.unit > 0 && (
+                      <td rowSpan={s.unit} className={`${td} text-center font-medium`}>
                         {item.unit_no}
                       </td>
                     )}
-                    {/* E: 분석기 Range */}
-                    <td className={`${tdBase} whitespace-nowrap`}>{item.analyzer_range}</td>
-                    {/* F: 농도 */}
-                    <td className={`${tdBase} text-center`}>{item.concentration}</td>
-                    {/* G: 용량 */}
-                    <td className={`${tdBase} text-center`}>{item.volume_L}</td>
-                    {/* H: 유효기간 */}
-                    <td className={`${tdBase} text-center whitespace-nowrap`}>
+
+                    {/* ── Per-gas-row columns (E~I): NOT merged ── */}
+                    <td className={`${td} whitespace-nowrap`}>{item.analyzer_range}</td>
+                    <td className={`${td} text-center`}>{item.concentration}</td>
+                    <td className={`${td} text-center`}>{item.volume_L}</td>
+                    <td className={`${td} text-center whitespace-nowrap`}>
                       <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
                       {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
                     </td>
-                    {/* I: 잔량 */}
-                    <td className={`${tdBase} text-center`}>
+                    <td className={`${td} text-center`}>
                       <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
                       {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
                     </td>
-                    {/* J: 구매주체 */}
-                    <td className={`${tdBase} text-center`}>{item.purchase_entity}</td>
-                    {/* K: S/O 발행 */}
-                    <td className={`${tdBase} text-center whitespace-nowrap`}>{item.so_issue}</td>
-                    {/* L: 도착예정 */}
-                    <td className={`${tdBase} text-center whitespace-nowrap`}>{item.arrival_status}</td>
-                    {/* M: 지점 */}
-                    <td className={`${tdBase} text-center`}>{item.branch}</td>
 
-                    {/* N~S: 가스상 정도검사 */}
-                    {renderCell(item, "gas_inspection_first", "text-center whitespace-nowrap")}
-                    {renderCell(item, "gas_inspection_last", "text-center whitespace-nowrap")}
-                    {/* P: 예정 - pink highlight if within 60 days */}
-                    <td className={`${tdBase} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
-                      {editMode && EDITABLE_FIELDS.includes("gas_inspection_next") ? (
-                        <input
-                          className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
-                          value={getCellValue(item, "gas_inspection_next")}
-                          onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
-                        />
-                      ) : (
-                        <>
-                          {item.gas_inspection_next || ""}
-                          {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                        </>
-                      )}
-                    </td>
-                    {renderCell(item, "gas_inspection_round", "text-center")}
+                    {/* ── Unit-level merged: J구매주체, K S/O, L 도착, M 지점 ── */}
+                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center`}>{item.purchase_entity}</td>}
+                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap`}>{item.so_issue}</td>}
+                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap`}>{item.arrival_status}</td>}
+                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center`}>{item.branch}</td>}
+
+                    {/* ── Unit-level merged: N~S 가스상 정도검사 ── */}
+                    {renderMergedCell(item, "gas_inspection_first", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_last", s.unit, "text-center whitespace-nowrap")}
+                    {/* P: 예정 - pink if within 60 days */}
+                    {s.unit > 0 && (
+                      <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                        {editMode ? (
+                          <input
+                            className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+                            value={getCellValue(item, "gas_inspection_next")}
+                            onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {item.gas_inspection_next || ""}
+                            {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                          </>
+                        )}
+                      </td>
+                    )}
+                    {renderMergedCell(item, "gas_inspection_round", s.unit, "text-center")}
                     {/* 완료 button */}
-                    <td className={`${tdBase} text-center`}>
-                      {item.gas_inspection_first && (
-                        <button
-                          onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
-                          title="검사 완료 처리"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          완료
-                        </button>
-                      )}
-                    </td>
-                    {renderCell(item, "gas_inspection_so", "text-center whitespace-nowrap")}
-                    {renderCell(item, "gas_inspection_so_arrival", "text-center whitespace-nowrap")}
+                    {s.unit > 0 && (
+                      <td rowSpan={s.unit} className={`${td} text-center`}>
+                        {item.gas_inspection_first && (
+                          <button
+                            onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                          >
+                            <CheckCircle2 className="h-3 w-3" /> 완료
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {renderMergedCell(item, "gas_inspection_so", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so_arrival", s.unit, "text-center whitespace-nowrap")}
 
-                    {/* T~X: 유속계 정도검사 */}
-                    {renderCell(item, "velocity_inspection_first", "text-center whitespace-nowrap")}
-                    {renderCell(item, "velocity_inspection_last", "text-center whitespace-nowrap")}
-                    {/* V: 예정 - pink highlight if within 60 days */}
-                    <td className={`${tdBase} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
-                      {editMode && EDITABLE_FIELDS.includes("velocity_inspection_next") ? (
-                        <input
-                          className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
-                          value={getCellValue(item, "velocity_inspection_next")}
-                          onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
-                        />
-                      ) : (
-                        <>
-                          {item.velocity_inspection_next || ""}
-                          {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                        </>
-                      )}
-                    </td>
-                    {renderCell(item, "velocity_inspection_round", "text-center")}
+                    {/* ── Unit-level merged: T~X 유속계 정도검사 ── */}
+                    {renderMergedCell(item, "velocity_inspection_first", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_last", s.unit, "text-center whitespace-nowrap")}
+                    {/* V: 예정 - pink if within 60 days */}
+                    {s.unit > 0 && (
+                      <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                        {editMode ? (
+                          <input
+                            className="w-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+                            value={getCellValue(item, "velocity_inspection_next")}
+                            onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {item.velocity_inspection_next || ""}
+                            {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                          </>
+                        )}
+                      </td>
+                    )}
+                    {renderMergedCell(item, "velocity_inspection_round", s.unit, "text-center")}
                     {/* 완료 button */}
-                    <td className={`${tdBase} text-center`}>
-                      {item.velocity_inspection_first && (
-                        <button
-                          onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
-                          title="검사 완료 처리"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          완료
-                        </button>
-                      )}
-                    </td>
-                    {renderCell(item, "velocity_inspection_so", "text-center whitespace-nowrap")}
+                    {s.unit > 0 && (
+                      <td rowSpan={s.unit} className={`${td} text-center`}>
+                        {item.velocity_inspection_first && (
+                          <button
+                            onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
+                          >
+                            <CheckCircle2 className="h-3 w-3" /> 완료
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {renderMergedCell(item, "velocity_inspection_so", s.unit, "text-center whitespace-nowrap")}
 
-                    {/* Y: 비고사항 */}
-                    {renderCell(item, "inspection_notes", "max-w-[200px] truncate")}
-                    {/* Z: 점검일 */}
-                    {renderCell(item, "inspection_date", "text-center")}
-                    {/* AA: 점검주기 */}
-                    {renderCell(item, "inspection_cycle", "text-center whitespace-nowrap")}
-                    {/* AB: M/D */}
-                    {renderCell(item, "md", "text-center")}
-                    {/* AC: 월 금액 */}
-                    {renderCell(item, "monthly_amount", "text-center whitespace-nowrap")}
-                    {/* AD: 소모품 포함 */}
-                    {renderCell(item, "contract_consumables", "text-center")}
-                    {/* AE: 비고 */}
-                    {renderCell(item, "notes", "border-r-0 max-w-[160px] truncate")}
+                    {/* ── Unit-level merged: Y~AE ── */}
+                    {renderMergedCell(item, "inspection_notes", s.unit, "max-w-[200px] truncate")}
+                    {renderMergedCell(item, "inspection_date", s.unit, "text-center")}
+                    {renderMergedCell(item, "inspection_cycle", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "md", s.unit, "text-center")}
+                    {renderMergedCell(item, "monthly_amount", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "contract_consumables", s.unit, "text-center")}
+                    {renderMergedCell(item, "notes", s.unit, "border-r-0 max-w-[160px] truncate")}
                   </tr>
                 );
               })}
@@ -473,7 +481,6 @@ export default function CalibrationGasInventory() {
         </div>
       </div>
 
-      {/* Inspection Complete Dialog */}
       <InspectionCompleteDialog
         open={!!completionTarget}
         onClose={() => setCompletionTarget(null)}
