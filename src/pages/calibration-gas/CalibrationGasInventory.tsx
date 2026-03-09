@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2 } from "lucide-react";
+import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
