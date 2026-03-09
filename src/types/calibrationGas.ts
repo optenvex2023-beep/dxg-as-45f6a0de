@@ -94,7 +94,7 @@ export interface CalibrationGasHistory {
 }
 
 /** Calibration gas notification */
-export type CalGasNotificationType = "expiry_soon" | "low_remaining" | "match_failed" | "review_needed";
+export type CalGasNotificationType = "expiry_soon" | "low_remaining" | "match_failed" | "review_needed" | "gas_inspection_due" | "velocity_inspection_due";
 
 export interface CalibrationGasNotification {
   id: string;
