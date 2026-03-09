@@ -217,7 +217,7 @@ export default function CalibrationGasInventory() {
       return (
         <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
           <input
-            className="w-full h-full bg-accent/30 border border-primary/30 rounded px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
             value={val}
             onChange={(e) => handleCellChange(item.id, field, e.target.value)}
           />
