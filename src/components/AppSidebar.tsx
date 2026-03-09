@@ -2,9 +2,6 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   ClipboardCheck,
-  LayoutDashboard,
-  TableProperties,
-  FileText,
   FlaskConical,
   Users,
   Bell,
@@ -12,6 +9,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  Database,
+  Upload,
+  History,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +36,15 @@ const navItems: NavItem[] = [
   },
   {
     label: "교정가스",
-    path: "/calibration-gas",
     icon: <FlaskConical className="h-4 w-4" />,
+    children: [
+      { label: "현황표", path: "/calibration-gas/inventory" },
+      { label: "보고서 업로드", path: "/calibration-gas/upload" },
+      { label: "업데이트 검토", path: "/calibration-gas/review" },
+      { label: "이력관리", path: "/calibration-gas/history" },
+      { label: "알림센터", path: "/calibration-gas/notifications" },
+      { label: "엑셀 다운로드", path: "/calibration-gas/export" },
+    ],
   },
   {
     label: "알림센터",
@@ -52,7 +60,7 @@ const navItems: NavItem[] = [
 
 export default function AppSidebar() {
   const location = useLocation();
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "반출점검": true });
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "반출점검": true, "교정가스": true });
   const [collapsed, setCollapsed] = useState(false);
 
   const toggleGroup = (label: string) => {
@@ -61,7 +69,7 @@ export default function AppSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
   const isGroupActive = (item: NavItem) =>
-    item.children?.some((c) => location.pathname === c.path) ?? false;
+    item.children?.some((c) => location.pathname === c.path || location.pathname.startsWith(c.path + "/")) ?? false;
 
   return (
     <aside
@@ -120,7 +128,7 @@ export default function AppSidebar() {
                         to={child.path}
                         className={cn(
                           "flex items-center px-4 py-1.5 text-sm hover:bg-sidebar-accent/20 transition-colors",
-                          isActive(child.path) &&
+                          (isActive(child.path) || location.pathname.startsWith(child.path)) &&
                             "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         )}
                       >

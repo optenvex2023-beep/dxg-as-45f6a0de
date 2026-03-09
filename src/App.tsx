@@ -4,11 +4,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "@/contexts/AppContext";
+import { CalGasProvider } from "@/contexts/CalibrationGasContext";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import StatusTable from "@/pages/StatusTable";
 import UserManagement from "@/pages/UserManagement";
 import CalibrationGas from "@/pages/CalibrationGas";
+import CalibrationGasInventory from "@/pages/calibration-gas/CalibrationGasInventory";
+import CalibrationGasUpload from "@/pages/calibration-gas/CalibrationGasUpload";
+import CalibrationGasReview from "@/pages/calibration-gas/CalibrationGasReview";
+import CalibrationGasHistory from "@/pages/calibration-gas/CalibrationGasHistory";
+import CalibrationGasNotifications from "@/pages/calibration-gas/CalibrationGasNotifications";
+import CalibrationGasExport from "@/pages/calibration-gas/CalibrationGasExport";
 import FirstReport from "@/pages/FirstReport";
 import FinalReport from "@/pages/FinalReport";
 import Login from "@/pages/Login";
@@ -37,7 +44,14 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/status-table" element={<StatusTable />} />
       <Route path="/user-management" element={<UserManagement />} />
-      <Route path="/calibration-gas" element={<CalibrationGas />} />
+      <Route path="/calibration-gas" element={<CalibrationGas />}>
+        <Route path="inventory" element={<CalibrationGasInventory />} />
+        <Route path="upload" element={<CalibrationGasUpload />} />
+        <Route path="review" element={<CalibrationGasReview />} />
+        <Route path="history" element={<CalibrationGasHistory />} />
+        <Route path="notifications" element={<CalibrationGasNotifications />} />
+        <Route path="export" element={<CalibrationGasExport />} />
+      </Route>
       <Route path="/first-report" element={<FirstReport />} />
       <Route path="/final-report" element={<FinalReport />} />
       <Route path="/notifications" element={<NotificationCenter />} />
@@ -52,9 +66,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AppProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <CalGasProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </CalGasProvider>
       </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
