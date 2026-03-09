@@ -244,9 +244,14 @@ export default function CalibrationGasInventory() {
               <Pencil className="h-3.5 w-3.5" /> 등록
             </Button>
           ) : (
-            <Button size="sm" onClick={handleSave} className="gap-1.5">
-              <Save className="h-3.5 w-3.5" /> 저장
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleCancelEdit} className="gap-1.5">
+                <X className="h-3.5 w-3.5" /> 취소
+              </Button>
+              <Button size="sm" onClick={handleSave} className="gap-1.5">
+                <Save className="h-3.5 w-3.5" /> 저장
+              </Button>
+            </div>
           )}
         </div>
       </div>
