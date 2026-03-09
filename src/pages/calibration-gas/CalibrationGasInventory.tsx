@@ -103,6 +103,12 @@ export default function CalibrationGasInventory() {
     setEditMode(true);
   }, []);
 
+  const handleCancelEdit = useCallback(() => {
+    setEditBuffer({});
+    setEditMode(false);
+    toast.info("편집이 취소되었습니다.");
+  }, []);
+
   const handleSave = useCallback(() => {
     let count = 0;
     for (const [id, updates] of Object.entries(editBuffer)) {
