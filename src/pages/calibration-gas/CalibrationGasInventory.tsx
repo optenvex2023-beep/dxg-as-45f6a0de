@@ -324,14 +324,14 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>최종</th>
                 <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-blue-500/10`}>차수</th>
-                <th className={`${thBase} min-w-[40px] bg-blue-500/10`}>완료</th>
+                <th className={`${thBase} min-w-[60px] bg-blue-500/10`}>예정/완료</th>
                 <th className={`${thBase} min-w-[80px] bg-blue-500/10`}>S/O발행</th>
                 <th className={`${thBase} min-w-[90px] bg-blue-500/10`}>S/O도착</th>
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최종</th>
                 <th className={`${thBase} min-w-[70px] bg-green-500/10`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-green-500/10`}>차수</th>
-                <th className={`${thBase} min-w-[40px] bg-green-500/10`}>완료</th>
+                <th className={`${thBase} min-w-[60px] bg-green-500/10`}>예정/완료</th>
                 <th className={`${thBase} min-w-[80px] bg-green-500/10`}>S/O발행</th>
               </tr>
             </thead>
@@ -427,21 +427,15 @@ export default function CalibrationGasInventory() {
                     {/* 완료 column: 예정 status + 완료 확인 button */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
-                        {item.gas_inspection_first && (
-                          item.gas_inspection_last ? (
-                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">완료</span>
-                          ) : (
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
-                              <button
-                                onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
-                              >
-                                <CheckCircle2 className="h-2.5 w-2.5" /> 완료 확인
-                              </button>
-                            </div>
-                          )
-                        )}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                          <button
+                            onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                          >
+                            <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
+                          </button>
+                        </div>
                       </td>
                     )}
                     {renderMergedCell(item, "gas_inspection_so", s.unit, "text-center whitespace-nowrap")}
@@ -468,24 +462,18 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {renderMergedCell(item, "velocity_inspection_round", s.unit, "text-center")}
-                    {/* 완료 column: 예정 status + 완료 확인 button */}
+                    {/* 예정/완료 column */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
-                        {item.velocity_inspection_first && (
-                          item.velocity_inspection_last ? (
-                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">완료</span>
-                          ) : (
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
-                              <button
-                                onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
-                              >
-                                <CheckCircle2 className="h-2.5 w-2.5" /> 완료 확인
-                              </button>
-                            </div>
-                          )
-                        )}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                          <button
+                            onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20"
+                          >
+                            <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
+                          </button>
+                        </div>
                       </td>
                     )}
                     {renderMergedCell(item, "velocity_inspection_so", s.unit, "text-center whitespace-nowrap")}
