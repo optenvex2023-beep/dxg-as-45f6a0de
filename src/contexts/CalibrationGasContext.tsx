@@ -337,6 +337,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         history,
         notifications,
         updateInventoryItem,
+        addInventoryItem,
         addUploadFile,
         addExtraction,
         updateExtractionField,
