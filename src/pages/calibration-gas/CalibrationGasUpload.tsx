@@ -232,7 +232,7 @@ export default function CalibrationGasUpload() {
         <AlertDescription className="text-xs leading-relaxed">
           ※ 업로드 가능 파일 형식: 텍스트 PDF, 엑셀(.xlsx)
           <br />- 텍스트가 선택되지 않는 스캔 PDF 및 이미지 파일은 지원하지 않습니다.
-          <br />- 점검보고서에서 Zero Span Test의 '점검후' 항목 기준으로 표준가스잔량, 유효기간을 추출합니다.
+          <br />- Zero Span Test 표에서 Calibration 행 기준으로 각 가스 항목에 대응하는 표준가스잔량과 유효기간을 추출합니다.
         </AlertDescription>
       </Alert>
 
