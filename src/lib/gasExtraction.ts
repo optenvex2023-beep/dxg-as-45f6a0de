@@ -287,8 +287,8 @@ const buildColumnBounds = (columns: Array<{ gas_name: string; center: number }>)
 };
 
 const extractColumnsFromCalibrationRow = (row: PdfRow): PdfColumn[] => {
-  // Try multiple thresholds to avoid merged cells and over-splitting.
-  for (const gapThreshold of [26, 20, 14, 10]) {
+  // Try multiple thresholds (wide to narrow) to avoid merged cells and over-splitting.
+  for (const gapThreshold of [30, 26, 20, 14, 10, 6, 4]) {
     const cells = splitTokensToCells(row.tokens, gapThreshold);
 
     const cols: Array<{ gas_name: string; center: number }> = [];
@@ -329,10 +329,58 @@ const extractColumnsFromCalibrationRow = (row: PdfRow): PdfColumn[] => {
     }
 
     if (!ambiguous && cols.length > 0) {
+      console.log(`[GasExtraction] Column extraction succeeded with gapThreshold=${gapThreshold}, found ${cols.length} columns:`, cols.map(c => c.gas_name));
       return buildColumnBounds(cols);
     }
   }
 
+  // Last resort: scan individual tokens for gas labels by position
+  console.log("[GasExtraction] Threshold-based splitting failed, trying per-token scan");
+  const cols: Array<{ gas_name: string; center: number }> = [];
+  const tokens = [...row.tokens].sort((a, b) => a.x - b.x);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    // Try single token
+    const singleLabels = extractGasLabelCandidates(t.text);
+    if (singleLabels.length === 1) {
+      cols.push({ gas_name: singleLabels[0], center: tokenCenter(t) });
+      continue;
+    }
+    // Try combining with next token (e.g. "NO" + "Span")
+    if (i + 1 < tokens.length) {
+      const combined = `${t.text} ${tokens[i + 1].text}`;
+      const combinedLabels = extractGasLabelCandidates(combined);
+      if (combinedLabels.length === 1) {
+        cols.push({
+          gas_name: combinedLabels[0],
+          center: (tokenCenter(t) + tokenCenter(tokens[i + 1])) / 2,
+        });
+        i += 1;
+        continue;
+      }
+      // Try 3-token combination (e.g. "N2" + "-" + "Zero")
+      if (i + 2 < tokens.length) {
+        const triple = `${t.text} ${tokens[i + 1].text} ${tokens[i + 2].text}`;
+        const tripleLabels = extractGasLabelCandidates(triple);
+        if (tripleLabels.length === 1) {
+          cols.push({
+            gas_name: tripleLabels[0],
+            center: (tokenCenter(t) + tokenCenter(tokens[i + 2])) / 2,
+          });
+          i += 2;
+          continue;
+        }
+      }
+    }
+  }
+
+  if (cols.length > 0) {
+    console.log(`[GasExtraction] Per-token scan found ${cols.length} columns:`, cols.map(c => c.gas_name));
+    return buildColumnBounds(cols);
+  }
+
+  console.warn("[GasExtraction] No gas columns found in calibration row. Tokens:", tokens.map(t => `"${t.text}"@x=${t.x.toFixed(0)}`));
   return [];
 };
 
@@ -347,7 +395,7 @@ const extractCellTextByColumn = (row: PdfRow, col: PdfColumn): string => {
   return normalizeSpacing(inColumn.map((token) => token.text).join(" "));
 };
 
-const buildPdfRows = (tokens: PdfToken[], yTolerance = 3): PdfRow[] => {
+const buildPdfRows = (tokens: PdfToken[], yTolerance = 5): PdfRow[] => {
   const sorted = [...tokens].sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x);
   const rows: Array<{ page: number; y: number; tokens: PdfToken[] }> = [];
 
@@ -394,21 +442,43 @@ const findRowByPattern = (rows: PdfRow[], pattern: RegExp): PdfRow | undefined =
 
 const extractItemsFromPdfTable = (tokens: PdfToken[]): ExtractedGasItem[] => {
   const rows = buildPdfRows(tokens);
+  console.log(`[GasExtraction] Total PDF rows: ${rows.length}`);
+
   const sectionRows = getSection6Rows(rows);
-  if (sectionRows.length === 0) return [];
+  console.log(`[GasExtraction] Section 6 rows: ${sectionRows.length}`);
+  if (sectionRows.length === 0) {
+    console.warn("[GasExtraction] No Section 6 rows found. Row texts:", rows.map(r => r.text.substring(0, 80)));
+    return [];
+  }
+
+  // Log all section 6 row texts for debugging
+  sectionRows.forEach((r, i) => console.log(`[GasExtraction] Section6 row[${i}]: "${r.text.substring(0, 100)}"`));
 
   const calibrationRow = findRowByPattern(sectionRows, /calibration/i);
-  if (!calibrationRow) return [];
+  if (!calibrationRow) {
+    console.warn("[GasExtraction] No Calibration row found in section 6");
+    return [];
+  }
+
+  console.log(`[GasExtraction] Calibration row: "${calibrationRow.text}" (${calibrationRow.tokens.length} tokens)`);
 
   const remainingRow = findRowByPattern(sectionRows, /표준가스잔량|표준\s*가스\s*잔량/);
   const expiryRow = findRowByPattern(sectionRows, /유효기간|유효\s*기간/);
 
+  console.log(`[GasExtraction] Remaining row: ${remainingRow ? `"${remainingRow.text}"` : "NOT FOUND"}`);
+  console.log(`[GasExtraction] Expiry row: ${expiryRow ? `"${expiryRow.text}"` : "NOT FOUND"}`);
+
   const columns = extractColumnsFromCalibrationRow(calibrationRow);
-  if (columns.length === 0) return [];
+  if (columns.length === 0) {
+    console.warn("[GasExtraction] No columns extracted from calibration row");
+    return [];
+  }
 
   const items = columns.map((col) => {
     const remainingRaw = remainingRow ? extractCellTextByColumn(remainingRow, col) : "";
     const expiryRaw = expiryRow ? extractCellTextByColumn(expiryRow, col) : "";
+
+    console.log(`[GasExtraction] Column "${col.gas_name}" [${col.left.toFixed(0)}-${col.right.toFixed(0)}]: remaining="${remainingRaw}", expiry="${expiryRaw}"`);
 
     return {
       gas_name: col.gas_name,
@@ -510,15 +580,19 @@ export async function extractGasDataFromFile(file: File): Promise<ExtractedGasDa
 
     const { site_name, unit_no } = extractSiteAndUnit(rawText);
     const pdfItems = extractItemsFromPdfTable(pdfTokens);
+    console.log(`[GasExtraction] PDF token extraction returned ${pdfItems.length} items`);
 
     if (pdfItems.length > 0) {
       return { site_name, unit_no, items: pdfItems };
     }
 
-    // Fail-safe fallback: still table-row based, never linear concatenation.
+    // Fail-safe fallback for text-based extraction (XLSX-style).
+    // Each item MUST have exactly 1 gas label — reject any merged entries.
+    console.warn("[GasExtraction] PDF token extraction failed, trying text fallback");
     const fallbackItems = extractItemsFromSectionText(rawText)
       .filter((item) => extractGasLabelCandidates(item.gas_name).length === 1);
 
+    console.log(`[GasExtraction] Text fallback returned ${fallbackItems.length} items:`, fallbackItems.map(i => i.gas_name));
     return { site_name, unit_no, items: fallbackItems };
   }
 
