@@ -130,73 +130,109 @@ export function parseGasData(rawText: string): ExtractedGasData {
     }
   }
 
-  // 3) Find Zero Span Test section and extract gas data
+  // 3) Extract gas data from Zero Span Test table
+  //    Strategy: find "Calibration" row for gas identifiers,
+  //    then pair with "표준가스잔량" row and "유효기간" row values.
   const items: { gas_name: string; remaining_percent: string; expiry_date: string }[] = [];
 
-  // Look for "Zero Span" section
-  const zeroSpanIdx = text.toLowerCase().indexOf("zero span");
-  const relevantText = zeroSpanIdx >= 0 ? text.substring(zeroSpanIdx) : text;
+  const lines = text.split("\n");
 
-  // Extract gas names and their remaining percentages
-  // Common patterns: "NO 200ppm", "O2 25%", "SO2 200ppm", etc.
-  const gasPattern = /((?:NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC|N2)\s*(?:Zero|Span)?\s*(?:\d+\s*(?:ppm|%|vol%))?)/gi;
-  const gasMatches = relevantText.match(gasPattern) || [];
-  const uniqueGases = [...new Set(gasMatches.map((g) => g.trim()))];
+  // Find line indices for key rows (case-insensitive, tab-separated or space-separated)
+  let calibrationLineIdx = -1;
+  let remainingLineIdx = -1;
+  let expiryLineIdx = -1;
 
-  // Extract remaining percentages
-  // Pattern: number followed by % (e.g. "96%", "85 %")
-  const remainingPattern = /(?:잔량|잔여|remaining)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%/gi;
-  const remainMatches = [...relevantText.matchAll(remainingPattern)];
-
-  // Extract expiry dates
-  // Patterns: YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD, YYYY년 MM월 DD일
-  const datePattern = /(?:유효\s*기간|유효일|만료|expiry)\s*[:：]?\s*(\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)/gi;
-  const dateMatches = [...relevantText.matchAll(datePattern)];
-
-  // Also try to find tabular data with "점검후" values
-  // Look for lines after "점검후" marker
-  const postInspectionIdx = relevantText.indexOf("점검후");
-  const postText = postInspectionIdx >= 0 ? relevantText.substring(postInspectionIdx) : relevantText;
-
-  // Find all percentage values in post-inspection area
-  const pctPattern = /(\d+(?:\.\d+)?)\s*%/g;
-  const pctMatches = [...postText.matchAll(pctPattern)];
-
-  // Find all date values in post-inspection area
-  const allDatePattern = /(\d{4}[-./]\d{1,2}[-./]\d{1,2})/g;
-  const allDateMatches = [...postText.matchAll(allDatePattern)];
-
-  // Build items from what we found
-  if (uniqueGases.length > 0) {
-    for (let i = 0; i < uniqueGases.length; i++) {
-      const gasName = uniqueGases[i];
-      // Try to pair with remaining percent and expiry
-      const remaining = remainMatches[i]?.[1] ? `${remainMatches[i][1]}%` : (pctMatches[i]?.[1] ? `${pctMatches[i][1]}%` : "");
-      const expiry = dateMatches[i]?.[1] || allDateMatches[i]?.[1] || "";
-      // Normalize date format
-      const normalizedExpiry = expiry
-        .replace(/\s*년\s*/, "-")
-        .replace(/\s*월\s*/, "-")
-        .replace(/\s*일\s*/, "")
-        .replace(/\./g, "-")
-        .replace(/\//g, "-");
-
-      items.push({
-        gas_name: gasName,
-        remaining_percent: remaining,
-        expiry_date: normalizedExpiry,
-      });
+  for (let i = 0; i < lines.length; i++) {
+    const lower = lines[i].toLowerCase();
+    if (calibrationLineIdx < 0 && /calibration/i.test(lines[i])) {
+      calibrationLineIdx = i;
+    }
+    if (remainingLineIdx < 0 && /표준가스잔량/.test(lines[i])) {
+      remainingLineIdx = i;
+    }
+    if (expiryLineIdx < 0 && /유효기간/.test(lines[i])) {
+      // Pick the 유효기간 row that comes AFTER calibration (if possible)
+      if (calibrationLineIdx >= 0) {
+        expiryLineIdx = i;
+      }
     }
   }
 
-  // If no structured gas data found, try a more general table-row approach
+  // If we didn't find expiry after calibration, search from the start
+  if (expiryLineIdx < 0) {
+    for (let i = 0; i < lines.length; i++) {
+      if (/유효기간/.test(lines[i])) {
+        expiryLineIdx = i;
+        break;
+      }
+    }
+  }
+
+  // Helper: split a line into cells (tab-delimited or multi-space)
+  const splitCells = (line: string): string[] => {
+    if (line.includes("\t")) {
+      return line.split("\t").map((c) => c.trim());
+    }
+    // For PDF text (space-separated), split on 2+ spaces
+    return line.split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+  };
+
+  // Known gas identifiers for matching
+  const gasIdentifiers = /\b(N2|NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC)\b/i;
+
+  if (calibrationLineIdx >= 0) {
+    const calibCells = splitCells(lines[calibrationLineIdx]);
+    const remainCells = remainingLineIdx >= 0 ? splitCells(lines[remainingLineIdx]) : [];
+    const expiryCells = expiryLineIdx >= 0 ? splitCells(lines[expiryLineIdx]) : [];
+
+    // Find columns in calibration row that contain gas names
+    for (let col = 0; col < calibCells.length; col++) {
+      const cell = calibCells[col];
+      if (!gasIdentifiers.test(cell)) continue;
+
+      // Use the full cell text as gas_name (e.g. "N2 Zero", "NO Span")
+      const gasName = cell.trim();
+
+      // Get corresponding remaining % value
+      let remaining = "";
+      if (col < remainCells.length) {
+        const rv = remainCells[col];
+        const pctMatch = rv.match(/(\d+(?:\.\d+)?)\s*%?/);
+        if (pctMatch) {
+          remaining = `${pctMatch[1]}%`;
+        } else if (rv && rv !== "표준가스잔량") {
+          remaining = rv;
+        }
+      }
+
+      // Get corresponding expiry date value
+      let expiry = "";
+      if (col < expiryCells.length) {
+        const ev = expiryCells[col];
+        // Match various date formats: YY.MM.DD, YYYY-MM-DD, YYYY.MM.DD, N/A etc.
+        const dateMatch = ev.match(/(\d{2,4}[-./]\d{1,2}[-./]\d{1,2})/);
+        if (dateMatch) {
+          expiry = dateMatch[1].replace(/\./g, "-").replace(/\//g, "-");
+        } else if (/n\/?a/i.test(ev)) {
+          expiry = "N/A";
+        } else if (ev && ev !== "유효기간") {
+          expiry = ev;
+        }
+      }
+
+      items.push({ gas_name: gasName, remaining_percent: remaining, expiry_date: expiry });
+    }
+  }
+
+  // Fallback: if no Calibration row found, try line-by-line gas detection
   if (items.length === 0) {
-    // Look for rows with gas-related keywords and percentages
-    const lines = relevantText.split("\n");
-    for (const line of lines) {
+    const zeroSpanIdx = text.toLowerCase().indexOf("zero span");
+    const relevantText = zeroSpanIdx >= 0 ? text.substring(zeroSpanIdx) : text;
+    const fallbackLines = relevantText.split("\n");
+    for (const line of fallbackLines) {
       const gasMatch = line.match(/(NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC|N2)/i);
       const pctMatch = line.match(/(\d+(?:\.\d+)?)\s*%/);
-      const dtMatch = line.match(/(\d{4}[-./]\d{1,2}[-./]\d{1,2})/);
+      const dtMatch = line.match(/(\d{2,4}[-./]\d{1,2}[-./]\d{1,2})/);
       if (gasMatch) {
         items.push({
           gas_name: gasMatch[0],
