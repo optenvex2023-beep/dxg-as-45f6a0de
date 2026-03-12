@@ -317,7 +317,7 @@ export default function CalibrationGasUpload() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-primary" />
-              추출 데이터 확인/수정 (Zero Span Test 점검후 값)
+              추출 데이터 확인/수정 (Zero Span Test Calibration 기준)
             </h3>
             <Button size="sm" variant="ghost" onClick={() => setEditingFileId(null)}>
               <X className="h-4 w-4" />
