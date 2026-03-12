@@ -71,23 +71,32 @@ const extractGasLabelCandidates = (raw: string): string[] => {
   const value = normalizeSpacing(raw.replace(/[|,;]+/g, " "));
   if (!value) return [];
 
-  const regex = new RegExp(GAS_LABEL_REGEX.source, "gi");
   const labels: string[] = [];
 
-  for (const match of value.matchAll(regex)) {
+  // First pass: find "GAS Zero" or "GAS Span" patterns
+  const withModeRegex = new RegExp(GAS_WITH_MODE_REGEX.source, "gi");
+  const matchedPositions = new Set<number>();
+
+  for (const match of value.matchAll(withModeRegex)) {
     const gas = match[1].toUpperCase();
-    const modeRaw = match[2];
-
-    let label: string;
-    if (modeRaw) {
-      const mode = modeRaw.toLowerCase() === "zero" ? "Zero" : "Span";
-      label = `${gas} ${mode}`;
-    } else {
-      // Bare gas name without Zero/Span — treat as Span per rule
-      label = `${gas} Span`;
-    }
-
+    const mode = match[2].toLowerCase() === "zero" ? "Zero" : "Span";
+    const label = `${gas} ${mode}`;
     if (!labels.includes(label)) labels.push(label);
+    if (match.index !== undefined) {
+      matchedPositions.add(match.index);
+    }
+  }
+
+  // Second pass: find bare gas names not already matched with a mode
+  // Only if no "GAS+mode" matches were found (avoids double-counting)
+  if (labels.length === 0) {
+    const bareRegex = new RegExp(GAS_BARE_REGEX.source, "gi");
+    for (const match of value.matchAll(bareRegex)) {
+      const gas = match[1].toUpperCase();
+      // Bare gas without "Zero" → treat as Span
+      const label = `${gas} Span`;
+      if (!labels.includes(label)) labels.push(label);
+    }
   }
 
   return labels;
