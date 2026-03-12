@@ -232,7 +232,7 @@ export default function CalibrationGasUpload() {
         <AlertDescription className="text-xs leading-relaxed">
           ※ 업로드 가능 파일 형식: 텍스트 PDF, 엑셀(.xlsx)
           <br />- 텍스트가 선택되지 않는 스캔 PDF 및 이미지 파일은 지원하지 않습니다.
-          <br />- 점검보고서에서 Zero Span Test의 '점검후' 항목 기준으로 표준가스잔량, 유효기간을 추출합니다.
+          <br />- Zero Span Test 표에서 Calibration 행 기준으로 각 가스 항목에 대응하는 표준가스잔량과 유효기간을 추출합니다.
         </AlertDescription>
       </Alert>
 
@@ -317,7 +317,7 @@ export default function CalibrationGasUpload() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-primary" />
-              추출 데이터 확인/수정 (Zero Span Test 점검후 값)
+              추출 데이터 확인/수정 (Zero Span Test Calibration 기준)
             </h3>
             <Button size="sm" variant="ghost" onClick={() => setEditingFileId(null)}>
               <X className="h-4 w-4" />
@@ -341,7 +341,7 @@ export default function CalibrationGasUpload() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold">가스별 데이터 (점검후 값)</label>
+              <label className="text-xs font-semibold">가스별 데이터 (Calibration 행 기준)</label>
               <Button size="sm" variant="outline" onClick={addFormItem}>+ 가스 추가</Button>
             </div>
             {formItems.map((item, idx) => (
