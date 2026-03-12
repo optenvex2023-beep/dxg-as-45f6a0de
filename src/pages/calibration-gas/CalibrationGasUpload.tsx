@@ -10,6 +10,7 @@ import { Upload, FileText, X, CheckCircle2, AlertCircle, Info, Loader2 } from "l
 import { toast } from "sonner";
 import type { CalibrationGasExtraction, CalibrationGasExtractionItem, CalibrationGasUploadFile } from "@/types/calibrationGas";
 import { isPdfTextBased, extractGasDataFromFile } from "@/lib/gasExtraction";
+import { parseGasLabel, matchGasToInventory } from "@/lib/gasMatchingUtils";
 
 const ACCEPTED_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
 const ACCEPTED_EXT = [".pdf", ".xlsx"];

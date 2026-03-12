@@ -244,18 +244,41 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
       const now = new Date().toISOString();
       const newHistory: CalibrationGasHistory[] = [];
 
-      // Apply updates to matched inventory items
+      // Apply updates to matched inventory items using semantic gas matching
       for (const exItem of extraction.items) {
-        // Find matching inventory items
-        const matches = extraction.matched_inventory_ids.length > 0
+        // Use semantic matching to find the right inventory row for each gas item
+        const siteUnitCandidates = extraction.matched_inventory_ids.length > 0
           ? inventory.filter((inv) => extraction.matched_inventory_ids.includes(inv.id))
-          : findMatchingInventory(extraction.detected_site, extraction.detected_unit, exItem.gas_name);
+          : (() => {
+              const normalizedSite = normalizeSiteName(extraction.detected_site);
+              let cands = inventory.filter((inv) => inv.site_name === normalizedSite);
+              if (cands.length === 0) {
+                cands = inventory.filter((inv) => similarity(extraction.detected_site, inv.site_name) >= 0.6);
+              }
+              return cands.filter((inv) =>
+                inv.unit_no === extraction.detected_unit ||
+                inv.unit_no.includes(extraction.detected_unit) ||
+                extraction.detected_unit.includes(inv.unit_no)
+              );
+            })();
 
-        const gasMatches = matches.filter(
-          (inv) =>
-            inv.gas_name.toLowerCase().includes(exItem.gas_name.toLowerCase()) ||
-            exItem.gas_name.toLowerCase().includes(inv.gas_name.toLowerCase())
-        );
+        // Use semantic gas matching for precise row targeting
+        const parsed = parseGasLabel(exItem.gas_name);
+        let gasMatches: typeof siteUnitCandidates;
+        if (parsed.baseGas && parsed.type !== "unknown") {
+          const semanticResults = matchGasToInventory(
+            parsed,
+            siteUnitCandidates.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))
+          );
+          const matchedIds = new Set(semanticResults.map((m) => m.inventoryId));
+          gasMatches = siteUnitCandidates.filter((inv) => matchedIds.has(inv.id));
+        } else {
+          gasMatches = siteUnitCandidates.filter(
+            (inv) =>
+              inv.gas_name.toLowerCase().includes(exItem.gas_name.toLowerCase()) ||
+              exItem.gas_name.toLowerCase().includes(inv.gas_name.toLowerCase())
+          );
+        }
 
         for (const match of gasMatches) {
           if (exItem.remaining_percent && exItem.remaining_percent !== match.remaining_percent) {
