@@ -9,6 +9,7 @@ import type {
   CalGasNotificationType,
 } from "@/types/calibrationGas";
 import { seedCalibrationGasInventory, siteAliases } from "@/data/calibrationGasData";
+import { parseGasLabel, matchGasToInventory } from "@/lib/gasMatchingUtils";
 
 interface CalGasState {
   inventory: CalibrationGasInventoryItem[];
