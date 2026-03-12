@@ -395,7 +395,7 @@ const extractCellTextByColumn = (row: PdfRow, col: PdfColumn): string => {
   return normalizeSpacing(inColumn.map((token) => token.text).join(" "));
 };
 
-const buildPdfRows = (tokens: PdfToken[], yTolerance = 3): PdfRow[] => {
+const buildPdfRows = (tokens: PdfToken[], yTolerance = 5): PdfRow[] => {
   const sorted = [...tokens].sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x);
   const rows: Array<{ page: number; y: number; tokens: PdfToken[] }> = [];
 
