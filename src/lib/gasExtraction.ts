@@ -34,7 +34,14 @@ type PdfColumn = {
   right: number;
 };
 
-const GAS_LABEL_REGEX = /(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|N2|NO|CO|O2)\s*[-_/]?\s*(Zero|Span)/gi;
+/** Matches "GAS Zero", "GAS Span", or bare "GAS" (e.g. NO, O2, SO2) */
+const GAS_LABEL_REGEX = /(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)(?:\s*[-_/]?\s*(Zero|Span))?/gi;
+
+/** Matches bare "zero" or "span" without a gas symbol prefix */
+const BARE_ZERO_SPAN_REGEX = /^(zero|span)$/i;
+
+/** Gas family symbols that may appear in header rows */
+const GAS_FAMILY_SYMBOLS = ["NOx", "NO2", "SO2", "CO2", "HCl", "NH3", "H2S", "CH4", "THC", "NO", "CO", "O2", "N2"] as const;
 
 const ZERO_SPAN_START_REGEX = /6\.\s*Zero\s*Span\s*Test|Zero\s*Span\s*Test/i;
 const ZERO_SPAN_END_REGEX = /7\.\s*특이사항|특이사항|자재교체\s*내용\s*및\s*작업내용|자재교체|작업\s*내용/i;

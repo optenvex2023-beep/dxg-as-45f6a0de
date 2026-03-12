@@ -30,18 +30,23 @@ export function parseGasLabel(label: string): ParsedGasLabel {
   const trimmed = label.trim();
   const upper = trimmed.toUpperCase();
 
-  // Detect Zero vs Span
-  let type: "zero" | "span" | "unknown" = "unknown";
-  if (/ZERO/i.test(trimmed)) type = "zero";
-  else if (/SPAN/i.test(trimmed)) type = "span";
-
-  // Detect base gas symbol
+  // Detect base gas symbol first
   let baseGas = "";
   for (const sym of GAS_SYMBOLS) {
     if (upper.includes(sym.toUpperCase())) {
       baseGas = sym;
       break;
     }
+  }
+
+  // Rule: if the label contains "Zero" → zero gas. Otherwise → span gas.
+  // This covers: "NO Zero" → zero, "NO Span" → span, "NO" → span, "O2" → span
+  let type: "zero" | "span" | "unknown" = "unknown";
+  if (/ZERO/i.test(trimmed)) {
+    type = "zero";
+  } else if (baseGas) {
+    // Any label with a gas symbol but no "Zero" is treated as Span
+    type = "span";
   }
 
   return { original: trimmed, baseGas, type };
