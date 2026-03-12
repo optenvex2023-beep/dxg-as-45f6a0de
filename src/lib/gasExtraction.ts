@@ -76,36 +76,32 @@ const normalizeDateStr = (raw: string): string => {
   return raw;
 };
 
+/**
+ * Extract gas label candidates from a cell text.
+ * Mixed gases like "NO/SO2" are kept as a single label — never split.
+ * Returns labels like "NO/SO2 Zero", "O2 Span", "N2 Zero".
+ */
 const extractGasLabelCandidates = (raw: string): string[] => {
-  const value = normalizeSpacing(raw.replace(/[|,;]+/g, " "));
+  const value = normalizeSpacing(raw);
   if (!value) return [];
 
   const labels: string[] = [];
+  const regex = new RegExp(MIXED_GAS_LABEL_REGEX.source, "gi");
 
-  // First pass: find "GAS Zero" or "GAS Span" patterns
-  const withModeRegex = new RegExp(GAS_WITH_MODE_REGEX.source, "gi");
-  const matchedPositions = new Set<number>();
+  for (const match of value.matchAll(regex)) {
+    const gasPart = match[1].replace(/\s+/g, "").toUpperCase(); // "NO/SO2/CO"
+    const modeRaw = match[2]; // "Zero" | "Span" | undefined
 
-  for (const match of value.matchAll(withModeRegex)) {
-    const gas = match[1].toUpperCase();
-    const mode = match[2].toLowerCase() === "zero" ? "Zero" : "Span";
-    const label = `${gas} ${mode}`;
+    let label: string;
+    if (modeRaw) {
+      const mode = modeRaw.toLowerCase() === "zero" ? "Zero" : "Span";
+      label = `${gasPart} ${mode}`;
+    } else {
+      // No Zero/Span suffix → treat as Span
+      label = `${gasPart} Span`;
+    }
+
     if (!labels.includes(label)) labels.push(label);
-    if (match.index !== undefined) {
-      matchedPositions.add(match.index);
-    }
-  }
-
-  // Second pass: find bare gas names not already matched with a mode
-  // Only if no "GAS+mode" matches were found (avoids double-counting)
-  if (labels.length === 0) {
-    const bareRegex = new RegExp(GAS_BARE_REGEX.source, "gi");
-    for (const match of value.matchAll(bareRegex)) {
-      const gas = match[1].toUpperCase();
-      // Bare gas without "Zero" → treat as Span
-      const label = `${gas} Span`;
-      if (!labels.includes(label)) labels.push(label);
-    }
   }
 
   return labels;
