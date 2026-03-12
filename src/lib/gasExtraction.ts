@@ -34,9 +34,18 @@ type PdfColumn = {
   right: number;
 };
 
-/** Matches "GAS Zero", "GAS Span", or bare "GAS" as a standalone word */
-const GAS_WITH_MODE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\s*[-_/]?\s*(Zero|Span)\b/gi;
-const GAS_BARE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\b/gi;
+/** Single gas symbol pattern (no word boundary to allow slash-separated) */
+const GAS_SYM = "NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2";
+
+/**
+ * Matches a mixed or single gas label with optional Zero/Span suffix.
+ * Examples matched: "NO/SO2 Zero", "NO/SO2/CO Span", "O2 Span", "NO", "N2 Zero"
+ * Group 1 = full gas part (e.g. "NO/SO2/CO"), Group 2 = Zero|Span (optional)
+ */
+const MIXED_GAS_LABEL_REGEX = new RegExp(
+  `((?:${GAS_SYM})(?:\\s*[/,]\\s*(?:${GAS_SYM}))*)\\s*[-_]?\\s*(Zero|Span)?`,
+  "gi"
+);
 
 /** Matches bare "zero" or "span" without a gas symbol prefix */
 const BARE_ZERO_SPAN_REGEX = /^(zero|span)$/i;
