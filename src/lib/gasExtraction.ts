@@ -75,8 +75,17 @@ const extractGasLabelCandidates = (raw: string): string[] => {
 
   for (const match of value.matchAll(regex)) {
     const gas = match[1].toUpperCase();
-    const mode = match[2].toLowerCase() === "zero" ? "Zero" : "Span";
-    const label = `${gas} ${mode}`;
+    const modeRaw = match[2];
+
+    let label: string;
+    if (modeRaw) {
+      const mode = modeRaw.toLowerCase() === "zero" ? "Zero" : "Span";
+      label = `${gas} ${mode}`;
+    } else {
+      // Bare gas name without Zero/Span — treat as Span per rule
+      label = `${gas} Span`;
+    }
+
     if (!labels.includes(label)) labels.push(label);
   }
 
