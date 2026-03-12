@@ -287,8 +287,8 @@ const buildColumnBounds = (columns: Array<{ gas_name: string; center: number }>)
 };
 
 const extractColumnsFromCalibrationRow = (row: PdfRow): PdfColumn[] => {
-  // Try multiple thresholds to avoid merged cells and over-splitting.
-  for (const gapThreshold of [26, 20, 14, 10]) {
+  // Try multiple thresholds (wide to narrow) to avoid merged cells and over-splitting.
+  for (const gapThreshold of [30, 26, 20, 14, 10, 6, 4]) {
     const cells = splitTokensToCells(row.tokens, gapThreshold);
 
     const cols: Array<{ gas_name: string; center: number }> = [];
@@ -329,10 +329,58 @@ const extractColumnsFromCalibrationRow = (row: PdfRow): PdfColumn[] => {
     }
 
     if (!ambiguous && cols.length > 0) {
+      console.log(`[GasExtraction] Column extraction succeeded with gapThreshold=${gapThreshold}, found ${cols.length} columns:`, cols.map(c => c.gas_name));
       return buildColumnBounds(cols);
     }
   }
 
+  // Last resort: scan individual tokens for gas labels by position
+  console.log("[GasExtraction] Threshold-based splitting failed, trying per-token scan");
+  const cols: Array<{ gas_name: string; center: number }> = [];
+  const tokens = [...row.tokens].sort((a, b) => a.x - b.x);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    // Try single token
+    const singleLabels = extractGasLabelCandidates(t.text);
+    if (singleLabels.length === 1) {
+      cols.push({ gas_name: singleLabels[0], center: tokenCenter(t) });
+      continue;
+    }
+    // Try combining with next token (e.g. "NO" + "Span")
+    if (i + 1 < tokens.length) {
+      const combined = `${t.text} ${tokens[i + 1].text}`;
+      const combinedLabels = extractGasLabelCandidates(combined);
+      if (combinedLabels.length === 1) {
+        cols.push({
+          gas_name: combinedLabels[0],
+          center: (tokenCenter(t) + tokenCenter(tokens[i + 1])) / 2,
+        });
+        i += 1;
+        continue;
+      }
+      // Try 3-token combination (e.g. "N2" + "-" + "Zero")
+      if (i + 2 < tokens.length) {
+        const triple = `${t.text} ${tokens[i + 1].text} ${tokens[i + 2].text}`;
+        const tripleLabels = extractGasLabelCandidates(triple);
+        if (tripleLabels.length === 1) {
+          cols.push({
+            gas_name: tripleLabels[0],
+            center: (tokenCenter(t) + tokenCenter(tokens[i + 2])) / 2,
+          });
+          i += 2;
+          continue;
+        }
+      }
+    }
+  }
+
+  if (cols.length > 0) {
+    console.log(`[GasExtraction] Per-token scan found ${cols.length} columns:`, cols.map(c => c.gas_name));
+    return buildColumnBounds(cols);
+  }
+
+  console.warn("[GasExtraction] No gas columns found in calibration row. Tokens:", tokens.map(t => `"${t.text}"@x=${t.x.toFixed(0)}`));
   return [];
 };
 
