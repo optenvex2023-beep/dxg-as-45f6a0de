@@ -19,6 +19,7 @@ interface CalGasState {
 
   /* Inventory */
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
+  addInventoryItem: (item: CalibrationGasInventoryItem) => void;
 
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;

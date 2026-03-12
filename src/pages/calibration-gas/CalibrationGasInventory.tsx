@@ -4,13 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X } from "lucide-react";
+import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
+  "concentration", "volume_L", "expiry_date", "remaining_percent",
+  "purchase_entity", "so_issue", "arrival_status", "branch",
   "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
   "gas_inspection_round", "gas_inspection_so", "gas_inspection_so_arrival",
   "velocity_inspection_first", "velocity_inspection_last", "velocity_inspection_next",
@@ -20,15 +24,52 @@ const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
 ];
 
 type CompletionTarget = { itemId: string; type: "gas" | "velocity" } | null;
+type AlertFilterType = "all" | "expiry" | "low" | "gas_insp" | "vel_insp";
+
+const NEW_ROW_FIELDS: { key: keyof CalibrationGasInventoryItem; label: string; required?: boolean }[] = [
+  { key: "site_name", label: "사업장명", required: true },
+  { key: "tms_status", label: "TMS 전송유무" },
+  { key: "unit_no", label: "호기", required: true },
+  { key: "analyzer_range", label: "분석기 Range" },
+  { key: "gas_name", label: "가스명", required: true },
+  { key: "concentration", label: "농도" },
+  { key: "volume_L", label: "용량(L)" },
+  { key: "expiry_date", label: "유효기간" },
+  { key: "remaining_percent", label: "잔량(%)" },
+  { key: "purchase_entity", label: "구매주체" },
+  { key: "so_issue", label: "S/O 발행" },
+  { key: "arrival_status", label: "도착예정" },
+  { key: "branch", label: "지점" },
+  { key: "contract_end_date", label: "계약종료일" },
+  { key: "notes", label: "비고" },
+];
+
+function createEmptyItem(): CalibrationGasInventoryItem {
+  return {
+    id: crypto.randomUUID(),
+    contract_end_date: "", site_name: "", tms_status: "", unit_no: "",
+    analyzer_range: "", gas_name: "", concentration: "", volume_L: "",
+    expiry_date: "", remaining_percent: "", purchase_entity: "", so_issue: "",
+    arrival_status: "", branch: "",
+    gas_inspection_first: "", gas_inspection_last: "", gas_inspection_next: "",
+    gas_inspection_round: "", gas_inspection_so: "", gas_inspection_so_arrival: "",
+    velocity_inspection_first: "", velocity_inspection_last: "", velocity_inspection_next: "",
+    velocity_inspection_round: "", velocity_inspection_so: "",
+    inspection_notes: "", inspection_date: "", inspection_cycle: "",
+    md: "", monthly_amount: "", contract_consumables: "", notes: "",
+  };
+}
 
 export default function CalibrationGasInventory() {
-  const { inventory, updateInventoryItem } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
-  const [alertFilter, setAlertFilter] = useState<"all" | "expiry" | "low">("all");
+  const [alertFilter, setAlertFilter] = useState<AlertFilterType>("all");
   const [editMode, setEditMode] = useState(false);
   const [editBuffer, setEditBuffer] = useState<Record<string, Partial<CalibrationGasInventoryItem>>>({});
   const [completionTarget, setCompletionTarget] = useState<CompletionTarget>(null);
+  const [addRowOpen, setAddRowOpen] = useState(false);
+  const [newRow, setNewRow] = useState<CalibrationGasInventoryItem>(createEmptyItem);
 
   const sites = useMemo(() => {
     const s = new Set(inventory.map((i) => i.site_name));
@@ -56,6 +97,12 @@ export default function CalibrationGasInventory() {
       if (alertFilter === "low") {
         const pct = parseInt(item.remaining_percent);
         if (isNaN(pct) || pct >= 30) return false;
+      }
+      if (alertFilter === "gas_insp") {
+        if (!isWithin60Days(item.gas_inspection_next)) return false;
+      }
+      if (alertFilter === "vel_insp") {
+        if (!isWithin60Days(item.velocity_inspection_next)) return false;
       }
       return true;
     });
@@ -180,6 +227,18 @@ export default function CalibrationGasInventory() {
     setCompletionTarget(null);
   }, [completionTarget, inventory, updateInventoryItem]);
 
+  /* ── Add row handler ── */
+  const handleAddRow = useCallback(() => {
+    if (!newRow.site_name.trim() || !newRow.unit_no.trim() || !newRow.gas_name.trim()) {
+      toast.error("사업장명, 호기, 가스명은 필수입니다.");
+      return;
+    }
+    addInventoryItem({ ...newRow, id: crypto.randomUUID() });
+    setNewRow(createEmptyItem());
+    setAddRowOpen(false);
+    toast.success("새 항목이 추가되었습니다.");
+  }, [newRow, addInventoryItem]);
+
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-foreground bg-primary/10 border-r border-b border-border/50 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
@@ -203,7 +262,7 @@ export default function CalibrationGasInventory() {
     return <td className={`${td} ${extraClass}`}>{val || ""}</td>;
   };
 
-  /** Render a merged (rowspan) editable/read-only cell — only rendered when span > 0 */
+  /** Render a merged (rowspan) editable/read-only cell */
   const renderMergedCell = (
     item: CalibrationGasInventoryItem,
     field: keyof CalibrationGasInventoryItem,
@@ -230,6 +289,14 @@ export default function CalibrationGasInventory() {
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
   const velocityInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.velocity_inspection_next);
 
+  const FILTER_OPTIONS: { key: AlertFilterType; label: string; Icon: typeof Clock | null }[] = [
+    { key: "all", label: "전체", Icon: null },
+    { key: "expiry", label: "유효기간 임박", Icon: Clock },
+    { key: "low", label: "잔량 부족", Icon: AlertTriangle },
+    { key: "gas_insp", label: "가스상 검사 60일전", Icon: Gauge },
+    { key: "vel_insp", label: "유속계 검사 60일전", Icon: Zap },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Title + Action Buttons */}
@@ -239,6 +306,9 @@ export default function CalibrationGasInventory() {
           <span className="text-sm text-muted-foreground">
             총 <span className="font-semibold text-foreground">{filtered.length}</span>건
           </span>
+          <Button size="sm" variant="outline" onClick={() => setAddRowOpen(true)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> 행 추가
+          </Button>
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
               <Pencil className="h-3.5 w-3.5" /> 등록
@@ -271,9 +341,9 @@ export default function CalibrationGasInventory() {
             {sites.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
           </SelectContent>
         </Select>
-        <div className="flex gap-1">
-          {([ ["all", "전체", null], ["expiry", "유효기간 임박", Clock], ["low", "잔량 부족", AlertTriangle] ] as const).map(([key, label, Icon]) => (
-            <button key={key} onClick={() => setAlertFilter(key as any)}
+        <div className="flex gap-1 flex-wrap">
+          {FILTER_OPTIONS.map(({ key, label, Icon }) => (
+            <button key={key} onClick={() => setAlertFilter(key)}
               className={`px-3 py-1 text-xs rounded-full border transition-colors flex items-center gap-1 ${alertFilter === key ? (key === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-destructive text-destructive-foreground border-destructive") : "bg-background text-foreground hover:bg-muted"}`}>
               {Icon && <Icon className="h-3 w-3" />} {label}
             </button>
@@ -339,7 +409,7 @@ export default function CalibrationGasInventory() {
               {filtered.map((item, idx) => {
                 const expSoon = isExpirySoon(item.expiry_date);
                 const lowRem = isLowRemaining(item.remaining_percent);
-                const s = rowSpanData[idx]; // { site, tms, unit }
+                const s = rowSpanData[idx];
                 const gasDue = gasInspectionDue(item);
                 const velDue = velocityInspectionDue(item);
                 const isEvenGroup = (() => {
@@ -377,7 +447,7 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Unit-level merged (D, J~M, N~X inspection, Y~AE management) ── */}
+                    {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center font-medium`}>
                         {item.unit_no}
@@ -386,22 +456,44 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Per-gas-row columns (E~I): NOT merged ── */}
                     <td className={`${td} whitespace-nowrap`}>{item.analyzer_range}</td>
-                    <td className={`${td} text-center`}>{item.concentration}</td>
-                    <td className={`${td} text-center`}>{item.volume_L}</td>
-                    <td className={`${td} text-center whitespace-nowrap`}>
-                      <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
-                      {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                    </td>
-                    <td className={`${td} text-center`}>
-                      <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
-                      {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
-                    </td>
+                    {renderCell(item, "concentration", "text-center")}
+                    {renderCell(item, "volume_L", "text-center")}
+                    {/* Expiry date */}
+                    {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
+                      <td className={`${td} text-center whitespace-nowrap p-0.5`}>
+                        <input
+                          className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                          value={getCellValue(item, "expiry_date")}
+                          onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
+                        />
+                      </td>
+                    ) : (
+                      <td className={`${td} text-center whitespace-nowrap`}>
+                        <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
+                        {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                      </td>
+                    )}
+                    {/* Remaining percent */}
+                    {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
+                      <td className={`${td} text-center p-0.5`}>
+                        <input
+                          className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                          value={getCellValue(item, "remaining_percent")}
+                          onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
+                        />
+                      </td>
+                    ) : (
+                      <td className={`${td} text-center`}>
+                        <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
+                        {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
+                      </td>
+                    )}
 
                     {/* ── Unit-level merged: J구매주체, K S/O, L 도착, M 지점 ── */}
-                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center`}>{item.purchase_entity}</td>}
-                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap`}>{item.so_issue}</td>}
-                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap`}>{item.arrival_status}</td>}
-                    {s.unit > 0 && <td rowSpan={s.unit} className={`${td} text-center`}>{item.branch}</td>}
+                    {renderMergedCell(item, "purchase_entity", s.unit, "text-center")}
+                    {renderMergedCell(item, "so_issue", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "arrival_status", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "branch", s.unit, "text-center")}
 
                     {/* ── Unit-level merged: N~S 가스상 정도검사 ── */}
                     {renderMergedCell(item, "gas_inspection_first", s.unit, "text-center whitespace-nowrap")}
@@ -424,7 +516,7 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {renderMergedCell(item, "gas_inspection_round", s.unit, "text-center")}
-                    {/* 완료 column: 예정 status + 완료 확인 button */}
+                    {/* 예정/완료 column */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} text-center`}>
                         <div className="flex flex-col items-center gap-0.5">
@@ -501,6 +593,34 @@ export default function CalibrationGasInventory() {
         title={completionTarget?.type === "gas" ? "가스상 정도검사 완료" : "유속계 정도검사 완료"}
         description="검사 완료일을 입력하세요. 다음 예정일과 차수가 자동 계산됩니다."
       />
+
+      {/* Add Row Dialog */}
+      <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>새 항목 추가</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            {NEW_ROW_FIELDS.map(({ key, label, required }) => (
+              <div key={key} className="space-y-1">
+                <Label className="text-xs">
+                  {label} {required && <span className="text-destructive">*</span>}
+                </Label>
+                <Input
+                  className="h-8 text-sm"
+                  value={(newRow[key] as string) ?? ""}
+                  onChange={(e) => setNewRow((prev) => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={label}
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddRowOpen(false)}>취소</Button>
+            <Button onClick={handleAddRow}>추가</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
