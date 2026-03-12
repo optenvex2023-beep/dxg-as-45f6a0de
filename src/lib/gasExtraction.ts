@@ -34,7 +34,15 @@ type PdfColumn = {
   right: number;
 };
 
-const GAS_LABEL_REGEX = /(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|N2|NO|CO|O2)\s*[-_/]?\s*(Zero|Span)/gi;
+/** Matches "GAS Zero", "GAS Span", or bare "GAS" as a standalone word */
+const GAS_WITH_MODE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\s*[-_/]?\s*(Zero|Span)\b/gi;
+const GAS_BARE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\b/gi;
+
+/** Matches bare "zero" or "span" without a gas symbol prefix */
+const BARE_ZERO_SPAN_REGEX = /^(zero|span)$/i;
+
+/** Gas family symbols that may appear in header rows */
+const GAS_FAMILY_SYMBOLS = ["NOx", "NO2", "SO2", "CO2", "HCl", "NH3", "H2S", "CH4", "THC", "NO", "CO", "O2", "N2"] as const;
 
 const ZERO_SPAN_START_REGEX = /6\.\s*Zero\s*Span\s*Test|Zero\s*Span\s*Test/i;
 const ZERO_SPAN_END_REGEX = /7\.\s*특이사항|특이사항|자재교체\s*내용\s*및\s*작업내용|자재교체|작업\s*내용/i;
@@ -63,14 +71,32 @@ const extractGasLabelCandidates = (raw: string): string[] => {
   const value = normalizeSpacing(raw.replace(/[|,;]+/g, " "));
   if (!value) return [];
 
-  const regex = new RegExp(GAS_LABEL_REGEX.source, "gi");
   const labels: string[] = [];
 
-  for (const match of value.matchAll(regex)) {
+  // First pass: find "GAS Zero" or "GAS Span" patterns
+  const withModeRegex = new RegExp(GAS_WITH_MODE_REGEX.source, "gi");
+  const matchedPositions = new Set<number>();
+
+  for (const match of value.matchAll(withModeRegex)) {
     const gas = match[1].toUpperCase();
     const mode = match[2].toLowerCase() === "zero" ? "Zero" : "Span";
     const label = `${gas} ${mode}`;
     if (!labels.includes(label)) labels.push(label);
+    if (match.index !== undefined) {
+      matchedPositions.add(match.index);
+    }
+  }
+
+  // Second pass: find bare gas names not already matched with a mode
+  // Only if no "GAS+mode" matches were found (avoids double-counting)
+  if (labels.length === 0) {
+    const bareRegex = new RegExp(GAS_BARE_REGEX.source, "gi");
+    for (const match of value.matchAll(bareRegex)) {
+      const gas = match[1].toUpperCase();
+      // Bare gas without "Zero" → treat as Span
+      const label = `${gas} Span`;
+      if (!labels.includes(label)) labels.push(label);
+    }
   }
 
   return labels;
@@ -440,6 +466,90 @@ const findRowByPattern = (rows: PdfRow[], pattern: RegExp): PdfRow | undefined =
   return rows.find((row) => pattern.test(row.text.replace(/\s+/g, "")) || pattern.test(row.text));
 };
 
+/**
+ * Detect if the Calibration row contains only bare "zero"/"span" labels
+ * without gas symbols, indicating a header row above provides the gas family.
+ */
+const calibrationRowNeedsHeader = (row: PdfRow): boolean => {
+  const cells = splitTokensToCells(row.tokens, 14);
+  const bareCount = cells.filter(c => BARE_ZERO_SPAN_REGEX.test(c.text.trim())).length;
+  return bareCount >= 2; // At least 2 bare zero/span entries
+};
+
+/**
+ * Find a header row above the Calibration row that contains gas family names.
+ * Returns a map: column center → gas family symbol.
+ */
+const extractHeaderGasFamilies = (
+  sectionRows: PdfRow[],
+  calibrationRow: PdfRow
+): Map<number, string> => {
+  const calIdx = sectionRows.indexOf(calibrationRow);
+  const families = new Map<number, string>();
+  if (calIdx <= 0) return families;
+
+  // Search up to 3 rows above calibration for a header row
+  for (let offset = 1; offset <= Math.min(3, calIdx); offset++) {
+    const candidateRow = sectionRows[calIdx - offset];
+    const cells = splitTokensToCells(candidateRow.tokens, 14);
+
+    for (const cell of cells) {
+      const upper = cell.text.trim().toUpperCase();
+      for (const sym of GAS_FAMILY_SYMBOLS) {
+        if (upper === sym.toUpperCase() || upper.startsWith(sym.toUpperCase())) {
+          families.set(cell.center, sym);
+          break;
+        }
+      }
+    }
+
+    if (families.size > 0) {
+      console.log(`[GasExtraction] Found header row with gas families:`, Object.fromEntries(families));
+      return families;
+    }
+  }
+
+  return families;
+};
+
+/**
+ * Combine header gas families with bare zero/span calibration cells.
+ * Maps each calibration cell to "GasFamily Zero" or "GasFamily Span".
+ */
+const combineHeaderWithCalibration = (
+  calibrationRow: PdfRow,
+  headerFamilies: Map<number, string>
+): PdfColumn[] => {
+  const cells = splitTokensToCells(calibrationRow.tokens, 14);
+  const cols: Array<{ gas_name: string; center: number }> = [];
+
+  for (const cell of cells) {
+    const text = cell.text.trim();
+    if (!BARE_ZERO_SPAN_REGEX.test(text)) continue;
+
+    const mode = text.toLowerCase() === "zero" ? "Zero" : "Span";
+
+    // Find the closest header gas family by x-position
+    let bestFamily = "";
+    let bestDist = Infinity;
+    for (const [headerCenter, family] of headerFamilies) {
+      const dist = Math.abs(cell.center - headerCenter);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestFamily = family;
+      }
+    }
+
+    if (bestFamily && bestDist < 200) {
+      const label = `${bestFamily.toUpperCase()} ${mode}`;
+      cols.push({ gas_name: label, center: cell.center });
+      console.log(`[GasExtraction] Combined header+calibration: "${bestFamily}" + "${text}" → "${label}"`);
+    }
+  }
+
+  return cols.length > 0 ? buildColumnBounds(cols) : [];
+};
+
 const extractItemsFromPdfTable = (tokens: PdfToken[]): ExtractedGasItem[] => {
   const rows = buildPdfRows(tokens);
   console.log(`[GasExtraction] Total PDF rows: ${rows.length}`);
@@ -468,7 +578,21 @@ const extractItemsFromPdfTable = (tokens: PdfToken[]): ExtractedGasItem[] => {
   console.log(`[GasExtraction] Remaining row: ${remainingRow ? `"${remainingRow.text}"` : "NOT FOUND"}`);
   console.log(`[GasExtraction] Expiry row: ${expiryRow ? `"${expiryRow.text}"` : "NOT FOUND"}`);
 
-  const columns = extractColumnsFromCalibrationRow(calibrationRow);
+  // Check if calibration row has bare "zero"/"span" and needs a header row
+  let columns: PdfColumn[];
+  if (calibrationRowNeedsHeader(calibrationRow)) {
+    console.log("[GasExtraction] Calibration row has bare zero/span labels, looking for header row");
+    const headerFamilies = extractHeaderGasFamilies(sectionRows, calibrationRow);
+    if (headerFamilies.size > 0) {
+      columns = combineHeaderWithCalibration(calibrationRow, headerFamilies);
+    } else {
+      console.warn("[GasExtraction] No header row found for bare zero/span calibration");
+      columns = extractColumnsFromCalibrationRow(calibrationRow);
+    }
+  } else {
+    columns = extractColumnsFromCalibrationRow(calibrationRow);
+  }
+
   if (columns.length === 0) {
     console.warn("[GasExtraction] No columns extracted from calibration row");
     return [];
@@ -488,6 +612,7 @@ const extractItemsFromPdfTable = (tokens: PdfToken[]): ExtractedGasItem[] => {
   });
 
   // Extra fail-safe: never emit merged labels.
+  return items.filter((item) => extractGasLabelCandidates(item.gas_name).length === 1);
   return items.filter((item) => extractGasLabelCandidates(item.gas_name).length === 1);
 };
 
