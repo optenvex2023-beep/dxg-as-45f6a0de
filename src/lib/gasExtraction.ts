@@ -74,7 +74,7 @@ export function extractTextFromXlsx(file: File): Promise<string> {
 export function parseGasData(rawText: string): ExtractedGasData {
   const text = rawText;
 
-  // 1) Detect site name
+  // 1) Detect site name — extract ONLY the actual site name value
   let site_name = "";
   // Try patterns like "사업장명: XXX" or "사업장 : XXX"
   const sitePatterns = [
@@ -89,6 +89,30 @@ export function parseGasData(rawText: string): ExtractedGasData {
       site_name = m[1].trim();
       break;
     }
+  }
+
+  // Clean up site name: remove trailing field labels and unrelated content
+  // Stop at common boundary keywords that indicate the next field
+  if (site_name) {
+    const boundaryKeywords = [
+      "대상", "호기", "일자", "시간", "구분", "점검자", "담당",
+      "일시", "장비", "모델", "시리얼", "Serial", "Model",
+      "점검", "검사", "기간", "결과", "비고", "확인",
+    ];
+    // Cut at the first boundary keyword
+    for (const kw of boundaryKeywords) {
+      const idx = site_name.indexOf(kw);
+      if (idx > 0) {
+        site_name = site_name.substring(0, idx).trim();
+      }
+    }
+    // Also remove trailing whitespace tokens that look like field values
+    // e.g. "어프로티움 3공장 1호기(In-situ)" → "어프로티움 3공장"
+    site_name = site_name
+      .replace(/\s+\d+호기.*$/i, "")
+      .replace(/\s+\d{4}년.*$/i, "")
+      .replace(/\s+\d{4}[-./]\d{1,2}[-./]\d{1,2}.*$/i, "")
+      .trim();
   }
 
   // 2) Detect unit number (호기)
