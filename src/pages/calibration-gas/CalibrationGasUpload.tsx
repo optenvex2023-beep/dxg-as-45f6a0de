@@ -10,6 +10,7 @@ import { Upload, FileText, X, CheckCircle2, AlertCircle, Info, Loader2 } from "l
 import { toast } from "sonner";
 import type { CalibrationGasExtraction, CalibrationGasExtractionItem, CalibrationGasUploadFile } from "@/types/calibrationGas";
 import { isPdfTextBased, extractGasDataFromFile } from "@/lib/gasExtraction";
+import { parseGasLabel, matchGasToInventory } from "@/lib/gasMatchingUtils";
 
 const ACCEPTED_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
 const ACCEPTED_EXT = [".pdf", ".xlsx"];
@@ -344,38 +345,81 @@ export default function CalibrationGasUpload() {
               <label className="text-xs font-semibold">가스별 데이터 (Calibration 행 기준)</label>
               <Button size="sm" variant="outline" onClick={addFormItem}>+ 가스 추가</Button>
             </div>
-            {formItems.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-4 gap-2 items-end">
-                <div>
-                  <label className="text-[10px] text-muted-foreground">가스명</label>
-                  <Input
-                    value={item.gas_name}
-                    onChange={(e) => updateFormItem(idx, "gas_name", e.target.value)}
-                    placeholder="NO Zero, O2 25%..."
-                    list="gas-names"
-                  />
+            {formItems.map((item, idx) => {
+              // Compute live match preview
+              const matchPreview = (() => {
+                if (!formSite || !formUnit || !item.gas_name) return null;
+                const normalizedSite = normalizeSiteName(formSite);
+                let candidates = inventory.filter((inv) => inv.site_name === normalizedSite);
+                if (candidates.length === 0) {
+                  candidates = inventory.filter((inv) =>
+                    inv.site_name.includes(formSite) || formSite.includes(inv.site_name)
+                  );
+                }
+                const unitCands = candidates.filter((inv) =>
+                  inv.unit_no === formUnit || inv.unit_no.includes(formUnit) || formUnit.includes(inv.unit_no)
+                );
+                const parsed = parseGasLabel(item.gas_name);
+                if (parsed.baseGas && parsed.type !== "unknown") {
+                  const results = matchGasToInventory(
+                    parsed,
+                    unitCands.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))
+                  );
+                  if (results.length > 0) return results[0].inventoryGasName;
+                }
+                // Fallback text match
+                const fallback = unitCands.find((inv) =>
+                  inv.gas_name.toLowerCase().includes(item.gas_name.toLowerCase()) ||
+                  item.gas_name.toLowerCase().includes(inv.gas_name.toLowerCase())
+                );
+                return fallback?.gas_name || null;
+              })();
+
+              return (
+                <div key={idx} className="space-y-1">
+                  <div className="grid grid-cols-4 gap-2 items-end">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">가스명</label>
+                      <Input
+                        value={item.gas_name}
+                        onChange={(e) => updateFormItem(idx, "gas_name", e.target.value)}
+                        placeholder="NO Span, O2 Zero..."
+                        list="gas-names"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">표준가스잔량 (%)</label>
+                      <Input
+                        value={item.remaining_percent}
+                        onChange={(e) => updateFormItem(idx, "remaining_percent", e.target.value)}
+                        placeholder="96%"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">유효기간</label>
+                      <Input
+                        type="date"
+                        value={item.expiry_date}
+                        onChange={(e) => updateFormItem(idx, "expiry_date", e.target.value)}
+                      />
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => removeFormItem(idx)} disabled={formItems.length <= 1}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {item.gas_name && (
+                    <p className="text-[10px] ml-1">
+                      <span className="text-muted-foreground">매칭 대상: </span>
+                      {matchPreview ? (
+                        <span className="text-primary font-medium">{matchPreview}</span>
+                      ) : (
+                        <span className="text-destructive">매칭 없음</span>
+                      )}
+                    </p>
+                  )}
                 </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground">표준가스잔량 (%)</label>
-                  <Input
-                    value={item.remaining_percent}
-                    onChange={(e) => updateFormItem(idx, "remaining_percent", e.target.value)}
-                    placeholder="96%"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground">유효기간</label>
-                  <Input
-                    type="date"
-                    value={item.expiry_date}
-                    onChange={(e) => updateFormItem(idx, "expiry_date", e.target.value)}
-                  />
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => removeFormItem(idx)} disabled={formItems.length <= 1}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <datalist id="gas-names">
