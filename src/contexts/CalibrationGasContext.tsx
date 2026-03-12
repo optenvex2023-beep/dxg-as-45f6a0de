@@ -96,6 +96,10 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const addInventoryItem = useCallback((item: CalibrationGasInventoryItem) => {
+    setInventory((prev) => [...prev, item]);
+  }, []);
+
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
     setUploads((prev) => [...prev, file]);
   }, []);
