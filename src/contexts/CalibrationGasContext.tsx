@@ -140,10 +140,8 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     (site: string, unit: string, gasName: string): CalibrationGasInventoryItem[] => {
       const normalizedSite = normalizeSiteName(site);
 
-      // Try exact site match first
+      // 1) Filter by site
       let candidates = inventory.filter((item) => item.site_name === normalizedSite);
-
-      // If no exact match, try fuzzy site matching against all inventory
       if (candidates.length === 0) {
         candidates = inventory.filter((item) => {
           const score = similarity(site, item.site_name);
@@ -151,15 +149,30 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      return candidates.filter((item) => {
-        const unitMatch =
-          item.unit_no === unit ||
+      // 2) Filter by unit
+      const unitCandidates = candidates.filter((item) => {
+        return item.unit_no === unit ||
           item.unit_no.includes(unit) ||
           unit.includes(item.unit_no);
-        const gasMatch =
-          item.gas_name.toLowerCase().includes(gasName.toLowerCase()) ||
+      });
+
+      // 3) Semantic gas matching using Zero/Span logic
+      const parsed = parseGasLabel(gasName);
+      if (parsed.baseGas && parsed.type !== "unknown") {
+        const semanticMatches = matchGasToInventory(
+          parsed,
+          unitCandidates.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))
+        );
+        if (semanticMatches.length > 0) {
+          const matchedIds = new Set(semanticMatches.map((m) => m.inventoryId));
+          return unitCandidates.filter((item) => matchedIds.has(item.id));
+        }
+      }
+
+      // 4) Fallback: simple text-based gas matching
+      return unitCandidates.filter((item) => {
+        return item.gas_name.toLowerCase().includes(gasName.toLowerCase()) ||
           gasName.toLowerCase().includes(item.gas_name.toLowerCase());
-        return unitMatch && gasMatch;
       });
     },
     [inventory, normalizeSiteName]
