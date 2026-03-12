@@ -1,55 +1,71 @@
 /**
  * Generic gas matching utilities for mapping Zero Span Test labels
  * to calibration gas inventory rows.
+ *
+ * Mixed gases (e.g. "NO/SO2", "NO/SO2/CO") are treated as single entries — never split.
  */
 
 /** Known gas chemical symbols (order matters — longer first to avoid partial matches) */
 const GAS_SYMBOLS = [
-  "NO2", "SO2", "CO2", "H2S", "NH3", "CH4", "THC", "HCl",
+  "NO2", "SO2", "CO2", "H2S", "NH3", "CH4", "THC", "HCl", "NOx",
   "NO", "CO", "O2", "N2",
 ] as const;
 
 export interface ParsedGasLabel {
-  /** Original label from the report, e.g. "NO Span" */
+  /** Original label from the report, e.g. "NO/SO2 Span" */
   original: string;
-  /** Detected base gas symbol, e.g. "NO" */
-  baseGas: string;
+  /** Full gas part (may be mixed), e.g. "NO/SO2" or "O2" */
+  gasPart: string;
+  /** Individual gas symbols in the label, e.g. ["NO", "SO2"] */
+  gasSymbols: string[];
   /** Whether it's a Zero or Span calibration */
   type: "zero" | "span" | "unknown";
 }
 
 /**
- * Parse a Calibration row gas label into its base gas and Zero/Span type.
+ * Parse a gas label into its gas part(s) and Zero/Span type.
+ * Mixed gases are preserved as-is.
+ * 
  * Examples:
- *   "NO Span"  → { baseGas: "NO",  type: "span" }
- *   "O2 Zero"  → { baseGas: "O2",  type: "zero" }
- *   "N2 Zero"  → { baseGas: "N2",  type: "zero" }  (N2 is the zero gas for NO)
- *   "SO2 Span" → { baseGas: "SO2", type: "span" }
+ *   "NO/SO2 Span"  → { gasPart: "NO/SO2",  gasSymbols: ["NO","SO2"], type: "span" }
+ *   "NO/SO2 Zero"  → { gasPart: "NO/SO2",  gasSymbols: ["NO","SO2"], type: "zero" }
+ *   "O2 Zero"      → { gasPart: "O2",      gasSymbols: ["O2"],       type: "zero" }
+ *   "N2 Zero"      → { gasPart: "N2",      gasSymbols: ["N2"],       type: "zero" }
+ *   "NO Span"      → { gasPart: "NO",      gasSymbols: ["NO"],       type: "span" }
+ *   "CO"           → { gasPart: "CO",      gasSymbols: ["CO"],       type: "span" }
  */
 export function parseGasLabel(label: string): ParsedGasLabel {
   const trimmed = label.trim();
-  const upper = trimmed.toUpperCase();
 
-  // Detect base gas symbol first
-  let baseGas = "";
-  for (const sym of GAS_SYMBOLS) {
-    if (upper.includes(sym.toUpperCase())) {
-      baseGas = sym;
-      break;
-    }
-  }
-
-  // Rule: if the label contains "Zero" → zero gas. Otherwise → span gas.
-  // This covers: "NO Zero" → zero, "NO Span" → span, "NO" → span, "O2" → span
+  // Rule: "Zero" in label → zero gas. Otherwise → span gas.
   let type: "zero" | "span" | "unknown" = "unknown";
   if (/ZERO/i.test(trimmed)) {
     type = "zero";
-  } else if (baseGas) {
-    // Any label with a gas symbol but no "Zero" is treated as Span
+  }
+
+  // Extract the gas part (everything before Zero/Span keyword)
+  const modeMatch = trimmed.match(/^(.+?)\s+(Zero|Span)\s*$/i);
+  const gasPart = modeMatch ? modeMatch[1].replace(/\s+/g, "").toUpperCase() : trimmed.replace(/\s+/g, "").toUpperCase();
+
+  // Extract individual gas symbols from the gas part
+  const gasSymbols: string[] = [];
+  const parts = gasPart.split(/[/,]/);
+  for (const part of parts) {
+    const upper = part.trim().toUpperCase();
+    for (const sym of GAS_SYMBOLS) {
+      if (upper.includes(sym)) {
+        if (!gasSymbols.includes(sym)) gasSymbols.push(sym);
+        break;
+      }
+    }
+  }
+
+  // If we found gas symbols but type is still unknown, default to span
+  if (gasSymbols.length > 0 && type === "unknown") {
     type = "span";
   }
 
-  return { original: trimmed, baseGas, type };
+  return { original: trimmed, gasPart, gasSymbols, type };
 }
 
 /**
@@ -57,44 +73,58 @@ export function parseGasLabel(label: string): ParsedGasLabel {
  * Strips whitespace, punctuation, converts to uppercase.
  */
 function normalizeForMatch(s: string): string {
-  return s.replace(/[\s\-_()（）\[\]#,./]/g, "").toUpperCase();
+  return s.replace(/[\s\-_()（）\[\]#,.]/g, "").toUpperCase();
 }
 
 /**
  * Check if an inventory gas_name represents a Zero gas row.
- * Zero rows typically contain "Zero" or the concentration is "N2".
+ * Zero rows typically contain "Zero" or have N2 concentration.
  */
 function isInventoryZeroRow(gasName: string, concentration: string): boolean {
   const upper = gasName.toUpperCase();
   if (upper.includes("ZERO")) return true;
-  // N2 as concentration indicates a zero gas
-  if (concentration.toUpperCase().trim() === "N2") return true;
+  if (/\bN2\b/i.test(concentration.trim())) return true;
   return false;
 }
 
 /**
- * Check if an inventory gas_name contains a specific gas symbol.
- * Handles combined gases like "NO/SO2 200/200ppm".
+ * Extract gas symbols from an inventory gas_name.
+ * "NO/SO2 200/200ppm" → ["NO", "SO2"]
+ * "O2 25%" → ["O2"]
+ * "NO Zero" → ["NO"]
  */
-function inventoryContainsGas(gasName: string, targetGas: string): boolean {
-  const normalized = normalizeForMatch(gasName);
-  const targetNorm = targetGas.toUpperCase();
-  
-  // Direct inclusion check
-  if (normalized.includes(targetNorm)) return true;
-  
-  // Split combined gas names (e.g. "NO/SO2/CO Zero" → ["NO", "SO2", "CO"])
-  const parts = gasName.split(/[/,]/).map(p => p.trim().toUpperCase());
+function extractInventoryGasSymbols(gasName: string): string[] {
+  const symbols: string[] = [];
+  // Remove concentration/numbers for cleaner matching
+  const cleaned = gasName.replace(/\d+(\.\d+)?\s*(ppm|%|vol)/gi, "").toUpperCase();
+  const parts = cleaned.split(/[/,]/);
+
   for (const part of parts) {
-    // Extract just the gas symbol from each part
+    const trimmed = part.trim();
     for (const sym of GAS_SYMBOLS) {
-      if (part.includes(sym.toUpperCase()) && sym.toUpperCase() === targetNorm) {
-        return true;
+      if (trimmed.includes(sym) && !symbols.includes(sym)) {
+        symbols.push(sym);
+        break;
       }
     }
   }
-  
-  return false;
+  return symbols;
+}
+
+/**
+ * Check if an inventory row's gas symbols match the extracted gas symbols.
+ * For mixed gases, ALL symbols must be present in the inventory row.
+ */
+function gasSymbolsMatch(extractedSymbols: string[], inventoryGasName: string): boolean {
+  const invSymbols = extractInventoryGasSymbols(inventoryGasName);
+  if (invSymbols.length === 0 || extractedSymbols.length === 0) return false;
+
+  // All extracted symbols must be in the inventory row
+  const allExtractedFound = extractedSymbols.every(s => invSymbols.includes(s));
+  // And they should cover a similar set (avoid matching a broader inventory row by accident)
+  const sizeSimilar = invSymbols.length <= extractedSymbols.length + 1;
+
+  return allExtractedFound && sizeSimilar;
 }
 
 export interface GasMatchResult {
@@ -109,12 +139,11 @@ export interface GasMatchResult {
 /**
  * Find matching inventory rows for an extracted gas label.
  * 
- * Strategy:
- * 1. Filter by site + unit first (done externally)
- * 2. Determine if extracted label is Zero or Span
- * 3. For Span: match inventory rows containing the same gas symbol that are NOT Zero rows
- * 4. For Zero: match inventory rows that ARE Zero rows for the same gas
- *    - Special: N2 Zero → matches "NO Zero" or any row with N2 concentration
+ * Priority: site + unit (done externally) → gas symbols → Zero/Span type
+ * Mixed gases like "NO/SO2" match inventory rows containing both NO and SO2.
+ * 
+ * Rule: "Zero" in label → match Zero inventory rows. Otherwise → match Span rows.
+ * Special: N2 Zero → matches Zero rows for NO (N2 is the zero gas for NO analyzers).
  */
 export function matchGasToInventory(
   parsed: ParsedGasLabel,
@@ -122,14 +151,14 @@ export function matchGasToInventory(
 ): GasMatchResult[] {
   const results: GasMatchResult[] = [];
 
-  if (!parsed.baseGas) return results;
+  if (parsed.gasSymbols.length === 0) return results;
 
   for (const inv of candidates) {
     const invIsZero = isInventoryZeroRow(inv.gas_name, inv.concentration);
-    
+
     if (parsed.type === "span") {
-      // Span gas: find non-zero rows that contain this gas symbol
-      if (!invIsZero && inventoryContainsGas(inv.gas_name, parsed.baseGas)) {
+      // Span gas: find non-zero rows that match the gas symbols
+      if (!invIsZero && gasSymbolsMatch(parsed.gasSymbols, inv.gas_name)) {
         results.push({
           inventoryId: inv.id,
           inventoryGasName: inv.gas_name,
@@ -139,12 +168,11 @@ export function matchGasToInventory(
     } else if (parsed.type === "zero") {
       // Zero gas: find zero rows
       if (invIsZero) {
-        // N2 is used as zero gas for multiple analyzers (typically NO)
-        if (parsed.baseGas === "N2") {
-          // N2 Zero matches any Zero row (NO Zero, or combined Zero rows)
-          if (inventoryContainsGas(inv.gas_name, "NO") || 
-              inventoryContainsGas(inv.gas_name, "N2") ||
-              inv.concentration.toUpperCase().trim() === "N2") {
+        // N2 Zero → matches NO Zero rows (N2 is zero gas for NO analyzers)
+        if (parsed.gasSymbols.length === 1 && parsed.gasSymbols[0] === "N2") {
+          const invSymbols = extractInventoryGasSymbols(inv.gas_name);
+          if (invSymbols.includes("NO") || invSymbols.includes("N2") ||
+              /\bN2\b/i.test(inv.concentration)) {
             results.push({
               inventoryId: inv.id,
               inventoryGasName: inv.gas_name,
@@ -152,8 +180,8 @@ export function matchGasToInventory(
             });
           }
         } else {
-          // O2 Zero → O2 Zero, SO2 Zero → SO2 Zero, etc.
-          if (inventoryContainsGas(inv.gas_name, parsed.baseGas)) {
+          // Normal zero matching: gas symbols must match
+          if (gasSymbolsMatch(parsed.gasSymbols, inv.gas_name)) {
             results.push({
               inventoryId: inv.id,
               inventoryGasName: inv.gas_name,
@@ -163,8 +191,8 @@ export function matchGasToInventory(
         }
       }
     } else {
-      // Unknown type: fallback to simple gas name matching
-      if (inventoryContainsGas(inv.gas_name, parsed.baseGas)) {
+      // Unknown type: fallback to simple gas symbol matching
+      if (gasSymbolsMatch(parsed.gasSymbols, inv.gas_name)) {
         results.push({
           inventoryId: inv.id,
           inventoryGasName: inv.gas_name,

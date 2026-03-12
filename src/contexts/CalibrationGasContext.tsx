@@ -158,7 +158,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
 
       // 3) Semantic gas matching using Zero/Span logic
       const parsed = parseGasLabel(gasName);
-      if (parsed.baseGas && parsed.type !== "unknown") {
+      if (parsed.gasSymbols.length > 0 && parsed.type !== "unknown") {
         const semanticMatches = matchGasToInventory(
           parsed,
           unitCandidates.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))
@@ -265,7 +265,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         // Use semantic gas matching for precise row targeting
         const parsed = parseGasLabel(exItem.gas_name);
         let gasMatches: typeof siteUnitCandidates;
-        if (parsed.baseGas && parsed.type !== "unknown") {
+        if (parsed.gasSymbols.length > 0 && parsed.type !== "unknown") {
           const semanticResults = matchGasToInventory(
             parsed,
             siteUnitCandidates.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))

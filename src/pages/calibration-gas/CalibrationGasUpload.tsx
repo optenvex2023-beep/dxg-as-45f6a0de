@@ -360,7 +360,7 @@ export default function CalibrationGasUpload() {
                   inv.unit_no === formUnit || inv.unit_no.includes(formUnit) || formUnit.includes(inv.unit_no)
                 );
                 const parsed = parseGasLabel(item.gas_name);
-                if (parsed.baseGas && parsed.type !== "unknown") {
+                if (parsed.gasSymbols.length > 0 && parsed.type !== "unknown") {
                   const results = matchGasToInventory(
                     parsed,
                     unitCands.map((c) => ({ id: c.id, gas_name: c.gas_name, concentration: c.concentration }))
