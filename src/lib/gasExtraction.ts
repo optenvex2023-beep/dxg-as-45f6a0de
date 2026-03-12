@@ -442,21 +442,43 @@ const findRowByPattern = (rows: PdfRow[], pattern: RegExp): PdfRow | undefined =
 
 const extractItemsFromPdfTable = (tokens: PdfToken[]): ExtractedGasItem[] => {
   const rows = buildPdfRows(tokens);
+  console.log(`[GasExtraction] Total PDF rows: ${rows.length}`);
+
   const sectionRows = getSection6Rows(rows);
-  if (sectionRows.length === 0) return [];
+  console.log(`[GasExtraction] Section 6 rows: ${sectionRows.length}`);
+  if (sectionRows.length === 0) {
+    console.warn("[GasExtraction] No Section 6 rows found. Row texts:", rows.map(r => r.text.substring(0, 80)));
+    return [];
+  }
+
+  // Log all section 6 row texts for debugging
+  sectionRows.forEach((r, i) => console.log(`[GasExtraction] Section6 row[${i}]: "${r.text.substring(0, 100)}"`));
 
   const calibrationRow = findRowByPattern(sectionRows, /calibration/i);
-  if (!calibrationRow) return [];
+  if (!calibrationRow) {
+    console.warn("[GasExtraction] No Calibration row found in section 6");
+    return [];
+  }
+
+  console.log(`[GasExtraction] Calibration row: "${calibrationRow.text}" (${calibrationRow.tokens.length} tokens)`);
 
   const remainingRow = findRowByPattern(sectionRows, /표준가스잔량|표준\s*가스\s*잔량/);
   const expiryRow = findRowByPattern(sectionRows, /유효기간|유효\s*기간/);
 
+  console.log(`[GasExtraction] Remaining row: ${remainingRow ? `"${remainingRow.text}"` : "NOT FOUND"}`);
+  console.log(`[GasExtraction] Expiry row: ${expiryRow ? `"${expiryRow.text}"` : "NOT FOUND"}`);
+
   const columns = extractColumnsFromCalibrationRow(calibrationRow);
-  if (columns.length === 0) return [];
+  if (columns.length === 0) {
+    console.warn("[GasExtraction] No columns extracted from calibration row");
+    return [];
+  }
 
   const items = columns.map((col) => {
     const remainingRaw = remainingRow ? extractCellTextByColumn(remainingRow, col) : "";
     const expiryRaw = expiryRow ? extractCellTextByColumn(expiryRow, col) : "";
+
+    console.log(`[GasExtraction] Column "${col.gas_name}" [${col.left.toFixed(0)}-${col.right.toFixed(0)}]: remaining="${remainingRaw}", expiry="${expiryRaw}"`);
 
     return {
       gas_name: col.gas_name,
