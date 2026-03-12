@@ -341,7 +341,7 @@ export default function CalibrationGasUpload() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold">가스별 데이터 (점검후 값)</label>
+              <label className="text-xs font-semibold">가스별 데이터 (Calibration 행 기준)</label>
               <Button size="sm" variant="outline" onClick={addFormItem}>+ 가스 추가</Button>
             </div>
             {formItems.map((item, idx) => (
