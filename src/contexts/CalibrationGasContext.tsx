@@ -54,26 +54,103 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<CalibrationGasHistory[]>([]);
   const [notifications, setNotifications] = useState<CalibrationGasNotification[]>([]);
 
+  /** Strip whitespace, punctuation, and common noise words for comparison */
+  const stripForCompare = (s: string) =>
+    s.replace(/[\s\-_()（）\[\]]/g, "").replace(/공장|사업장|대상/g, "").toLowerCase();
+
+  /** Simple similarity score (shared character n-grams) */
+  const similarity = (a: string, b: string): number => {
+    const sa = stripForCompare(a);
+    const sb = stripForCompare(b);
+    if (!sa || !sb) return 0;
+    if (sa === sb) return 1;
+    if (sa.includes(sb) || sb.includes(sa)) return 0.85;
+    // bigram overlap
+    const bigrams = (s: string) => {
+      const set = new Set<string>();
+      for (let i = 0; i < s.length - 1; i++) set.add(s.substring(i, i + 2));
+      return set;
+    };
+    const ba = bigrams(sa);
+    const bb = bigrams(sb);
+    let shared = 0;
+    ba.forEach((b) => { if (bb.has(b)) shared++; });
+    return (2 * shared) / (ba.size + bb.size);
+  };
+
   const normalizeSiteName = useCallback((raw: string): string => {
     const trimmed = raw.trim();
+    if (!trimmed) return trimmed;
+
+    // 1) exact canonical match
     for (const alias of siteAliases) {
       if (alias.canonical === trimmed) return alias.canonical;
+    }
+    // 2) alias mapping match
+    for (const alias of siteAliases) {
       for (const a of alias.aliases) {
         if (trimmed.includes(a) || a.includes(trimmed)) return alias.canonical;
       }
     }
-    // Check if inventory has exact match
-    const found = seedCalibrationGasInventory.find(
-      (i) => i.site_name === trimmed || trimmed.includes(i.site_name) || i.site_name.includes(trimmed)
+    // 3) normalized partial match against inventory site names
+    const uniqueSites = [...new Set(seedCalibrationGasInventory.map((i) => i.site_name))];
+    const exactFound = uniqueSites.find(
+      (s) => s === trimmed || stripForCompare(s) === stripForCompare(trimmed)
     );
-    return found ? found.site_name : trimmed;
+    if (exactFound) return exactFound;
+
+    // 4) partial inclusion match
+    const partialFound = uniqueSites.find(
+      (s) => trimmed.includes(s) || s.includes(trimmed)
+    );
+    if (partialFound) return partialFound;
+
+    // 5) fuzzy similarity match (threshold >= 0.6)
+    let bestScore = 0;
+    let bestSite = "";
+    for (const s of uniqueSites) {
+      const score = similarity(trimmed, s);
+      if (score > bestScore) {
+        bestScore = score;
+        bestSite = s;
+      }
+    }
+    // Also check aliases
+    for (const alias of siteAliases) {
+      const score = similarity(trimmed, alias.canonical);
+      if (score > bestScore) {
+        bestScore = score;
+        bestSite = alias.canonical;
+      }
+      for (const a of alias.aliases) {
+        const sc = similarity(trimmed, a);
+        if (sc > bestScore) {
+          bestScore = sc;
+          bestSite = alias.canonical;
+        }
+      }
+    }
+    if (bestScore >= 0.6 && bestSite) return bestSite;
+
+    return trimmed;
   }, []);
 
   const findMatchingInventory = useCallback(
     (site: string, unit: string, gasName: string): CalibrationGasInventoryItem[] => {
       const normalizedSite = normalizeSiteName(site);
-      return inventory.filter((item) => {
-        const siteMatch = item.site_name === normalizedSite;
+
+      // Try exact site match first
+      let candidates = inventory.filter((item) => item.site_name === normalizedSite);
+
+      // If no exact match, try fuzzy site matching against all inventory
+      if (candidates.length === 0) {
+        candidates = inventory.filter((item) => {
+          const score = similarity(site, item.site_name);
+          return score >= 0.6 || item.site_name.includes(site) || site.includes(item.site_name);
+        });
+      }
+
+      return candidates.filter((item) => {
         const unitMatch =
           item.unit_no === unit ||
           item.unit_no.includes(unit) ||
@@ -81,7 +158,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         const gasMatch =
           item.gas_name.toLowerCase().includes(gasName.toLowerCase()) ||
           gasName.toLowerCase().includes(item.gas_name.toLowerCase());
-        return siteMatch && unitMatch && gasMatch;
+        return unitMatch && gasMatch;
       });
     },
     [inventory, normalizeSiteName]
