@@ -19,6 +19,7 @@ interface CalGasState {
 
   /* Inventory */
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
+  addInventoryItem: (item: CalibrationGasInventoryItem) => void;
 
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;
@@ -94,6 +95,10 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+
+  const addInventoryItem = useCallback((item: CalibrationGasInventoryItem) => {
+    setInventory((prev) => [...prev, item]);
+  }, []);
 
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
     setUploads((prev) => [...prev, file]);
@@ -332,6 +337,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         history,
         notifications,
         updateInventoryItem,
+        addInventoryItem,
         addUploadFile,
         addExtraction,
         updateExtractionField,
