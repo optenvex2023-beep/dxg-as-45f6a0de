@@ -130,20 +130,39 @@ export function parseGasData(rawText: string): ExtractedGasData {
     }
   }
 
-  // 3) Extract gas data from Zero Span Test table
-  //    Strategy: find "Calibration" row for gas identifiers,
-  //    then pair with "표준가스잔량" row and "유효기간" row values.
+  // 3) Extract gas data ONLY from the "6. Zero Span Test" table section.
+  //    Crop text to section 6 boundary to prevent contamination from section 7.
   const items: { gas_name: string; remaining_percent: string; expiry_date: string }[] = [];
 
-  const lines = text.split("\n");
+  // Isolate section 6 text: start at "Zero Span" heading, end before section 7 or similar
+  const sectionStartMatch = text.match(/6\.\s*Zero\s*Span\s*Test|Zero\s*Span\s*Test/i);
+  const sectionStartIdx = sectionStartMatch ? text.indexOf(sectionStartMatch[0]) : -1;
 
-  // Find line indices for key rows (case-insensitive, tab-separated or space-separated)
+  // End boundaries: section 7, 특이사항, 자재교체, or end of text
+  const endPatterns = [/7\.\s*특이사항/, /특이사항/, /자재교체/, /작업\s*내용/];
+  let sectionEndIdx = text.length;
+  if (sectionStartIdx >= 0) {
+    for (const ep of endPatterns) {
+      const em = text.substring(sectionStartIdx + 10).match(ep);
+      if (em) {
+        const candidate = sectionStartIdx + 10 + text.substring(sectionStartIdx + 10).indexOf(em[0]);
+        if (candidate < sectionEndIdx) sectionEndIdx = candidate;
+      }
+    }
+  }
+
+  const sectionText = sectionStartIdx >= 0
+    ? text.substring(sectionStartIdx, sectionEndIdx)
+    : text;
+
+  const lines = sectionText.split("\n");
+
+  // Find line indices for key rows within section 6 only
   let calibrationLineIdx = -1;
   let remainingLineIdx = -1;
   let expiryLineIdx = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    const lower = lines[i].toLowerCase();
     if (calibrationLineIdx < 0 && /calibration/i.test(lines[i])) {
       calibrationLineIdx = i;
     }
@@ -151,14 +170,13 @@ export function parseGasData(rawText: string): ExtractedGasData {
       remainingLineIdx = i;
     }
     if (expiryLineIdx < 0 && /유효기간/.test(lines[i])) {
-      // Pick the 유효기간 row that comes AFTER calibration (if possible)
       if (calibrationLineIdx >= 0) {
         expiryLineIdx = i;
       }
     }
   }
 
-  // If we didn't find expiry after calibration, search from the start
+  // If we didn't find expiry after calibration, search from the start of section
   if (expiryLineIdx < 0) {
     for (let i = 0; i < lines.length; i++) {
       if (/유효기간/.test(lines[i])) {
@@ -177,20 +195,37 @@ export function parseGasData(rawText: string): ExtractedGasData {
     return line.split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
   };
 
-  // Known gas identifiers for matching
-  const gasIdentifiers = /\b(N2|NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC)\b/i;
+  // Known gas identifiers — must be standalone gas formula + Zero/Span context
+  const gasIdentifiers = /\b(N2|NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC)\s+(Zero|Span)\b/i;
+  // Also match standalone gas symbols in Calibration row cells
+  const gasSymbolOnly = /^(N2|NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC)\s*(Zero|Span)$/i;
+
+  /** Normalize 2-digit year dates: 26.06.25 → 2026-06-25 */
+  const normalizeDateStr = (raw: string): string => {
+    const m = raw.match(/^(\d{2})[-./](\d{1,2})[-./](\d{1,2})$/);
+    if (m) {
+      const yr = parseInt(m[1], 10);
+      const fullYear = yr >= 50 ? 1900 + yr : 2000 + yr;
+      return `${fullYear}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+    }
+    // Already 4-digit year
+    const m4 = raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
+    if (m4) {
+      return `${m4[1]}-${m4[2].padStart(2, "0")}-${m4[3].padStart(2, "0")}`;
+    }
+    return raw;
+  };
 
   if (calibrationLineIdx >= 0) {
     const calibCells = splitCells(lines[calibrationLineIdx]);
     const remainCells = remainingLineIdx >= 0 ? splitCells(lines[remainingLineIdx]) : [];
     const expiryCells = expiryLineIdx >= 0 ? splitCells(lines[expiryLineIdx]) : [];
 
-    // Find columns in calibration row that contain gas names
+    // Find columns in calibration row that contain gas names (e.g. "N2 Zero", "NO Span")
     for (let col = 0; col < calibCells.length; col++) {
       const cell = calibCells[col];
-      if (!gasIdentifiers.test(cell)) continue;
+      if (!gasIdentifiers.test(cell) && !gasSymbolOnly.test(cell)) continue;
 
-      // Use the full cell text as gas_name (e.g. "N2 Zero", "NO Span")
       const gasName = cell.trim();
 
       // Get corresponding remaining % value
@@ -209,10 +244,9 @@ export function parseGasData(rawText: string): ExtractedGasData {
       let expiry = "";
       if (col < expiryCells.length) {
         const ev = expiryCells[col];
-        // Match various date formats: YY.MM.DD, YYYY-MM-DD, YYYY.MM.DD, N/A etc.
         const dateMatch = ev.match(/(\d{2,4}[-./]\d{1,2}[-./]\d{1,2})/);
         if (dateMatch) {
-          expiry = dateMatch[1].replace(/\./g, "-").replace(/\//g, "-");
+          expiry = normalizeDateStr(dateMatch[1].replace(/\./g, "-").replace(/\//g, "-"));
         } else if (/n\/?a/i.test(ev)) {
           expiry = "N/A";
         } else if (ev && ev !== "유효기간") {
@@ -221,25 +255,6 @@ export function parseGasData(rawText: string): ExtractedGasData {
       }
 
       items.push({ gas_name: gasName, remaining_percent: remaining, expiry_date: expiry });
-    }
-  }
-
-  // Fallback: if no Calibration row found, try line-by-line gas detection
-  if (items.length === 0) {
-    const zeroSpanIdx = text.toLowerCase().indexOf("zero span");
-    const relevantText = zeroSpanIdx >= 0 ? text.substring(zeroSpanIdx) : text;
-    const fallbackLines = relevantText.split("\n");
-    for (const line of fallbackLines) {
-      const gasMatch = line.match(/(NO|NO2|SO2|CO|CO2|O2|HCl|NH3|H2S|CH4|THC|N2)/i);
-      const pctMatch = line.match(/(\d+(?:\.\d+)?)\s*%/);
-      const dtMatch = line.match(/(\d{2,4}[-./]\d{1,2}[-./]\d{1,2})/);
-      if (gasMatch) {
-        items.push({
-          gas_name: gasMatch[0],
-          remaining_percent: pctMatch ? `${pctMatch[1]}%` : "",
-          expiry_date: dtMatch ? dtMatch[1].replace(/[./]/g, "-") : "",
-        });
-      }
     }
   }
 
