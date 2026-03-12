@@ -580,15 +580,19 @@ export async function extractGasDataFromFile(file: File): Promise<ExtractedGasDa
 
     const { site_name, unit_no } = extractSiteAndUnit(rawText);
     const pdfItems = extractItemsFromPdfTable(pdfTokens);
+    console.log(`[GasExtraction] PDF token extraction returned ${pdfItems.length} items`);
 
     if (pdfItems.length > 0) {
       return { site_name, unit_no, items: pdfItems };
     }
 
-    // Fail-safe fallback: still table-row based, never linear concatenation.
+    // Fail-safe fallback for text-based extraction (XLSX-style).
+    // Each item MUST have exactly 1 gas label — reject any merged entries.
+    console.warn("[GasExtraction] PDF token extraction failed, trying text fallback");
     const fallbackItems = extractItemsFromSectionText(rawText)
       .filter((item) => extractGasLabelCandidates(item.gas_name).length === 1);
 
+    console.log(`[GasExtraction] Text fallback returned ${fallbackItems.length} items:`, fallbackItems.map(i => i.gas_name));
     return { site_name, unit_no, items: fallbackItems };
   }
 
