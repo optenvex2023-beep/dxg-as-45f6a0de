@@ -34,8 +34,9 @@ type PdfColumn = {
   right: number;
 };
 
-/** Matches "GAS Zero", "GAS Span", or bare "GAS" (e.g. NO, O2, SO2) */
-const GAS_LABEL_REGEX = /(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)(?:\s*[-_/]?\s*(Zero|Span))?/gi;
+/** Matches "GAS Zero", "GAS Span", or bare "GAS" as a standalone word */
+const GAS_WITH_MODE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\s*[-_/]?\s*(Zero|Span)\b/gi;
+const GAS_BARE_REGEX = /\b(NO2|SO2|CO2|HCl|NH3|H2S|CH4|THC|NOx|N2|NO|CO|O2)\b/gi;
 
 /** Matches bare "zero" or "span" without a gas symbol prefix */
 const BARE_ZERO_SPAN_REGEX = /^(zero|span)$/i;
