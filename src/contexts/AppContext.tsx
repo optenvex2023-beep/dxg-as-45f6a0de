@@ -36,6 +36,7 @@ interface AppState {
   getReportVersions: (reportId: string) => ReportVersion[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -536,6 +537,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return reportVersions.filter(v => v.report_id === reportId);
   }, [reportVersions]);
 
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -543,7 +548,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions,
-        markNotificationRead, markAllNotificationsRead,
+        markNotificationRead, markAllNotificationsRead, logout,
       }}
     >
       {children}
