@@ -51,10 +51,11 @@ export default function FinalReport() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [detailReportId, setDetailReportId] = useState<string | null>(null);
 
-  const isManufacturing = currentUser?.department === "제조본부";
-  const isQC = currentUser?.department === "품질본부";
-  const isSales = currentUser?.department === "환경영업팀";
-  const isAdmin = currentUser?.role_category === "관리자" && isSales;
+  const superAdmin = isSuperAdmin(currentUser);
+  const isManufacturing = superAdmin || currentUser?.department === "제조본부";
+  const isQC = superAdmin || currentUser?.department === "품질본부";
+  const isSales = superAdmin || currentUser?.department === "환경영업팀";
+  const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser?.department === "환경영업팀");
   const canApprove = isQC || isAdmin;
 
   // Only inspections that have reached "1차 점검완료" or beyond
