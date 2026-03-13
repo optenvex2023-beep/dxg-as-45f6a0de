@@ -21,6 +21,7 @@ import FinalReport from "@/pages/FinalReport";
 import Login from "@/pages/Login";
 import NotificationCenter from "@/pages/NotificationCenter";
 import NotFound from "./pages/NotFound";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/install" element={<Install />} />
     <Route
       element={
         <RequireAuth>
