@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
+import { isSuperAdmin } from "@/lib/permissions";
 import {
   createDefaultReportData,
   MODEL_OPTIONS,
