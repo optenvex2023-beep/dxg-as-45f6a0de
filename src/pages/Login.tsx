@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 export default function Login() {
-  const { users, setCurrentUser } = useApp();
+  const { users, setCurrentUser, isLoading } = useApp();
   const navigate = useNavigate();
   const [empNo, setEmpNo] = useState("");
   const [name, setName] = useState("");
