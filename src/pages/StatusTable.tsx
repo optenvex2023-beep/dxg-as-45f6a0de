@@ -97,9 +97,10 @@ export default function StatusTable() {
   const [csModalOpen, setCsModalOpen] = useState(false);
   const [mfgModalOpen, setMfgModalOpen] = useState(false);
 
-  const isAdmin = currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀";
-  const isCS = currentUser?.department === "CS팀";
-  const isManufacturing = currentUser?.department === "제조본부";
+  const superAdmin = isSuperAdmin(currentUser);
+  const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀");
+  const isCS = superAdmin || currentUser?.department === "CS팀";
+  const isManufacturing = superAdmin || currentUser?.department === "제조본부";
 
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
