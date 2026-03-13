@@ -537,6 +537,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return reportVersions.filter(v => v.report_id === reportId);
   }, [reportVersions]);
 
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
