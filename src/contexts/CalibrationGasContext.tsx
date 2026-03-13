@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import type {
   CalibrationGasInventoryItem,
   CalibrationGasUploadFile,
@@ -10,6 +10,11 @@ import type {
 } from "@/types/calibrationGas";
 import { seedCalibrationGasInventory, siteAliases } from "@/data/calibrationGasData";
 import { parseGasLabel, matchGasToInventory } from "@/lib/gasMatchingUtils";
+import {
+  fetchCalGasInventory, insertCalGasInventoryItems, insertCalGasInventoryItem as insertCalGasItemDb,
+  updateCalGasInventoryItem as updateCalGasItemDb,
+  fetchCalGasHistory, insertCalGasHistoryItems,
+} from "@/lib/supabaseDb";
 
 interface CalGasState {
   inventory: CalibrationGasInventoryItem[];
@@ -17,6 +22,7 @@ interface CalGasState {
   extractions: CalibrationGasExtraction[];
   history: CalibrationGasHistory[];
   notifications: CalibrationGasNotification[];
+  isLoading: boolean;
 
   /* Inventory */
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
@@ -49,11 +55,41 @@ export function useCalGas() {
 }
 
 export function CalGasProvider({ children }: { children: React.ReactNode }) {
-  const [inventory, setInventory] = useState<CalibrationGasInventoryItem[]>(seedCalibrationGasInventory);
+  const [inventory, setInventory] = useState<CalibrationGasInventoryItem[]>([]);
   const [uploads, setUploads] = useState<CalibrationGasUploadFile[]>([]);
   const [extractions, setExtractions] = useState<CalibrationGasExtraction[]>([]);
   const [history, setHistory] = useState<CalibrationGasHistory[]>([]);
   const [notifications, setNotifications] = useState<CalibrationGasNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const dataLoadedRef = useRef(false);
+
+  /* ─── Load data from Supabase on mount ─── */
+  useEffect(() => {
+    if (dataLoadedRef.current) return;
+    dataLoadedRef.current = true;
+
+    async function loadData() {
+      try {
+        let dbInventory = await fetchCalGasInventory();
+        if (dbInventory.length === 0) {
+          console.log("No calibration gas inventory in DB, seeding...");
+          await insertCalGasInventoryItems(seedCalibrationGasInventory);
+          dbInventory = await fetchCalGasInventory();
+        }
+        setInventory(dbInventory);
+
+        const dbHistory = await fetchCalGasHistory();
+        setHistory(dbHistory);
+      } catch (err) {
+        console.error("Error loading cal gas data from Supabase:", err);
+        setInventory(seedCalibrationGasInventory);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   /** Strip whitespace, punctuation, and common noise words for comparison */
   const stripForCompare = (s: string) =>
@@ -66,7 +102,6 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     if (!sa || !sb) return 0;
     if (sa === sb) return 1;
     if (sa.includes(sb) || sb.includes(sa)) return 0.85;
-    // bigram overlap
     const bigrams = (s: string) => {
       const set = new Set<string>();
       for (let i = 0; i < s.length - 1; i++) set.add(s.substring(i, i + 2));
@@ -83,64 +118,48 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     const trimmed = raw.trim();
     if (!trimmed) return trimmed;
 
-    // 1) exact canonical match
     for (const alias of siteAliases) {
       if (alias.canonical === trimmed) return alias.canonical;
     }
-    // 2) alias mapping match
     for (const alias of siteAliases) {
       for (const a of alias.aliases) {
         if (trimmed.includes(a) || a.includes(trimmed)) return alias.canonical;
       }
     }
-    // 3) normalized partial match against inventory site names
-    const uniqueSites = [...new Set(seedCalibrationGasInventory.map((i) => i.site_name))];
+    const uniqueSites = [...new Set(inventory.map((i) => i.site_name))];
     const exactFound = uniqueSites.find(
       (s) => s === trimmed || stripForCompare(s) === stripForCompare(trimmed)
     );
     if (exactFound) return exactFound;
 
-    // 4) partial inclusion match
     const partialFound = uniqueSites.find(
       (s) => trimmed.includes(s) || s.includes(trimmed)
     );
     if (partialFound) return partialFound;
 
-    // 5) fuzzy similarity match (threshold >= 0.6)
     let bestScore = 0;
     let bestSite = "";
     for (const s of uniqueSites) {
       const score = similarity(trimmed, s);
-      if (score > bestScore) {
-        bestScore = score;
-        bestSite = s;
-      }
+      if (score > bestScore) { bestScore = score; bestSite = s; }
     }
-    // Also check aliases
     for (const alias of siteAliases) {
       const score = similarity(trimmed, alias.canonical);
-      if (score > bestScore) {
-        bestScore = score;
-        bestSite = alias.canonical;
-      }
+      if (score > bestScore) { bestScore = score; bestSite = alias.canonical; }
       for (const a of alias.aliases) {
         const sc = similarity(trimmed, a);
-        if (sc > bestScore) {
-          bestScore = sc;
-          bestSite = alias.canonical;
-        }
+        if (sc > bestScore) { bestScore = sc; bestSite = alias.canonical; }
       }
     }
     if (bestScore >= 0.6 && bestSite) return bestSite;
 
     return trimmed;
-  }, []);
+  }, [inventory]);
 
   const findMatchingInventory = useCallback(
     (site: string, unit: string, gasName: string): CalibrationGasInventoryItem[] => {
       const normalizedSite = normalizeSiteName(site);
 
-      // 1) Filter by site
       let candidates = inventory.filter((item) => item.site_name === normalizedSite);
       if (candidates.length === 0) {
         candidates = inventory.filter((item) => {
@@ -149,14 +168,10 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // 2) Filter by unit
       const unitCandidates = candidates.filter((item) => {
-        return item.unit_no === unit ||
-          item.unit_no.includes(unit) ||
-          unit.includes(item.unit_no);
+        return item.unit_no === unit || item.unit_no.includes(unit) || unit.includes(item.unit_no);
       });
 
-      // 3) Semantic gas matching using Zero/Span logic
       const parsed = parseGasLabel(gasName);
       if (parsed.gasSymbols.length > 0 && parsed.type !== "unknown") {
         const semanticMatches = matchGasToInventory(
@@ -169,7 +184,6 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // 4) Fallback: simple text-based gas matching
       return unitCandidates.filter((item) => {
         return item.gas_name.toLowerCase().includes(gasName.toLowerCase()) ||
           gasName.toLowerCase().includes(item.gas_name.toLowerCase());
@@ -183,12 +197,14 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
       setInventory((prev) =>
         prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
       );
+      updateCalGasItemDb(id, updates);
     },
     []
   );
 
   const addInventoryItem = useCallback((item: CalibrationGasInventoryItem) => {
     setInventory((prev) => [...prev, item]);
+    insertCalGasItemDb(item);
   }, []);
 
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
@@ -206,9 +222,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
 
   const updateExtractionField = useCallback((extractionId: string, field: string, value: string) => {
     setExtractions((prev) =>
-      prev.map((e) =>
-        e.id === extractionId ? { ...e, [field]: value } : e
-      )
+      prev.map((e) => e.id === extractionId ? { ...e, [field]: value } : e)
     );
   }, []);
 
@@ -244,9 +258,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
       const now = new Date().toISOString();
       const newHistory: CalibrationGasHistory[] = [];
 
-      // Apply updates to matched inventory items using semantic gas matching
       for (const exItem of extraction.items) {
-        // Use semantic matching to find the right inventory row for each gas item
         const siteUnitCandidates = extraction.matched_inventory_ids.length > 0
           ? inventory.filter((inv) => extraction.matched_inventory_ids.includes(inv.id))
           : (() => {
@@ -262,7 +274,6 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
               );
             })();
 
-        // Use semantic gas matching for precise row targeting
         const parsed = parseGasLabel(exItem.gas_name);
         let gasMatches: typeof siteUnitCandidates;
         if (parsed.gasSymbols.length > 0 && parsed.type !== "unknown") {
@@ -311,6 +322,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
       }
 
       setHistory((prev) => [...prev, ...newHistory]);
+      insertCalGasHistoryItems(newHistory);
       setExtractions((prev) =>
         prev.map((e) => (e.id === extractionId ? { ...e, status: "approved" } : e))
       );
@@ -318,7 +330,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         prev.map((u) => (u.id === extraction.upload_file_id ? { ...u, status: "applied" } : u))
       );
     },
-    [extractions, inventory, findMatchingInventory, updateInventoryItem]
+    [extractions, inventory, normalizeSiteName, updateInventoryItem]
   );
 
   const rejectExtraction = useCallback((extractionId: string) => {
@@ -333,14 +345,8 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
       setNotifications((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
-          type,
-          title,
-          body,
-          link_url,
-          created_at: new Date().toISOString(),
-          read_at: null,
-          related_id,
+          id: crypto.randomUUID(), type, title, body, link_url,
+          created_at: new Date().toISOString(), read_at: null, related_id,
         },
       ]);
     },
@@ -360,109 +366,71 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Check for expiry/low remaining + inspection due on mount ── */
   useEffect(() => {
+    if (inventory.length === 0 || isLoading) return;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const sixtyDaysLater = new Date(today);
     sixtyDaysLater.setDate(sixtyDaysLater.getDate() + 60);
 
     for (const item of inventory) {
-      // Expiry soon check
       if (item.expiry_date) {
         const expDate = new Date(item.expiry_date);
         if (expDate <= sixtyDaysLater && expDate >= today) {
-          const existing = notifications.find(
-            (n) => n.type === "expiry_soon" && n.related_id === item.id
-          );
+          const existing = notifications.find((n) => n.type === "expiry_soon" && n.related_id === item.id);
           if (!existing) {
-            pushNotification(
-              "expiry_soon",
-              "유효기간 임박",
+            pushNotification("expiry_soon", "유효기간 임박",
               `${item.site_name} ${item.unit_no}호기 ${item.gas_name} 유효기간이 임박했습니다. (${item.expiry_date})`,
-              `/calibration-gas/inventory`,
-              item.id
-            );
+              `/calibration-gas/inventory`, item.id);
           }
         }
       }
-      // Low remaining check (< 30%)
       const pct = parseInt(item.remaining_percent);
       if (!isNaN(pct) && pct < 30) {
-        const existing = notifications.find(
-          (n) => n.type === "low_remaining" && n.related_id === item.id
-        );
+        const existing = notifications.find((n) => n.type === "low_remaining" && n.related_id === item.id);
         if (!existing) {
-          pushNotification(
-            "low_remaining",
-            "잔량 부족",
+          pushNotification("low_remaining", "잔량 부족",
             `${item.site_name} ${item.unit_no}호기 ${item.gas_name} 잔량이 ${item.remaining_percent}입니다.`,
-            `/calibration-gas/inventory`,
-            item.id
-          );
+            `/calibration-gas/inventory`, item.id);
         }
       }
 
-      // Gas inspection due (P열 within 60 days)
       if (item.gas_inspection_next) {
         const nextDate = new Date(item.gas_inspection_next);
         if (!isNaN(nextDate.getTime()) && nextDate >= today && nextDate <= sixtyDaysLater) {
-          const existing = notifications.find(
-            (n) => n.type === "gas_inspection_due" && n.related_id === `gas-${item.id}`
-          );
+          const existing = notifications.find((n) => n.type === "gas_inspection_due" && n.related_id === `gas-${item.id}`);
           if (!existing) {
-            pushNotification(
-              "gas_inspection_due",
-              "가스상 정도검사 예정 알림",
+            pushNotification("gas_inspection_due", "가스상 정도검사 예정 알림",
               `아래 사업장의 가스상 정도검사 유효기간이 만료 예정 (60일 전)입니다.\n\n사업장명: ${item.site_name}\n호기: ${item.unit_no}\n가스상 정도검사 예정일: ${item.gas_inspection_next}`,
-              `/calibration-gas/inventory`,
-              `gas-${item.id}`
-            );
+              `/calibration-gas/inventory`, `gas-${item.id}`);
           }
         }
       }
 
-      // Velocity inspection due (V열 within 60 days)
       if (item.velocity_inspection_next) {
         const nextDate = new Date(item.velocity_inspection_next);
         if (!isNaN(nextDate.getTime()) && nextDate >= today && nextDate <= sixtyDaysLater) {
-          const existing = notifications.find(
-            (n) => n.type === "velocity_inspection_due" && n.related_id === `vel-${item.id}`
-          );
+          const existing = notifications.find((n) => n.type === "velocity_inspection_due" && n.related_id === `vel-${item.id}`);
           if (!existing) {
-            pushNotification(
-              "velocity_inspection_due",
-              "유속계 정도검사 예정 알림",
+            pushNotification("velocity_inspection_due", "유속계 정도검사 예정 알림",
               `아래 사업장의 유속계 정도검사 유효기간이 만료 예정 (60일 전)입니다.\n\n사업장명: ${item.site_name}\n호기: ${item.unit_no}\n유속계 정도검사 예정일: ${item.velocity_inspection_next}`,
-              `/calibration-gas/inventory`,
-              `vel-${item.id}`
-            );
+              `/calibration-gas/inventory`, `vel-${item.id}`);
           }
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading]);
 
   return (
     <CalGasContext.Provider
       value={{
-        inventory,
-        uploads,
-        extractions,
-        history,
-        notifications,
-        updateInventoryItem,
-        addInventoryItem,
-        addUploadFile,
-        addExtraction,
-        updateExtractionField,
-        updateExtractionItem,
-        setExtractionMatchedIds,
-        approveExtraction,
-        rejectExtraction,
-        markCalGasNotificationRead,
-        markAllCalGasNotificationsRead,
-        normalizeSiteName,
-        findMatchingInventory,
+        inventory, uploads, extractions, history, notifications, isLoading,
+        updateInventoryItem, addInventoryItem,
+        addUploadFile, addExtraction, updateExtractionField, updateExtractionItem,
+        setExtractionMatchedIds, approveExtraction, rejectExtraction,
+        markCalGasNotificationRead, markAllCalGasNotificationsRead,
+        normalizeSiteName, findMatchingInventory,
       }}
     >
       {children}

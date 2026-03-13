@@ -72,7 +72,7 @@ export const siteAliases: SiteAlias[] = [
 ];
 
 let _id = 0;
-function gid(): string { return `cgas-${++_id}`; }
+function gid(): string { return crypto.randomUUID(); }
 
 /** Helper to create item with defaults */
 function mk(base: Partial<CalibrationGasInventoryItem> & { site_name: string; unit_no: string; gas_name: string }): CalibrationGasInventoryItem {

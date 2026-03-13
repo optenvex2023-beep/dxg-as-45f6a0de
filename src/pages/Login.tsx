@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 export default function Login() {
-  const { users, setCurrentUser } = useApp();
+  const { users, setCurrentUser, isLoading } = useApp();
   const navigate = useNavigate();
   const [empNo, setEmpNo] = useState("");
   const [name, setName] = useState("");
@@ -74,8 +74,8 @@ export default function Login() {
             <p className="text-sm text-destructive/80">{error}</p>
           )}
 
-          <Button type="submit" className="w-full h-12 text-base">
-            로그인
+          <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+            {isLoading ? "로딩 중..." : "로그인"}
           </Button>
         </form>
       </div>

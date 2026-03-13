@@ -1,8 +1,15 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, Department, StatusType, Notification, MailOutbox, InspectionReport, ReportVersion, ReportType, ReportStatus, InAppNotification } from "@/types";
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
 import { createNotificationsForDepts } from "@/lib/notificationHelper";
+import {
+  fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
+  fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
+  fetchReports, insertReport as insertReportDb, updateReportDb,
+  fetchReportVersions, insertReportVersion as insertReportVersionDb,
+  fetchInAppNotifications, insertInAppNotifications, updateNotificationRead, markAllNotificationsReadDb,
+} from "@/lib/supabaseDb";
 
 interface AppState {
   users: AppUser[];
@@ -13,6 +20,7 @@ interface AppState {
   reportVersions: ReportVersion[];
   inAppNotifications: InAppNotification[];
   currentUser: AppUser | null;
+  isLoading: boolean;
   setCurrentUser: (user: AppUser | null) => void;
   addUser: (name: string, emp_no: string, role_category: RoleCategory, department: Department) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => void;
@@ -99,7 +107,7 @@ function buildDueWarningMail(rec: OutboundInspection): StatusMailConfig {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [users, setUsers] = useState<AppUser[]>(seedUsers);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [inspections, setInspections] = useState<OutboundInspection[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [mailOutbox, setMailOutbox] = useState<MailOutbox[]>([]);
@@ -107,11 +115,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [reportVersions, setReportVersions] = useState<ReportVersion[]>([]);
   const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const dataLoadedRef = useRef(false);
+
+  /* ─── Load data from Supabase on mount ─── */
+  useEffect(() => {
+    if (dataLoadedRef.current) return;
+    dataLoadedRef.current = true;
+
+    async function loadData() {
+      try {
+        // Load users - seed if empty
+        let dbUsers = await fetchUsers();
+        if (dbUsers.length === 0) {
+          console.log("No users in DB, seeding...");
+          await insertUsers(seedUsers);
+          dbUsers = await fetchUsers();
+        }
+        setUsers(dbUsers);
+
+        // Load inspections
+        const dbInspections = await fetchInspections();
+        setInspections(dbInspections);
+
+        // Load reports
+        const dbReports = await fetchReports();
+        setReports(dbReports);
+
+        // Load report versions
+        const dbVersions = await fetchReportVersions();
+        setReportVersions(dbVersions);
+
+        // Load in-app notifications
+        const dbNotis = await fetchInAppNotifications();
+        setInAppNotifications(dbNotis);
+      } catch (err) {
+        console.error("Error loading data from Supabase:", err);
+        // Fallback to seed users if DB fails
+        setUsers(seedUsers);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   /* ─── In-app notification helpers ─── */
   const pushInAppNotifications = useCallback((newNotis: InAppNotification[]) => {
     if (newNotis.length > 0) {
       setInAppNotifications(prev => [...prev, ...newNotis]);
+      // Persist to DB
+      insertInAppNotifications(newNotis);
     }
   }, []);
 
@@ -119,6 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInAppNotifications(prev => prev.map(n =>
       n.id === id ? { ...n, read_at: new Date().toISOString() } : n
     ));
+    updateNotificationRead(id);
   }, []);
 
   const markAllNotificationsRead = useCallback(() => {
@@ -127,6 +183,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInAppNotifications(prev => prev.map(n =>
       n.recipient_user_id === currentUser.id && !n.read_at ? { ...n, read_at: now } : n
     ));
+    markAllNotificationsReadDb(currentUser.id);
   }, [currentUser]);
 
   /* ─── Legacy trigger logic ─── */
@@ -163,7 +220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const now = new Date().toISOString();
     let mutated = { ...updated };
 
-    // C-1: 확인필요 (new registration)
+    // C-1: 확인필요
     if (mutated.status === "확인필요" && !mutated.noti_confirm_needed_sent_at) {
       const body = `FE/FS팀에서는 반출 예정 건을 확인 후 반출 예정일자를 입력해 주세요.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
       pushInAppNotifications(createNotificationsForDepts(
@@ -200,8 +257,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // C-4: 입고완료 - no notification per design
-
     // C-5: 1차 점검완료
     if (mutated.first_inspection_done_date && !mutated.noti_first_check_done_sent_at) {
       const body = `아래 건에 대한 1차 점검이 완료되었습니다. 1차 점검 보고서를 확인해 주세요.\n- 관리번호: ${mutated.manage_no}\n- 건명: ${mutated.project_name}`;
@@ -224,7 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       mutated.noti_final_check_done_sent_at = now;
     }
 
-    // C-7: 설치완료 (requires 확정)
+    // C-7: 설치완료
     if (mutated.reinstall_date && mutated.reinstall_confirm_status === "확정") {
       const installDate = new Date(mutated.reinstall_date);
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -239,7 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // C-8: 계약납기 7일전 (evaluated inline)
+    // C-8: 계약납기 7일전
     if (mutated.contract_due_date && !mutated.due_alert_sent_at) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const dueDate = new Date(mutated.contract_due_date); dueDate.setHours(0, 0, 0, 0);
@@ -262,14 +317,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [users, pushInAppNotifications]);
 
   const addUser = useCallback((name: string, emp_no: string, role_category: RoleCategory, department: Department) => {
-    setUsers((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), emp_no, name, role_category, department, is_active: true },
-    ]);
+    const newUser: AppUser = { id: crypto.randomUUID(), emp_no, name, role_category, department, is_active: true };
+    setUsers((prev) => [...prev, newUser]);
+    insertUserDb(newUser);
   }, []);
 
   const updateUser = useCallback((id: string, updates: Partial<AppUser>) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)));
+    updateUserDb(id, updates);
   }, []);
 
   const addInspection = useCallback(
@@ -292,6 +347,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       final = triggerInAppNotifications(base, final);
       setInspections((prev) => [...prev, final]);
       triggerNotifications(final, null, null);
+      // Persist to DB
+      insertInspectionDb(final);
     },
     [triggerNotifications, triggerInAppNotifications]
   );
@@ -305,13 +362,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let updated = recalcStatus({ ...rec, ...updates });
         updated = triggerInAppNotifications(rec, updated);
         setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
+        // Persist to DB
+        const { equipment_items, ...dbUpdates } = updated;
+        updateInspectionDb(id, updated);
         return updated;
       })
     );
   }, [triggerNotifications, triggerInAppNotifications]);
 
-  // C-8: Check due alerts on page load (run once on inspections change)
+  // C-8: Check due alerts on page load
   useEffect(() => {
+    if (inspections.length === 0) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let hasChanges = false;
     const updatedInspections = inspections.map((rec) => {
@@ -330,7 +391,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           "계약납기 도래 알림", body,
           `/status-table?status=${encodeURIComponent("납기유의")}`, "status", rec.id
         ));
-        return { ...rec, due_alert_sent_at: now };
+        const updated = { ...rec, due_alert_sent_at: now };
+        updateInspectionDb(rec.id, { due_alert_sent_at: now } as any);
+        return updated;
       }
       return rec;
     });
@@ -359,11 +422,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qa_notification_sent_to_sales: data.qa_notification_sent_to_sales ?? false,
     };
     setReports(prev => [...prev, report]);
+    insertReportDb(report);
     return report;
   }, []);
 
   const updateReport = useCallback((id: string, updates: Partial<InspectionReport>) => {
     setReports(prev => prev.map(r => r.id === id ? { ...r, ...updates, updated_at: new Date().toISOString() } : r));
+    updateReportDb(id, updates);
   }, []);
 
   const completeReport = useCallback((reportId: string) => {
@@ -372,6 +437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (r.id !== reportId) return r;
       return { ...r, status: "completed" as ReportStatus, completed_at: now, updated_at: now };
     }));
+    updateReportDb(reportId, { status: "completed", completed_at: now } as any);
 
     const report = reports.find(r => r.id === reportId);
     if (report) {
@@ -383,9 +449,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const updatedItems = insp.equipment_items.map(item => {
           const newSerial = serialNumbers[item.id];
-          if (newSerial) {
-            return { ...item, serial_no: newSerial, updated_at: now };
-          }
+          if (newSerial) return { ...item, serial_no: newSerial, updated_at: now };
           return item;
         });
 
@@ -399,15 +463,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let updated = recalcStatus({ ...insp, ...dateUpdate, equipment_items: updatedItems });
         updated = triggerInAppNotifications(insp, updated);
         setTimeout(() => triggerNotifications(updated, oldStatus, oldDueWarning), 0);
+        updateInspectionDb(insp.id, updated);
         return updated;
       }));
     }
   }, [reports, triggerNotifications, triggerInAppNotifications]);
 
   const requestApproval = useCallback((reportId: string) => {
+    const now = new Date().toISOString();
     setReports(prev => prev.map(r =>
-      r.id === reportId ? { ...r, status: "approval_requested" as ReportStatus, updated_at: new Date().toISOString() } : r
+      r.id === reportId ? { ...r, status: "approval_requested" as ReportStatus, updated_at: now } : r
     ));
+    updateReportDb(reportId, { status: "approval_requested" } as any);
   }, []);
 
   const approveReport = useCallback((reportId: string, approverName: string) => {
@@ -426,6 +493,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qa_signature_applied: true,
       };
     }));
+    updateReportDb(reportId, {
+      status: "approved", approved_at: now, approved_by: approverName,
+      qa_review_status: "검토완료", qa_reviewer_name: approverName,
+      qa_reviewed_at: now, qa_signature_applied: true,
+    } as any);
+
     const report = reports.find(r => r.id === reportId);
     if (report && !report.qa_notification_sent_to_sales) {
       const insp = inspections.find(i => i.id === report.inspection_id);
@@ -441,6 +514,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setReports(prev2 => prev2.map(r =>
         r.id === reportId ? { ...r, qa_notification_sent_to_sales: true } : r
       ));
+      updateReportDb(reportId, { qa_notification_sent_to_sales: true } as any);
     }
   }, [reports, inspections]);
 
@@ -448,11 +522,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setReportVersions(prev => {
       const existingVersions = prev.filter(v => v.report_id === reportId);
       const nextVersion = existingVersions.length + 1;
-      return [...prev, {
+      const rv: ReportVersion = {
         id: crypto.randomUUID(), report_id: reportId,
         version_number: nextVersion, file_name: fileName, file_url: fileUrl,
         uploaded_by: uploadedBy, uploaded_at: new Date().toISOString(),
-      }];
+      };
+      insertReportVersionDb(rv);
+      return [...prev, rv];
     });
   }, []);
 
@@ -464,7 +540,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         users, inspections, notifications, mailOutbox, reports, reportVersions, inAppNotifications,
-        currentUser, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
+        currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions,
         markNotificationRead, markAllNotificationsRead,

@@ -25,7 +25,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useApp();
+  const { currentUser, isLoading } = useApp();
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">데이터 로딩 중...</p></div>;
   if (!currentUser) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
