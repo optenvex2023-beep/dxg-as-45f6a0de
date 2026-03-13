@@ -390,19 +390,19 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[60px]`}>용량(L)</th>
                 <th className={`${thBase} min-w-[80px]`}>유효기간</th>
                 <th className={`${thBase} min-w-[60px]`}>잔량</th>
-                <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>최초</th>
-                <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>최종</th>
-                <th className={`${thBase} min-w-[70px] bg-blue-500/10`}>예정</th>
-                <th className={`${thBase} min-w-[50px] bg-blue-500/10`}>차수</th>
-                <th className={`${thBase} min-w-[60px] bg-blue-500/10`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-blue-500/10`}>S/O발행</th>
-                <th className={`${thBase} min-w-[90px] bg-blue-500/10`}>S/O도착</th>
-                <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최초</th>
-                <th className={`${thBase} min-w-[70px] bg-green-500/10`}>최종</th>
-                <th className={`${thBase} min-w-[70px] bg-green-500/10`}>예정</th>
-                <th className={`${thBase} min-w-[50px] bg-green-500/10`}>차수</th>
-                <th className={`${thBase} min-w-[60px] bg-green-500/10`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-green-500/10`}>S/O발행</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(210,60%,90%)]`}>최초</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(210,60%,90%)]`}>최종</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(210,60%,90%)]`}>예정</th>
+                <th className={`${thBase} min-w-[50px] bg-[hsl(210,60%,90%)]`}>차수</th>
+                <th className={`${thBase} min-w-[60px] bg-[hsl(210,60%,90%)]`}>예정/완료</th>
+                <th className={`${thBase} min-w-[80px] bg-[hsl(210,60%,90%)]`}>S/O발행</th>
+                <th className={`${thBase} min-w-[90px] bg-[hsl(210,60%,90%)]`}>S/O도착</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(140,40%,90%)]`}>최초</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(140,40%,90%)]`}>최종</th>
+                <th className={`${thBase} min-w-[70px] bg-[hsl(140,40%,90%)]`}>예정</th>
+                <th className={`${thBase} min-w-[50px] bg-[hsl(140,40%,90%)]`}>차수</th>
+                <th className={`${thBase} min-w-[60px] bg-[hsl(140,40%,90%)]`}>예정/완료</th>
+                <th className={`${thBase} min-w-[80px] bg-[hsl(140,40%,90%)]`}>S/O발행</th>
               </tr>
             </thead>
             <tbody>
