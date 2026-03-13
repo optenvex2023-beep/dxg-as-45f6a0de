@@ -544,7 +544,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions,
-        markNotificationRead, markAllNotificationsRead,
+        markNotificationRead, markAllNotificationsRead, logout,
       }}
     >
       {children}
