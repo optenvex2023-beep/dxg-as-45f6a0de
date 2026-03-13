@@ -66,13 +66,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppProvider>
-        <CalGasProvider>
-          <BrowserRouter>
+      <BrowserRouter>
+        <AppProvider>
+          <CalGasProvider>
             <AppRoutes />
-          </BrowserRouter>
-        </CalGasProvider>
-      </AppProvider>
+          </CalGasProvider>
+        </AppProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
