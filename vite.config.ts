@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
       manifest: {
-        name: "반출점검·교정가스 관리시스템",
-        short_name: "DXG 관리",
+        name: "DXG 반출/가스",
+        short_name: "DXG 반출/가스",
         description: "DXG 반출점검 및 교정가스 관리 시스템",
         theme_color: "#1e293b",
         background_color: "#ffffff",

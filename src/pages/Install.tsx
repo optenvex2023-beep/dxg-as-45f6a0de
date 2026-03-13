@@ -45,7 +45,7 @@ export default function Install() {
           <div className="mx-auto mb-4">
             <img src="/pwa-icon-192.png" alt="앱 아이콘" className="w-20 h-20 rounded-2xl shadow-md mx-auto" />
           </div>
-          <CardTitle className="text-xl">반출점검·교정가스 관리시스템</CardTitle>
+          <CardTitle className="text-xl">DXG 반출/가스</CardTitle>
           <CardDescription>PC 및 모바일에서 앱처럼 설치하여 사용하세요</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
