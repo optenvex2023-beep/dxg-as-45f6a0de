@@ -78,6 +78,15 @@ export default function Login() {
             {isLoading ? "로딩 중..." : "로그인"}
           </Button>
         </form>
+
+        <div className="mt-6 text-center">
+          <a
+            href="/install"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+          >
+            📲 앱 설치하기
+          </a>
+        </div>
       </div>
     </div>
   );
