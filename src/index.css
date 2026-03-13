@@ -80,6 +80,8 @@
     --sidebar-muted: 205 60% 25%;
     --table-header: 210 12% 67%;
     --table-header-foreground: 0 0% 100%;
+    --table-header-gas: 210 15% 60%;
+    --table-header-velocity: 200 18% 55%;
   }
 }
 

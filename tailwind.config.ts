@@ -61,6 +61,8 @@ export default {
         "table-header": {
           DEFAULT: "hsl(var(--table-header))",
           foreground: "hsl(var(--table-header-foreground))",
+          gas: "hsl(var(--table-header-gas))",
+          velocity: "hsl(var(--table-header-velocity))",
         },
       },
       borderRadius: {
