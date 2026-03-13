@@ -426,7 +426,7 @@ export default function CalibrationGasInventory() {
                   const isSiteStart = s.site > 0 && idx > 0;
 
                 return (
-                  <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[3px] border-t-primary" : "border-b border-border/20"}`}>
+                  <tr key={item.id} <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
                       <td rowSpan={s.site} className={`${td} text-center bg-muted/20 font-medium whitespace-nowrap`}>
