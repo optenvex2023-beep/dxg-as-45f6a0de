@@ -9,6 +9,10 @@ const SUPER_ADMIN_EMP_NOS = new Set([
   "9014094", // 이현석
   "9017091", // 김현성
   "9022113", // 박소미
+  "9023031", // 정혜림
+  "9025082", // 박소현
+  "9024125", // 김세빈
+  "9020121", // 김가영
 ]);
 
 /**
@@ -16,7 +20,7 @@ const SUPER_ADMIN_EMP_NOS = new Set([
  */
 export function isSuperAdmin(user: AppUser | null): boolean {
   if (!user) return false;
-  return user.department === "환경영업팀" && SUPER_ADMIN_EMP_NOS.has(user.emp_no);
+  return SUPER_ADMIN_EMP_NOS.has(user.emp_no);
 }
 
 /**
