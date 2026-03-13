@@ -362,8 +362,8 @@ export default function CalibrationGasInventory() {
       <div className="border rounded-lg bg-background shadow-sm">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)]" style={{ scrollbarGutter: "stable" }}>
           <table className="min-w-[3600px] w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-primary/10">
+            <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
+              <tr className="bg-[hsl(205,60%,93%)]">
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>계약종료일</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px]`}>사업장명</th>
                 <th rowSpan={2} className={`${thBase} min-w-[60px]`}>TMS</th>
