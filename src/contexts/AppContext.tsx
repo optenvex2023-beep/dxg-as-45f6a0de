@@ -36,6 +36,7 @@ interface AppState {
   getReportVersions: (reportId: string) => ReportVersion[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
