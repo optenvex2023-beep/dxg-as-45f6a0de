@@ -21,6 +21,7 @@ import FinalReport from "@/pages/FinalReport";
 import Login from "@/pages/Login";
 import NotificationCenter from "@/pages/NotificationCenter";
 import NotFound from "./pages/NotFound";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
