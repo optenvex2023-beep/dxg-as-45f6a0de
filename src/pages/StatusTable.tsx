@@ -38,6 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { isSuperAdmin, canRegister, canEditAdminFields, canEditCSFields, canEditMfgFields } from "@/lib/permissions";
 
 const allStatuses: StatusType[] = [
   "확인필요", "반출예정", "반출완료", "입고완료",
