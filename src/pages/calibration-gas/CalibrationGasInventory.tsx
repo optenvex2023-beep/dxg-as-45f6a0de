@@ -385,7 +385,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[90px]`}>소모품포함</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px] border-r-0`}>비고</th>
               </tr>
-              <tr className="bg-primary/5">
+              <tr className="bg-[hsl(205,50%,95%)]">
                 <th className={`${thBase} min-w-[80px]`}>농도</th>
                 <th className={`${thBase} min-w-[60px]`}>용량(L)</th>
                 <th className={`${thBase} min-w-[80px]`}>유효기간</th>
