@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, CheckCircle2 } from "lucide-react";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import {
+  clearDeferredInstallPrompt,
+  getDeferredInstallPrompt,
+  type BeforeInstallPromptEvent,
+} from "@/lib/pwaInstallPrompt";
 
 export default function Install() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -18,24 +18,47 @@ export default function Install() {
     const ua = navigator.userAgent;
     setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
 
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    if (standalone) setInstalled(true);
+
+    setDeferredPrompt(getDeferredInstallPrompt());
+
+    const handlePromptReady = () => setDeferredPrompt(getDeferredInstallPrompt());
+    const handleInstalled = () => {
+      setInstalled(true);
+      setDeferredPrompt(null);
+      clearDeferredInstallPrompt();
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => setInstalled(true));
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+
+    window.addEventListener("dxg-install-prompt-ready", handlePromptReady);
+    window.addEventListener("dxg-app-installed", handleInstalled);
+    window.addEventListener("appinstalled", handleInstalled);
+
+    return () => {
+      window.removeEventListener("dxg-install-prompt-ready", handlePromptReady);
+      window.removeEventListener("dxg-app-installed", handleInstalled);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
   }, []);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") setInstalled(true);
-      setDeferredPrompt(null);
+    if (!deferredPrompt) {
+      setShowManual(true);
+      return;
+    }
+
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setInstalled(true);
     } else {
       setShowManual(true);
     }
+
+    clearDeferredInstallPrompt();
+    setDeferredPrompt(null);
   };
 
   return (
