@@ -240,7 +240,7 @@ export default function CalibrationGasInventory() {
   }, [newRow, addInventoryItem]);
 
   /* ── Shared styles ── */
-  const thBase = "whitespace-nowrap font-bold text-primary-foreground bg-primary border-r border-b border-primary-foreground/20 py-2 px-2 text-center text-[11px]";
+  const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
 

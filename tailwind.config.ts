@@ -58,6 +58,10 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
         },
+        "table-header": {
+          DEFAULT: "hsl(var(--table-header))",
+          foreground: "hsl(var(--table-header-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
