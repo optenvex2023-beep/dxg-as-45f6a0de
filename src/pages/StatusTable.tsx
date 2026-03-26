@@ -90,6 +90,7 @@ export default function StatusTable() {
   // Local filter state — initialized from URL params (dashboard click-through)
   const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
   const [dueToggle, setDueToggle] = useState(urlDue === "7days");
+  const [extraFilter, setExtraFilter] = useState<string>("없음");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
