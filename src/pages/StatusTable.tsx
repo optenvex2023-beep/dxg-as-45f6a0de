@@ -90,6 +90,7 @@ export default function StatusTable() {
   // Local filter state — initialized from URL params (dashboard click-through)
   const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
   const [dueToggle, setDueToggle] = useState(urlDue === "7days");
+  const [extraFilter, setExtraFilter] = useState<string>("없음");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -131,8 +132,22 @@ export default function StatusTable() {
       result = result.filter(isDueWithin7);
     }
 
+    // Extra filters
+    if (extraFilter === "고객지원요청서") {
+      result = result.filter((i) => i.request_type === "고객지원요청서");
+    } else if (extraFilter === "세일즈오더") {
+      result = result.filter((i) => i.request_type === "세일즈오더");
+    } else if (extraFilter === "반출 필요") {
+      result = result.filter((i) => {
+        const hasRequest = i.outbound_request_date_single || i.outbound_request_date_start;
+        return hasRequest && !i.outbound_date;
+      });
+    } else if (extraFilter === "재설치 필요") {
+      result = result.filter((i) => i.final_inspection_done_date && !i.reinstall_date);
+    }
+
     return result;
-  }, [inspections, localStatusFilter, dueToggle]);
+  }, [inspections, localStatusFilter, dueToggle, extraFilter]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
@@ -146,11 +161,12 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle;
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음";
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
     setDueToggle(false);
+    setExtraFilter("없음");
     setSearchParams({});
   };
 
@@ -158,6 +174,7 @@ export default function StatusTable() {
     const parts: string[] = [];
     if (localStatusFilter !== "전체") parts.push(localStatusFilter);
     if (dueToggle) parts.push("계약납기 7일전");
+    if (extraFilter !== "없음") parts.push(extraFilter);
     return parts.join(", ");
   };
 
@@ -180,6 +197,22 @@ export default function StatusTable() {
               {allStatuses.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">추가필터</label>
+          <Select value={extraFilter} onValueChange={(v) => setExtraFilter(v)}>
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-[60]">
+              <SelectItem value="없음">없음</SelectItem>
+              <SelectItem value="고객지원요청서">고객지원요청서</SelectItem>
+              <SelectItem value="세일즈오더">세일즈오더</SelectItem>
+              <SelectItem value="반출 필요">반출 필요</SelectItem>
+              <SelectItem value="재설치 필요">재설치 필요</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -541,8 +574,16 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
   const [form, setForm] = useState(emptyFormData());
   const [equipmentDrafts, setEquipmentDrafts] = useState<EquipmentDraft[]>([{ equipment_name: "", qty_set: 1 }]);
   const [errors, setErrors] = useState<string[]>([]);
-  const set = <K extends keyof CreateFormData>(key: K, val: CreateFormData[K]) =>
-    setForm((p) => ({ ...p, [key]: val }));
+  const set = <K extends keyof CreateFormData>(key: K, val: CreateFormData[K]) => {
+    setForm((p) => {
+      const next = { ...p, [key]: val };
+      // Auto-prefill manage_no when switching to 고객지원요청서
+      if (key === "request_type" && val === "고객지원요청서" && !p.manage_no.trim()) {
+        next.manage_no = "고객지원요청서";
+      }
+      return next;
+    });
+  };
 
   const validate = (): string[] => {
     const errs: string[] = [];
