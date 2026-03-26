@@ -161,11 +161,12 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle;
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음";
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
     setDueToggle(false);
+    setExtraFilter("없음");
     setSearchParams({});
   };
 
@@ -173,6 +174,7 @@ export default function StatusTable() {
     const parts: string[] = [];
     if (localStatusFilter !== "전체") parts.push(localStatusFilter);
     if (dueToggle) parts.push("계약납기 7일전");
+    if (extraFilter !== "없음") parts.push(extraFilter);
     return parts.join(", ");
   };
 
