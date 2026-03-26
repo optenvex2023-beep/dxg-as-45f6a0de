@@ -651,7 +651,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
         )}
       </div>
 
-      <DateField label="계약납기 *" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
+      <DateField label="계약납기" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
 
       <div className="grid grid-cols-2 gap-3">
         <div>

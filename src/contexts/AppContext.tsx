@@ -377,7 +377,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let hasChanges = false;
     const updatedInspections = inspections.map((rec) => {
-      if (!rec.contract_due_date || rec.due_alert_sent_at) return rec;
+      if (!rec.contract_due_date || rec.due_alert_sent_at || rec.reinstall_date) return rec;
       const dueDate = new Date(rec.contract_due_date); dueDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays <= 7) {
