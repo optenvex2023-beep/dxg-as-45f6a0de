@@ -215,6 +215,7 @@ export default function StatusTable() {
               <SelectItem value="재설치 필요">재설치 필요</SelectItem>
             </SelectContent>
           </Select>
+        </div>
 
         <div className="flex items-center gap-2">
           <Checkbox
