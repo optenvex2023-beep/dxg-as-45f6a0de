@@ -104,6 +104,7 @@ export default function StatusTable() {
 
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
+    if (rec.reinstall_date) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(rec.contract_due_date);
@@ -561,7 +562,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
     } else {
       if (!form.reinstall_request_date_start || !form.reinstall_request_date_end) errs.push("재설치 요청일자(기간)를 입력해주세요.");
     }
-    if (!form.contract_due_date) errs.push("계약납기를 입력해주세요.");
+    // contract_due_date is optional
     if (!form.client_pic_name.trim()) errs.push("발주처 담당자를 입력해주세요.");
     if (!form.client_pic_phone.trim()) errs.push("발주처 연락처를 입력해주세요.");
     if (form.request_type === "고객지원요청서" && !form.support_request_file) errs.push("고객지원요청서 파일을 업로드해주세요.");
@@ -651,7 +652,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
         )}
       </div>
 
-      <DateField label="계약납기 *" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
+      <DateField label="계약납기" value={form.contract_due_date} onChange={(v) => set("contract_due_date", v)} />
 
       <div className="grid grid-cols-2 gap-3">
         <div>

@@ -295,8 +295,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // C-8: 계약납기 7일전
-    if (mutated.contract_due_date && !mutated.due_alert_sent_at) {
+    // C-8: 계약납기 7일전 (skip if reinstall_date is filled)
+    if (mutated.contract_due_date && !mutated.due_alert_sent_at && !mutated.reinstall_date) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const dueDate = new Date(mutated.contract_due_date); dueDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -377,7 +377,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let hasChanges = false;
     const updatedInspections = inspections.map((rec) => {
-      if (!rec.contract_due_date || rec.due_alert_sent_at) return rec;
+      if (!rec.contract_due_date || rec.due_alert_sent_at || rec.reinstall_date) return rec;
       const dueDate = new Date(rec.contract_due_date); dueDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays <= 7) {
@@ -505,12 +505,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const insp = inspections.find(i => i.id === report.inspection_id);
       if (insp) {
         const reportLabel = report.report_type === "first" ? "1차 점검보고서" : "완료 점검보고서";
+        const targetDepts: Department[] = report.report_type === "final"
+          ? ["환경영업팀", "CS팀"]
+          : ["환경영업팀"];
         setNotifications(prev => [...prev, {
           id: crypto.randomUUID(), inspection_id: insp.id, status_trigger: "1차 점검완료",
-          target_departments: ["환경영업팀"],
+          target_departments: targetDepts,
           message: `품질본부 검토가 완료되었습니다. (검토자: ${approverName})\n[${insp.manage_no}] ${insp.project_name} ${reportLabel} 품질 검토가 완료되었습니다.`,
           created_at: now,
         }]);
+        // Send in-app notifications to target departments
+        const body = `품질본부 검토가 완료되었습니다. (검토자: ${approverName})\n[${insp.manage_no}] ${insp.project_name} ${reportLabel} 품질 검토가 완료되었습니다.`;
+        const linkUrl = report.report_type === "first" ? "/first-report" : "/final-report";
+        pushInAppNotifications(createNotificationsForDepts(
+          users, targetDepts,
+          `${reportLabel} 품질 검토 완료`, body,
+          linkUrl, report.report_type === "first" ? "first_report" : "final_report", insp.id
+        ));
       }
       setReports(prev2 => prev2.map(r =>
         r.id === reportId ? { ...r, qa_notification_sent_to_sales: true } : r
