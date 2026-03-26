@@ -202,6 +202,21 @@ export default function StatusTable() {
         </div>
 
         <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">추가필터</label>
+          <Select value={extraFilter} onValueChange={(v) => setExtraFilter(v)}>
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-[60]">
+              <SelectItem value="없음">없음</SelectItem>
+              <SelectItem value="고객지원요청서">고객지원요청서</SelectItem>
+              <SelectItem value="세일즈오더">세일즈오더</SelectItem>
+              <SelectItem value="반출 필요">반출 필요</SelectItem>
+              <SelectItem value="재설치 필요">재설치 필요</SelectItem>
+            </SelectContent>
+          </Select>
+
+        <div className="flex items-center gap-2">
           <Checkbox
             id="due-toggle"
             checked={dueToggle}
