@@ -132,8 +132,22 @@ export default function StatusTable() {
       result = result.filter(isDueWithin7);
     }
 
+    // Extra filters
+    if (extraFilter === "고객지원요청서") {
+      result = result.filter((i) => i.request_type === "고객지원요청서");
+    } else if (extraFilter === "세일즈오더") {
+      result = result.filter((i) => i.request_type === "세일즈오더");
+    } else if (extraFilter === "반출 필요") {
+      result = result.filter((i) => {
+        const hasRequest = i.outbound_request_date_single || i.outbound_request_date_start;
+        return hasRequest && !i.outbound_date;
+      });
+    } else if (extraFilter === "재설치 필요") {
+      result = result.filter((i) => i.final_inspection_done_date && !i.reinstall_date);
+    }
+
     return result;
-  }, [inspections, localStatusFilter, dueToggle]);
+  }, [inspections, localStatusFilter, dueToggle, extraFilter]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
