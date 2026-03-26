@@ -573,8 +573,16 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
   const [form, setForm] = useState(emptyFormData());
   const [equipmentDrafts, setEquipmentDrafts] = useState<EquipmentDraft[]>([{ equipment_name: "", qty_set: 1 }]);
   const [errors, setErrors] = useState<string[]>([]);
-  const set = <K extends keyof CreateFormData>(key: K, val: CreateFormData[K]) =>
-    setForm((p) => ({ ...p, [key]: val }));
+  const set = <K extends keyof CreateFormData>(key: K, val: CreateFormData[K]) => {
+    setForm((p) => {
+      const next = { ...p, [key]: val };
+      // Auto-prefill manage_no when switching to 고객지원요청서
+      if (key === "request_type" && val === "고객지원요청서" && !p.manage_no.trim()) {
+        next.manage_no = "고객지원요청서";
+      }
+      return next;
+    });
+  };
 
   const validate = (): string[] => {
     const errs: string[] = [];
