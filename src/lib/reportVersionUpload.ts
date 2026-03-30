@@ -78,6 +78,7 @@ export async function uploadReportVersionFile({ file, reportId, reportType }: Up
 
   return {
     fileUrl: publicUrlData.publicUrl,
+    filePath: storagePath,
     storagePath,
   };
 }
