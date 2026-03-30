@@ -38,13 +38,14 @@ function rewriteImageTags(zip: PizZip) {
   const contentFile = zip.file("word/document.xml");
   if (!contentFile) return;
   let content = contentFile.asText();
+  // With custom delimiters {{ }}, image module expects {{%TAG}}
   // QA signature tags
-  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{%QA_SIGNATURE_IMAG}");
-  content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{%QA_SIGNATURE_IMAGE}");
-  content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "{%QA_SIGNATURE}");
+  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{{%QA_SIGNATURE_IMAG}}");
+  content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{{%QA_SIGNATURE_IMAGE}}");
+  content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "{{%QA_SIGNATURE}}");
   // Photo image tags (inside loops and top-level)
-  content = content.replace(/\{\{LEFT_IMAGE\}\}/g, "{%LEFT_IMAGE}");
-  content = content.replace(/\{\{RIGHT_IMAGE\}\}/g, "{%RIGHT_IMAGE}");
+  content = content.replace(/\{\{LEFT_IMAGE\}\}/g, "{{%LEFT_IMAGE}}");
+  content = content.replace(/\{\{RIGHT_IMAGE\}\}/g, "{{%RIGHT_IMAGE}}");
   zip.file("word/document.xml", content);
 }
 
