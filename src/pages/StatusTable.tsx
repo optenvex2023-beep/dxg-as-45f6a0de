@@ -91,6 +91,8 @@ export default function StatusTable() {
   const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
   const [dueToggle, setDueToggle] = useState(urlDue === "7days");
   const [extraFilter, setExtraFilter] = useState<string>("없음");
+  const [needOutbound, setNeedOutbound] = useState(false);
+  const [needReinstall, setNeedReinstall] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
