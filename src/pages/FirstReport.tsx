@@ -430,7 +430,7 @@ function DocumentView({
   onRequestApproval: () => void;
   onQAReviewComplete: () => void;
   onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
-  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; uploaded_at: string; uploaded_by: string }[];
+  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
 }) {
   const isDraft = report.status === "draft";
