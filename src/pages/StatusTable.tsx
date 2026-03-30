@@ -167,12 +167,14 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음";
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall;
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
     setDueToggle(false);
     setExtraFilter("없음");
+    setNeedOutbound(false);
+    setNeedReinstall(false);
     setSearchParams({});
   };
 
