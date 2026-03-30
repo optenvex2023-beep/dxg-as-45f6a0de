@@ -3,6 +3,7 @@ import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, 
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
 import { createNotificationsForDepts } from "@/lib/notificationHelper";
+import { isExcludedFromDue7 } from "@/lib/inspectionFilters";
 import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
   fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
@@ -295,8 +296,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // C-8: 계약납기 7일전 (skip if reinstall_date is filled)
-    if (mutated.contract_due_date && !mutated.due_alert_sent_at && !mutated.reinstall_date) {
+    // C-8: 계약납기 7일전 (skip if all 3 conditions met: reinstall_date + 확정 + install_completed)
+    if (mutated.contract_due_date && !mutated.due_alert_sent_at && !isExcludedFromDue7(mutated as OutboundInspection)) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const dueDate = new Date(mutated.contract_due_date); dueDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -377,7 +378,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let hasChanges = false;
     const updatedInspections = inspections.map((rec) => {
-      if (!rec.contract_due_date || rec.due_alert_sent_at || rec.reinstall_date) return rec;
+      if (!rec.contract_due_date || rec.due_alert_sent_at || isExcludedFromDue7(rec)) return rec;
       const dueDate = new Date(rec.contract_due_date); dueDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays <= 7) {

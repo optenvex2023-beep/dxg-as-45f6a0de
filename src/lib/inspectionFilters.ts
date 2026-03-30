@@ -8,3 +8,12 @@ export const isEmpty = (v: string | null | undefined): boolean =>
 export const isInProgress = (rec: OutboundInspection): boolean =>
   isEmpty(rec.final_inspection_done_date) &&
   (!isEmpty(rec.inbound_date) || !isEmpty(rec.first_inspection_done_date));
+
+/**
+ * 계약납기 7일전 해제 조건:
+ * 설치일자 있음 AND 설치예정확정 === "확정" AND 설치완료 === true
+ */
+export const isExcludedFromDue7 = (rec: OutboundInspection): boolean =>
+  !isEmpty(rec.reinstall_date) &&
+  rec.reinstall_confirm_status === "확정" &&
+  rec.install_completed === true;

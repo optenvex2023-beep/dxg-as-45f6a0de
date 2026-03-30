@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { isSuperAdmin, canRegister, canEditAdminFields, canEditCSFields, canEditMfgFields } from "@/lib/permissions";
-import { isEmpty, isInProgress } from "@/lib/inspectionFilters";
+import { isEmpty, isInProgress, isExcludedFromDue7 } from "@/lib/inspectionFilters";
 
 const allStatuses: StatusType[] = [
   "확인필요", "반출예정", "반출완료", "입고완료",
@@ -73,6 +73,7 @@ function emptyFormData(): CreateFormData {
     reinstall_request_date_end: null,
     reinstall_date: null,
     reinstall_confirm_status: "예정",
+    install_completed: false,
     contract_due_date: null,
     special_note: "",
     client_pic_name: "",
@@ -114,7 +115,7 @@ export default function StatusTable() {
 
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
-    if (rec.reinstall_date) return false;
+    if (isExcludedFromDue7(rec)) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(rec.contract_due_date);
@@ -299,7 +300,7 @@ export default function StatusTable() {
               <TableHead className="min-w-[100px]">최종 점검완료일자</TableHead>
               <TableHead className="min-w-[120px]">재설치 요청일자</TableHead>
               <TableHead className="min-w-[100px]">재설치 일자</TableHead>
-              <TableHead className="min-w-[70px]">예정/확정</TableHead>
+              <TableHead className="min-w-[70px]">설치 예정/확정</TableHead>
               <TableHead className="min-w-[100px]">계약납기</TableHead>
               <TableHead className="min-w-[140px]">특이사항</TableHead>
               <TableHead className="min-w-[90px]">발주처 담당자</TableHead>
@@ -482,23 +483,36 @@ function CSForm({ record, onSave }: { record: OutboundInspection; onSave: (updat
   const [outbound, setOutbound] = useState(record.outbound_date);
   const [reinstall, setReinstall] = useState(record.reinstall_date);
   const [confirmStatus, setConfirmStatus] = useState(record.reinstall_confirm_status);
+  const [installCompleted, setInstallCompleted] = useState(record.install_completed ?? false);
 
   return (
     <div className="space-y-4">
       <DateField label="반출예정일자" value={planned} onChange={setPlanned} />
       <DateField label="반출일자" value={outbound} onChange={setOutbound} />
       <DateField label="설치일자" value={reinstall} onChange={setReinstall} />
-      <div>
-        <label className="text-xs text-muted-foreground block mb-1">예정/확정</label>
-        <Select value={confirmStatus} onValueChange={(v) => setConfirmStatus(v as ReinstallConfirmStatus)}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="예정">예정</SelectItem>
-            <SelectItem value="확정">확정</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-end gap-4">
+        <div className="flex-1">
+          <label className="text-xs text-muted-foreground block mb-1">설치 예정/확정</label>
+          <Select value={confirmStatus} onValueChange={(v) => setConfirmStatus(v as ReinstallConfirmStatus)}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="예정">예정</SelectItem>
+              <SelectItem value="확정">확정</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2 pb-0.5">
+          <Checkbox
+            id="install-completed"
+            checked={installCompleted}
+            onCheckedChange={(checked) => setInstallCompleted(checked === true)}
+          />
+          <label htmlFor="install-completed" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            설치완료
+          </label>
+        </div>
       </div>
-      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus })}>
+      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus, install_completed: installCompleted })}>
         저장
       </Button>
     </div>
@@ -915,7 +929,7 @@ function EditForm({
             <DateField label="최종 점검 완료일자 (제조본부)" value={form.final_inspection_done_date} onChange={() => {}} disabled />
             <DateField label="재설치 일자 (CS팀)" value={form.reinstall_date} onChange={() => {}} disabled />
             <div>
-              <label className="text-xs text-muted-foreground">예정/확정 (CS팀)</label>
+              <label className="text-xs text-muted-foreground">설치 예정/확정 (CS팀)</label>
               <Input className="h-8 text-xs" value={form.reinstall_confirm_status} disabled />
             </div>
           </div>
