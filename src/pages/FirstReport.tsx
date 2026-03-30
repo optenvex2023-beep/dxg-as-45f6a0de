@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
 import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto, InspectionResultOption } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import { isSuperAdmin } from "@/lib/permissions";
@@ -429,7 +430,7 @@ function DocumentView({
   onRequestApproval: () => void;
   onQAReviewComplete: () => void;
   onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
-  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; uploaded_at: string; uploaded_by: string }[];
+  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
 }) {
   const isDraft = report.status === "draft";
@@ -490,13 +491,27 @@ function DocumentView({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      onAddVersion(report.id, file.name, url, currentUserName);
+    if (!file) return;
+    try {
+      const ext = file.name.split(".").pop() || "docx";
+      const storagePath = `first/${report.id}/${Date.now()}_${file.name}`;
+      const { data: uploadData, error } = await supabase.storage
+        .from("report-files")
+        .upload(storagePath, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from("report-files")
+        .getPublicUrl(storagePath);
+      const publicUrl = urlData.publicUrl;
+      onAddVersion(report.id, file.name, publicUrl, currentUserName);
       toast.success(`수정본 v${versions.length + 1}이 업로드되었습니다.`);
+    } catch (err) {
+      console.error("File upload failed:", err);
+      toast.error("파일 업로드에 실패했습니다.");
     }
+    e.target.value = "";
   };
 
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
@@ -545,18 +560,25 @@ function DocumentView({
             <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
               <label className="cursor-pointer">
                 <Upload className="h-3.5 w-3.5" /> 수정본 업로드
-                <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
+                <input type="file" accept=".docx,.doc,.pdf" className="hidden" onChange={handleFileUpload} />
               </label>
             </Button>
           </div>
           {versions.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">업로드 이력</p>
-              {versions.map(v => (
-                <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileText className="h-3 w-3" />
-                  <span>v{v.version_number}: {v.file_name}</span>
-                  <span className="text-[10px]">({v.uploaded_by}, {v.uploaded_at.split("T")[0]})</span>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">업로드된 수정본 파일</p>
+              {[...versions].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at)).map((v, idx) => (
+                <div key={v.id} className="flex items-center justify-between gap-2 text-xs border rounded px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate font-medium">{v.file_name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">({v.uploaded_by} / {v.uploaded_at.split("T")[0]})</span>
+                  </div>
+                  <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
+                      <Download className="h-3 w-3" /> 다운로드
+                    </Button>
+                  </a>
                 </div>
               ))}
             </div>
