@@ -612,18 +612,25 @@ function DocumentView({
             <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
               <label className="cursor-pointer">
                 <Upload className="h-3.5 w-3.5" /> 수정본 업로드
-                <input type="file" accept=".docx,.doc" className="hidden" onChange={handleFileUpload} />
+                <input type="file" accept=".docx,.doc,.pdf" className="hidden" onChange={handleFileUpload} />
               </label>
             </Button>
           </div>
           {versions.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">업로드 이력</p>
-              {versions.map(v => (
-                <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileText className="h-3 w-3" />
-                  <span>v{v.version_number}: {v.file_name}</span>
-                  <span className="text-[10px]">({v.uploaded_by}, {v.uploaded_at.split("T")[0]})</span>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">업로드된 수정본 파일</p>
+              {[...versions].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at)).map((v, idx) => (
+                <div key={v.id} className="flex items-center justify-between gap-2 text-xs border rounded px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate font-medium">{v.file_name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">({v.uploaded_by} / {v.uploaded_at.split("T")[0]})</span>
+                  </div>
+                  <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
+                      <Download className="h-3 w-3" /> 다운로드
+                    </Button>
+                  </a>
                 </div>
               ))}
             </div>
