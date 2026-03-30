@@ -91,6 +91,8 @@ export default function StatusTable() {
   const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
   const [dueToggle, setDueToggle] = useState(urlDue === "7days");
   const [extraFilter, setExtraFilter] = useState<string>("없음");
+  const [needOutbound, setNeedOutbound] = useState(false);
+  const [needReinstall, setNeedReinstall] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -137,17 +139,21 @@ export default function StatusTable() {
       result = result.filter((i) => i.request_type === "고객지원요청서");
     } else if (extraFilter === "세일즈오더") {
       result = result.filter((i) => i.request_type === "세일즈오더");
-    } else if (extraFilter === "반출 필요") {
+    }
+
+    // Checkbox filters (can stack)
+    if (needOutbound) {
       result = result.filter((i) => {
         const hasRequest = i.outbound_request_date_single || i.outbound_request_date_start;
         return hasRequest && !i.outbound_date;
       });
-    } else if (extraFilter === "재설치 필요") {
+    }
+    if (needReinstall) {
       result = result.filter((i) => i.final_inspection_done_date && !i.reinstall_date);
     }
 
     return result;
-  }, [inspections, localStatusFilter, dueToggle, extraFilter]);
+  }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
@@ -161,12 +167,14 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음";
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall;
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
     setDueToggle(false);
     setExtraFilter("없음");
+    setNeedOutbound(false);
+    setNeedReinstall(false);
     setSearchParams({});
   };
 
@@ -175,6 +183,8 @@ export default function StatusTable() {
     if (localStatusFilter !== "전체") parts.push(localStatusFilter);
     if (dueToggle) parts.push("계약납기 7일전");
     if (extraFilter !== "없음") parts.push(extraFilter);
+    if (needOutbound) parts.push("반출 필요");
+    if (needReinstall) parts.push("재설치 필요");
     return parts.join(", ");
   };
 
@@ -202,7 +212,7 @@ export default function StatusTable() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">추가필터</label>
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">구분</label>
           <Select value={extraFilter} onValueChange={(val) => { setExtraFilter(val); }}>
             <SelectTrigger className="h-8 text-xs w-[160px] bg-background">
               <SelectValue placeholder="없음" />
@@ -211,8 +221,6 @@ export default function StatusTable() {
               <SelectItem value="없음">없음</SelectItem>
               <SelectItem value="고객지원요청서">고객지원요청서</SelectItem>
               <SelectItem value="세일즈오더">세일즈오더</SelectItem>
-              <SelectItem value="반출 필요">반출 필요</SelectItem>
-              <SelectItem value="재설치 필요">재설치 필요</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -225,6 +233,28 @@ export default function StatusTable() {
           />
           <label htmlFor="due-toggle" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
             계약납기 7일전
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="need-outbound"
+            checked={needOutbound}
+            onCheckedChange={(checked) => setNeedOutbound(!!checked)}
+          />
+          <label htmlFor="need-outbound" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            반출 필요
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="need-reinstall"
+            checked={needReinstall}
+            onCheckedChange={(checked) => setNeedReinstall(!!checked)}
+          />
+          <label htmlFor="need-reinstall" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            재설치 필요
           </label>
         </div>
 
