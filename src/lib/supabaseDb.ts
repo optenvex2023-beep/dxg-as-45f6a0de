@@ -213,6 +213,7 @@ export async function insertReportVersion(rv: ReportVersion) {
     report_id: rv.report_id,
     version_number: rv.version_number,
     file_name: rv.file_name,
+    file_path: rv.file_path,
     file_url: rv.file_url,
     uploaded_by: rv.uploaded_by,
   });

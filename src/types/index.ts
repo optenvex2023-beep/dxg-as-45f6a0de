@@ -230,6 +230,7 @@ export interface ReportVersion {
   report_id: string;
   version_number: number;
   file_name: string;
+  file_path: string;
   file_url: string;
   uploaded_by: string;
   uploaded_at: string;

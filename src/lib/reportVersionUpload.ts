@@ -8,18 +8,18 @@ interface UploadReportVersionParams {
   reportType: ReportVersionUploadType;
 }
 
-function sanitizeFileName(fileName: string) {
-  const trimmed = fileName.trim();
-  const normalized = trimmed.normalize("NFC").replace(/\s+/g, "_");
-  return encodeURIComponent(normalized);
+function resolveSafeExtension(fileName: string) {
+  const ext = fileName.split(".").pop()?.trim().toLowerCase() ?? "";
+  if (["pdf", "docx", "doc"].includes(ext)) return ext;
+  return "bin";
 }
 
 function resolveContentType(file: File) {
+  const safeExt = resolveSafeExtension(file.name);
+  if (safeExt === "pdf") return "application/pdf";
+  if (safeExt === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (safeExt === "doc") return "application/msword";
   if (file.type) return file.type;
-  const lower = file.name.toLowerCase();
-  if (lower.endsWith(".pdf")) return "application/pdf";
-  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (lower.endsWith(".doc")) return "application/msword";
   return "application/octet-stream";
 }
 
@@ -38,14 +38,18 @@ export async function uploadReportVersionFile({ file, reportId, reportType }: Up
     throw new Error(message);
   }
 
-  const safeFileName = sanitizeFileName(file.name);
-  const storagePath = `${reportType}/${reportId}/${Date.now()}_${safeFileName}`;
+  const safeExt = resolveSafeExtension(file.name);
+  const storageFileName = `${crypto.randomUUID()}.${safeExt}`;
+  const storagePath = `${reportType}/${reportId}/${storageFileName}`;
   const contentType = resolveContentType(file);
   const fileBuffer = await file.arrayBuffer();
 
   console.log("[ReportVersionUpload] 3) Storage upload 실행:", {
     bucket: "report-files",
     storagePath,
+    storageFileName,
+    safeExt,
+    originalFileName: file.name,
     contentType,
   });
 
@@ -74,6 +78,7 @@ export async function uploadReportVersionFile({ file, reportId, reportType }: Up
 
   return {
     fileUrl: publicUrlData.publicUrl,
+    filePath: storagePath,
     storagePath,
   };
 }

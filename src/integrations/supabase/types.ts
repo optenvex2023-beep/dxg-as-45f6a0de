@@ -479,6 +479,7 @@ export type Database = {
       report_versions: {
         Row: {
           file_name: string
+          file_path: string
           file_url: string
           id: string
           report_id: string
@@ -488,6 +489,7 @@ export type Database = {
         }
         Insert: {
           file_name?: string
+          file_path?: string
           file_url?: string
           id?: string
           report_id: string
@@ -497,6 +499,7 @@ export type Database = {
         }
         Update: {
           file_name?: string
+          file_path?: string
           file_url?: string
           id?: string
           report_id?: string
