@@ -505,9 +505,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const insp = inspections.find(i => i.id === report.inspection_id);
       if (insp) {
         const reportLabel = report.report_type === "first" ? "1차 점검보고서" : "완료 점검보고서";
-        const targetDepts: Department[] = report.report_type === "final"
-          ? ["환경영업팀", "CS팀"]
-          : ["환경영업팀"];
+        const targetDepts: Department[] = ["환경영업팀", "CS팀"];
         setNotifications(prev => [...prev, {
           id: crypto.randomUUID(), inspection_id: insp.id, status_trigger: "1차 점검완료",
           target_departments: targetDepts,
