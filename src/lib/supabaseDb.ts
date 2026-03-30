@@ -216,7 +216,10 @@ export async function insertReportVersion(rv: ReportVersion) {
     file_url: rv.file_url,
     uploaded_by: rv.uploaded_by,
   });
-  if (error) console.error("insertReportVersion error:", error);
+  if (error) {
+    console.error("insertReportVersion error:", error);
+    throw error;
+  }
 }
 
 /* ═══════════════════════════════════════════

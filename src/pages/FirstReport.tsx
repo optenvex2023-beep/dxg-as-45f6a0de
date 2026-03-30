@@ -16,6 +16,7 @@ import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, Sh
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import { isSuperAdmin } from "@/lib/permissions";
+import { uploadReportVersionFile } from "@/lib/reportVersionUpload";
 import {
   createDefaultReportData,
   MODEL_OPTIONS,
@@ -429,7 +430,7 @@ function DocumentView({
   onComplete: () => void;
   onRequestApproval: () => void;
   onQAReviewComplete: () => void;
-  onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
+  onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => Promise<{ id: string; report_id: string; version_number: number; file_name: string; file_url: string; uploaded_by: string; uploaded_at: string }>;
   getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
 }) {
@@ -495,21 +496,18 @@ function DocumentView({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const ext = file.name.split(".").pop() || "docx";
-      const storagePath = `first/${report.id}/${Date.now()}_${file.name}`;
-      const { data: uploadData, error } = await supabase.storage
-        .from("report-files")
-        .upload(storagePath, file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage
-        .from("report-files")
-        .getPublicUrl(storagePath);
-      const publicUrl = urlData.publicUrl;
-      onAddVersion(report.id, file.name, publicUrl, currentUserName);
-      toast.success(`수정본 v${versions.length + 1}이 업로드되었습니다.`);
+      const { fileUrl, storagePath } = await uploadReportVersionFile({
+        file,
+        reportId: report.id,
+        reportType: "first",
+      });
+      const savedVersion = await onAddVersion(report.id, file.name, fileUrl, currentUserName || "알 수 없음");
+      console.log("[ReportVersionUpload] 업로드 완료:", { storagePath, savedVersion });
+      toast.success(`수정본 v${savedVersion.version_number}이 업로드되었습니다.`);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "알 수 없는 오류";
       console.error("File upload failed:", err);
-      toast.error("파일 업로드에 실패했습니다.");
+      toast.error(`파일 업로드 실패: ${message}`);
     }
     e.target.value = "";
   };
