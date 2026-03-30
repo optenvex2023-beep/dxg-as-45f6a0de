@@ -547,13 +547,25 @@ function DocumentView({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      onAddVersion(report.id, file.name, url, currentUserName);
+    if (!file) return;
+    try {
+      const storagePath = `final/${report.id}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage
+        .from("report-files")
+        .upload(storagePath, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from("report-files")
+        .getPublicUrl(storagePath);
+      onAddVersion(report.id, file.name, urlData.publicUrl, currentUserName);
       toast.success(`수정본 v${versions.length + 1}이 업로드되었습니다.`);
+    } catch (err) {
+      console.error("File upload failed:", err);
+      toast.error("파일 업로드에 실패했습니다.");
     }
+    e.target.value = "";
   };
 
   const statusLabel: Record<string, string> = { draft: "작성중", completed: "완료", approval_requested: "승인대기", approved: "승인완료" };
