@@ -33,7 +33,7 @@ interface AppState {
   completeReport: (reportId: string) => void;
   requestApproval: (reportId: string) => void;
   approveReport: (reportId: string, approverName: string) => void;
-  addReportVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => Promise<ReportVersion>;
+  addReportVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<ReportVersion>;
   getReportVersions: (reportId: string) => ReportVersion[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
@@ -529,12 +529,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [reports, inspections]);
 
-  const addReportVersion = useCallback(async (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => {
+  const addReportVersion = useCallback(async (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => {
     const existingVersions = reportVersions.filter(v => v.report_id === reportId);
     const nextVersion = existingVersions.length + 1;
     const rv: ReportVersion = {
       id: crypto.randomUUID(), report_id: reportId,
-      version_number: nextVersion, file_name: fileName, file_url: fileUrl,
+      version_number: nextVersion, file_name: fileName, file_path: filePath, file_url: fileUrl,
       uploaded_by: uploadedBy, uploaded_at: new Date().toISOString(),
     };
 
