@@ -110,11 +110,7 @@ export default function StatusTable() {
 
   const hasValue = (v: string | null | undefined) => v != null && v !== "";
 
-  const isInProgress = (rec: OutboundInspection) => {
-    const cond1 = hasValue(rec.inbound_date);
-    const cond2 = hasValue(rec.first_inspection_done_date) && !hasValue(rec.final_inspection_done_date);
-    return cond1 || cond2;
-  };
+  // isInProgress imported from @/lib/inspectionFilters (uses isEmpty for "—","–","-","N/A")
 
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
