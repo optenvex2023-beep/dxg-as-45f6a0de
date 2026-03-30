@@ -73,6 +73,7 @@ function emptyFormData(): CreateFormData {
     reinstall_request_date_end: null,
     reinstall_date: null,
     reinstall_confirm_status: "예정",
+    install_completed: false,
     contract_due_date: null,
     special_note: "",
     client_pic_name: "",
