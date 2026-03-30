@@ -1,4 +1,5 @@
 import type { OutboundInspection, StatusType } from "@/types";
+import { isExcludedFromDue7 } from "@/lib/inspectionFilters";
 
 export function computeStatus(record: Omit<OutboundInspection, "status" | "due_warning">): {
   status: StatusType;
@@ -22,9 +23,9 @@ export function computeStatus(record: Omit<OutboundInspection, "status" | "due_w
     return { status: "설치 완료", due_warning: false };
   }
 
-  // 2) 납기유의
+  // 2) 납기유의 (excluded if all 3 conditions met)
   let dueWarning = false;
-  if (contractDue) {
+  if (contractDue && !isExcludedFromDue7(record as OutboundInspection)) {
     const warningDate = new Date(contractDue);
     warningDate.setDate(warningDate.getDate() - 7);
     if (today >= warningDate) {
