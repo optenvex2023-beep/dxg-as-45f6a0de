@@ -1,0 +1,1 @@
+ALTER TABLE public.outbound_inspections ADD COLUMN IF NOT EXISTS install_completed boolean NOT NULL DEFAULT false;

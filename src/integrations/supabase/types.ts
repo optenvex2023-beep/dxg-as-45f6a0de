@@ -369,6 +369,7 @@ export type Database = {
           first_inspection_done_date: string | null
           id: string
           inbound_date: string | null
+          install_completed: boolean
           manage_no: string
           noti_confirm_needed_sent_at: string | null
           noti_dispatch_done_sent_at: string | null
@@ -407,6 +408,7 @@ export type Database = {
           first_inspection_done_date?: string | null
           id?: string
           inbound_date?: string | null
+          install_completed?: boolean
           manage_no?: string
           noti_confirm_needed_sent_at?: string | null
           noti_dispatch_done_sent_at?: string | null
@@ -445,6 +447,7 @@ export type Database = {
           first_inspection_done_date?: string | null
           id?: string
           inbound_date?: string | null
+          install_completed?: boolean
           manage_no?: string
           noti_confirm_needed_sent_at?: string | null
           noti_dispatch_done_sent_at?: string | null
