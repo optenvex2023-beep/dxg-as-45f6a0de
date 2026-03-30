@@ -929,7 +929,7 @@ function EditForm({
             <DateField label="최종 점검 완료일자 (제조본부)" value={form.final_inspection_done_date} onChange={() => {}} disabled />
             <DateField label="재설치 일자 (CS팀)" value={form.reinstall_date} onChange={() => {}} disabled />
             <div>
-              <label className="text-xs text-muted-foreground">예정/확정 (CS팀)</label>
+              <label className="text-xs text-muted-foreground">설치 예정/확정 (CS팀)</label>
               <Input className="h-8 text-xs" value={form.reinstall_confirm_status} disabled />
             </div>
           </div>
