@@ -107,6 +107,14 @@ export default function StatusTable() {
   const isCS = superAdmin || currentUser?.department === "CS팀";
   const isManufacturing = superAdmin || currentUser?.department === "제조본부";
 
+  const hasValue = (v: string | null | undefined) => v != null && v !== "";
+
+  const isInProgress = (rec: OutboundInspection) => {
+    const cond1 = hasValue(rec.inbound_date);
+    const cond2 = hasValue(rec.first_inspection_done_date) && !hasValue(rec.final_inspection_done_date);
+    return cond1 || cond2;
+  };
+
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
     if (rec.reinstall_date) return false;
@@ -121,6 +129,11 @@ export default function StatusTable() {
 
   const filtered = useMemo(() => {
     let result = inspections;
+
+    // Dashboard "점검중" filter
+    if (dashboardFilter === "점검중") {
+      result = result.filter(isInProgress);
+    }
 
     // Status filter
     if (localStatusFilter !== "전체") {
@@ -155,7 +168,7 @@ export default function StatusTable() {
     }
 
     return result;
-  }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall]);
+  }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
