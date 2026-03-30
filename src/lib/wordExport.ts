@@ -223,21 +223,57 @@ function sanitizeExportContext(obj: Record<string, unknown>): Record<string, unk
   return result;
 }
 
+/* ─── Pre-fetch all photo images as base64 ─── */
+async function fetchAllPhotoImages(photos: Array<{ id: string; file_url: string }>): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (!photos || photos.length === 0) return map;
+
+  const results = await Promise.allSettled(
+    photos.map(async (p) => {
+      if (!p.file_url) return { id: p.id, base64: "" };
+      try {
+        const base64 = await fetchImageBase64(p.file_url);
+        return { id: p.id, base64 };
+      } catch {
+        console.warn(`[WordExport] Failed to fetch photo: ${p.file_url}`);
+        return { id: p.id, base64: "" };
+      }
+    })
+  );
+
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value.base64) {
+      map.set(r.value.id, r.value.base64);
+    }
+  }
+  return map;
+}
+
 /* ─── Build full template data object ─── */
-function buildTemplateData(
+async function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
   qaSignatureBase64: string,
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
   const serialNo = safe(report.serial_numbers[report.equipment_item_id]) || safe(equipItem?.serial_no);
 
-  const buildPhotoCaptions = (slotKey: string) => {
+  // Pre-fetch all photo images
+  const photoImageMap = await fetchAllPhotoImages(data.photos || []);
+
+  const buildPhotoRows = (slotKey: string) => {
     const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
-    const rows: Array<{ LEFT_CAPTION: string; RIGHT_CAPTION: string }> = [];
+    const rows: Array<{
+      LEFT_IMAGE: string;
+      RIGHT_IMAGE: string;
+      LEFT_CAPTION: string;
+      RIGHT_CAPTION: string;
+    }> = [];
     for (let i = 0; i < slotPhotos.length; i += 2) {
       rows.push({
+        LEFT_IMAGE: slotPhotos[i] ? (photoImageMap.get(slotPhotos[i].id) || "") : "",
+        RIGHT_IMAGE: slotPhotos[i + 1] ? (photoImageMap.get(slotPhotos[i + 1].id) || "") : "",
         LEFT_CAPTION: safe(slotPhotos[i]?.caption),
         RIGHT_CAPTION: safe(slotPhotos[i + 1]?.caption),
       });
@@ -353,12 +389,12 @@ function buildTemplateData(
     SUMMARY_PROBE_ALIGNMENT: safe(data.summary_items?.[2]),
     SUMMARY_STANDARD_GAS_CALIBRATION: safe(data.summary_items?.[3]),
 
-    // ── Photo captions ──
-    REPLACEMENT_PHOTO_ROWS: buildPhotoCaptions("replacement_parts"),
-    OPTICAL_PHOTOS_ROWS: buildPhotoCaptions("body_optics"),
-    ELECTRICAL_PHOTOS_ROWS: buildPhotoCaptions("cpu_smps"),
-    PROBE_PHOTOS_ROWS: buildPhotoCaptions("ao_probe"),
-    OTHER_PHOTOS_ROWS: buildPhotoCaptions("spectrometer"),
+    // ── Photo rows (images + captions) ──
+    REPLACEMENT_PHOTO_ROWS: buildPhotoRows("replacement_parts"),
+    OPTICAL_PHOTOS_ROWS: buildPhotoRows("body_optics"),
+    ELECTRICAL_PHOTOS_ROWS: buildPhotoRows("cpu_smps"),
+    PROBE_PHOTOS_ROWS: buildPhotoRows("ao_probe"),
+    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer"),
 
     LEFT_IMAGE: "",
     RIGHT_IMAGE: "",
