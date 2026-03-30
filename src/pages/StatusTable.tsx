@@ -183,6 +183,8 @@ export default function StatusTable() {
     if (localStatusFilter !== "전체") parts.push(localStatusFilter);
     if (dueToggle) parts.push("계약납기 7일전");
     if (extraFilter !== "없음") parts.push(extraFilter);
+    if (needOutbound) parts.push("반출 필요");
+    if (needReinstall) parts.push("재설치 필요");
     return parts.join(", ");
   };
 
