@@ -1,7 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
+import { isEmpty, isInProgress } from "@/lib/inspectionFilters";
 interface KpiCard {
   label: string;
   count: number;
