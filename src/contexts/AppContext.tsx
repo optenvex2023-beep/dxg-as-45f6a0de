@@ -3,6 +3,7 @@ import type { AppUser, OutboundInspection, OutboundEquipmentItem, RoleCategory, 
 import { seedUsers } from "@/data/seedUsers";
 import { computeStatus } from "@/lib/statusAutomation";
 import { createNotificationsForDepts } from "@/lib/notificationHelper";
+import { isExcludedFromDue7 } from "@/lib/inspectionFilters";
 import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
   fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
