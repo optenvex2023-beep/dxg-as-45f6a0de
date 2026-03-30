@@ -86,10 +86,12 @@ export default function StatusTable() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
   const urlDue = searchParams.get("due");
+  const urlFilter = searchParams.get("filter");
 
   // Local filter state — initialized from URL params (dashboard click-through)
   const [localStatusFilter, setLocalStatusFilter] = useState<string>(urlStatus || "전체");
   const [dueToggle, setDueToggle] = useState(urlDue === "7days");
+  const [dashboardFilter, setDashboardFilter] = useState<string | null>(urlFilter);
   const [extraFilter, setExtraFilter] = useState<string>("없음");
   const [needOutbound, setNeedOutbound] = useState(false);
   const [needReinstall, setNeedReinstall] = useState(false);

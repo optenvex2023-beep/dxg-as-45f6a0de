@@ -15,6 +15,14 @@ export default function Dashboard() {
 
   const countByStatus = (s: string) => inspections.filter((i) => i.status === s).length;
 
+  const hasValue = (v: string | null | undefined) => v != null && v !== "";
+
+  const inspInProgressCount = inspections.filter((i) => {
+    const cond1 = hasValue(i.inbound_date);
+    const cond2 = hasValue(i.first_inspection_done_date) && !hasValue(i.final_inspection_done_date);
+    return cond1 || cond2;
+  }).length;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dueWarning7Count = inspections.filter((i) => {
@@ -31,7 +39,7 @@ export default function Dashboard() {
     { label: "확인필요", count: countByStatus("확인필요"), filterKey: "status", filterValue: "확인필요" },
     { label: "반출예정", count: countByStatus("반출예정"), filterKey: "status", filterValue: "반출예정" },
     { label: "반출완료", count: countByStatus("반출완료"), filterKey: "status", filterValue: "반출완료" },
-    { label: "점검중", count: inspections.filter((i) => i.status === "입고완료" || i.status === "1차 점검완료").length, filterKey: "status", filterValue: "입고완료" },
+    { label: "점검중", count: inspInProgressCount, filterKey: "filter", filterValue: "점검중" },
     { label: "재설치대기", count: countByStatus("최종 점검완료"), filterKey: "status", filterValue: "최종 점검완료" },
     { label: "계약납기 7일전", count: dueWarning7Count, filterKey: "due", filterValue: "7days" },
   ];
