@@ -203,11 +203,11 @@ export default function StatusTable() {
 
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">추가필터</label>
-          <Select value={extraFilter} onValueChange={(v) => setExtraFilter(v)}>
-            <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
-              <SelectValue />
+          <Select value={extraFilter} onValueChange={(val) => { setExtraFilter(val); }}>
+            <SelectTrigger className="h-8 text-xs w-[160px] bg-background">
+              <SelectValue placeholder="없음" />
             </SelectTrigger>
-            <SelectContent className="bg-popover z-[60]">
+            <SelectContent className="bg-popover z-[9999]">
               <SelectItem value="없음">없음</SelectItem>
               <SelectItem value="고객지원요청서">고객지원요청서</SelectItem>
               <SelectItem value="세일즈오더">세일즈오더</SelectItem>
