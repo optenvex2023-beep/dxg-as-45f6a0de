@@ -472,7 +472,7 @@ export async function exportReportToWord(
     modules: [imageModule],
   });
 
-  const templateData = buildTemplateData(inspection, report, qaSignatureBase64);
+  const templateData = await buildTemplateData(inspection, report, qaSignatureBase64);
   doc.render(templateData);
 
   // Post-process: center-align name cells
