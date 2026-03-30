@@ -153,7 +153,7 @@ export default function StatusTable() {
     }
 
     return result;
-  }, [inspections, localStatusFilter, dueToggle, extraFilter]);
+  }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall]);
 
   const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
 
