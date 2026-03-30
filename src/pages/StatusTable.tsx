@@ -300,7 +300,7 @@ export default function StatusTable() {
               <TableHead className="min-w-[100px]">최종 점검완료일자</TableHead>
               <TableHead className="min-w-[120px]">재설치 요청일자</TableHead>
               <TableHead className="min-w-[100px]">재설치 일자</TableHead>
-              <TableHead className="min-w-[70px]">예정/확정</TableHead>
+              <TableHead className="min-w-[70px]">설치 예정/확정</TableHead>
               <TableHead className="min-w-[100px]">계약납기</TableHead>
               <TableHead className="min-w-[140px]">특이사항</TableHead>
               <TableHead className="min-w-[90px]">발주처 담당자</TableHead>
