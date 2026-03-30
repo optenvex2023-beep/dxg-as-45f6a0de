@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import { isSuperAdmin } from "@/lib/permissions";
@@ -182,23 +182,28 @@ export default function FirstReport() {
       {selectedInspection && selectedEquipment && (
         <>
           {existingReport ? (
-            <DocumentView
-              inspection={selectedInspection}
-              equipment={selectedEquipment}
-              report={existingReport}
-              canEdit={isManufacturing && existingReport.status === "draft"}
-              canApprove={canApprove}
-              isManufacturing={isManufacturing}
-              isQC={isQC}
-              isSales={isSales}
-              onUpdate={updateReport}
-              onComplete={handleComplete}
-              onRequestApproval={() => { requestApproval(existingReport.id); toast.success("승인요청이 전송되었습니다."); }}
-              onQAReviewComplete={handleQAReviewComplete}
-              onAddVersion={addReportVersion}
-              getVersions={getReportVersions}
-              currentUserName={currentUser?.name || ""}
-            />
+            <div className="space-y-2">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground -ml-1" onClick={() => { setSelectedEquipmentId(""); setSelectedInspectionId(""); }}>
+                <ArrowLeft className="h-4 w-4" /> 뒤로가기
+              </Button>
+              <DocumentView
+                inspection={selectedInspection}
+                equipment={selectedEquipment}
+                report={existingReport}
+                canEdit={isManufacturing && existingReport.status === "draft"}
+                canApprove={canApprove}
+                isManufacturing={isManufacturing}
+                isQC={isQC}
+                isSales={isSales}
+                onUpdate={updateReport}
+                onComplete={handleComplete}
+                onRequestApproval={() => { requestApproval(existingReport.id); toast.success("승인요청이 전송되었습니다."); }}
+                onQAReviewComplete={handleQAReviewComplete}
+                onAddVersion={addReportVersion}
+                getVersions={getReportVersions}
+                currentUserName={currentUser?.name || ""}
+              />
+            </div>
           ) : (
             isManufacturing ? (
               <div className="flex justify-center py-12">
@@ -294,8 +299,11 @@ export default function FirstReport() {
       {detailReport && detailInspection && detailEquipment && (
         <Dialog open={!!detailReportId} onOpenChange={(open) => { if (!open) setDetailReportId(null); }}>
           <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-            <DialogHeader className="p-6 pb-0 shrink-0">
-              <DialogTitle>1차 점검보고서 상세</DialogTitle>
+            <DialogHeader className="p-6 pb-0 shrink-0 flex flex-row items-center gap-2">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground hover:text-foreground h-7 px-2" onClick={() => setDetailReportId(null)}>
+                <ArrowLeft className="h-4 w-4" /> 뒤로가기
+              </Button>
+              <DialogTitle className="!mt-0">1차 점검보고서 상세</DialogTitle>
             </DialogHeader>
             <DocumentView
               inspection={detailInspection}
