@@ -60,6 +60,7 @@ export interface OutboundInspection {
 
   reinstall_date: string | null;
   reinstall_confirm_status: ReinstallConfirmStatus;
+  install_completed: boolean;
   contract_due_date: string | null;
   special_note: string;
 
