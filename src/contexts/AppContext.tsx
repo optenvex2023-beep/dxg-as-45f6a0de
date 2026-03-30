@@ -33,7 +33,7 @@ interface AppState {
   completeReport: (reportId: string) => void;
   requestApproval: (reportId: string) => void;
   approveReport: (reportId: string, approverName: string) => void;
-  addReportVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => void;
+  addReportVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => Promise<ReportVersion>;
   getReportVersions: (reportId: string) => ReportVersion[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
@@ -529,19 +529,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [reports, inspections]);
 
-  const addReportVersion = useCallback((reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => {
-    setReportVersions(prev => {
-      const existingVersions = prev.filter(v => v.report_id === reportId);
-      const nextVersion = existingVersions.length + 1;
-      const rv: ReportVersion = {
-        id: crypto.randomUUID(), report_id: reportId,
-        version_number: nextVersion, file_name: fileName, file_url: fileUrl,
-        uploaded_by: uploadedBy, uploaded_at: new Date().toISOString(),
-      };
-      insertReportVersionDb(rv);
-      return [...prev, rv];
-    });
-  }, []);
+  const addReportVersion = useCallback(async (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => {
+    const existingVersions = reportVersions.filter(v => v.report_id === reportId);
+    const nextVersion = existingVersions.length + 1;
+    const rv: ReportVersion = {
+      id: crypto.randomUUID(), report_id: reportId,
+      version_number: nextVersion, file_name: fileName, file_url: fileUrl,
+      uploaded_by: uploadedBy, uploaded_at: new Date().toISOString(),
+    };
+
+    console.log("[ReportVersionUpload] 5) DB insert 실행:", rv);
+
+    try {
+      await insertReportVersionDb(rv);
+      console.log("[ReportVersionUpload] 6) DB insert 결과:", { success: true, reportId: rv.report_id, versionId: rv.id });
+      setReportVersions(prev => [...prev, rv]);
+      return rv;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[ReportVersionUpload] 6) DB insert 결과:", { success: false, message, error });
+      throw error;
+    }
+  }, [reportVersions]);
 
   const getReportVersions = useCallback((reportId: string) => {
     return reportVersions.filter(v => v.report_id === reportId);
