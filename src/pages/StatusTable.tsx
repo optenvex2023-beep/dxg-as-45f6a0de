@@ -182,7 +182,7 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall;
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall || dashboardFilter != null;
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
@@ -190,11 +190,13 @@ export default function StatusTable() {
     setExtraFilter("없음");
     setNeedOutbound(false);
     setNeedReinstall(false);
+    setDashboardFilter(null);
     setSearchParams({});
   };
 
   const activeFilterLabel = () => {
     const parts: string[] = [];
+    if (dashboardFilter) parts.push(dashboardFilter);
     if (localStatusFilter !== "전체") parts.push(localStatusFilter);
     if (dueToggle) parts.push("계약납기 7일전");
     if (extraFilter !== "없음") parts.push(extraFilter);
