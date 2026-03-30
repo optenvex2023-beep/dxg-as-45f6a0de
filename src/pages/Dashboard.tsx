@@ -15,13 +15,7 @@ export default function Dashboard() {
 
   const countByStatus = (s: string) => inspections.filter((i) => i.status === s).length;
 
-  const hasValue = (v: string | null | undefined) => v != null && v !== "";
-
-  const inspInProgressCount = inspections.filter((i) => {
-    const cond1 = hasValue(i.inbound_date);
-    const cond2 = hasValue(i.first_inspection_done_date) && !hasValue(i.final_inspection_done_date);
-    return cond1 || cond2;
-  }).length;
+  const inspInProgressCount = inspections.filter(isInProgress).length;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
