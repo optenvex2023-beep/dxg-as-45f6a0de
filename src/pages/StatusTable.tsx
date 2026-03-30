@@ -483,23 +483,36 @@ function CSForm({ record, onSave }: { record: OutboundInspection; onSave: (updat
   const [outbound, setOutbound] = useState(record.outbound_date);
   const [reinstall, setReinstall] = useState(record.reinstall_date);
   const [confirmStatus, setConfirmStatus] = useState(record.reinstall_confirm_status);
+  const [installCompleted, setInstallCompleted] = useState(record.install_completed ?? false);
 
   return (
     <div className="space-y-4">
       <DateField label="반출예정일자" value={planned} onChange={setPlanned} />
       <DateField label="반출일자" value={outbound} onChange={setOutbound} />
       <DateField label="설치일자" value={reinstall} onChange={setReinstall} />
-      <div>
-        <label className="text-xs text-muted-foreground block mb-1">예정/확정</label>
-        <Select value={confirmStatus} onValueChange={(v) => setConfirmStatus(v as ReinstallConfirmStatus)}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="예정">예정</SelectItem>
-            <SelectItem value="확정">확정</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-end gap-4">
+        <div className="flex-1">
+          <label className="text-xs text-muted-foreground block mb-1">설치 예정/확정</label>
+          <Select value={confirmStatus} onValueChange={(v) => setConfirmStatus(v as ReinstallConfirmStatus)}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="예정">예정</SelectItem>
+              <SelectItem value="확정">확정</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2 pb-0.5">
+          <Checkbox
+            id="install-completed"
+            checked={installCompleted}
+            onCheckedChange={(checked) => setInstallCompleted(checked === true)}
+          />
+          <label htmlFor="install-completed" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            설치완료
+          </label>
+        </div>
       </div>
-      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus })}>
+      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus, install_completed: installCompleted })}>
         저장
       </Button>
     </div>

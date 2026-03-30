@@ -21,7 +21,7 @@ export default function Dashboard() {
   today.setHours(0, 0, 0, 0);
   const dueWarning7Count = inspections.filter((i) => {
     if (!i.contract_due_date) return false;
-    if (i.reinstall_date) return false;
+    if (isExcludedFromDue7(i)) return false;
     const due = new Date(i.contract_due_date);
     due.setHours(0, 0, 0, 0);
     const warn = new Date(due);
