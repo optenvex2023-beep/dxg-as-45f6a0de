@@ -115,7 +115,7 @@ export default function StatusTable() {
 
   const isDueWithin7 = (rec: OutboundInspection) => {
     if (!rec.contract_due_date) return false;
-    if (rec.reinstall_date) return false;
+    if (isExcludedFromDue7(rec)) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(rec.contract_due_date);
