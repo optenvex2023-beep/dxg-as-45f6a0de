@@ -455,7 +455,14 @@ export async function exportReportToWord(
       }
       return bytes.buffer;
     },
-    getSize: () => [80, 40], // width x height in pixels – fits table cell
+    getSize: (tagValue: string, tagName: string) => {
+      // QA signature: small size to fit table cell
+      if (tagName && (tagName.includes("QA_SIGNATURE") || tagName.includes("SIGNATURE"))) {
+        return [80, 40];
+      }
+      // Photo images: larger size to fill photo cells
+      return [200, 150];
+    },
   });
 
   const doc = new Docxtemplater(zip, {
