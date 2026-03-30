@@ -430,8 +430,8 @@ function DocumentView({
   onComplete: () => void;
   onRequestApproval: () => void;
   onQAReviewComplete: () => void;
-  onAddVersion: (reportId: string, fileName: string, fileUrl: string, uploadedBy: string) => Promise<{ id: string; report_id: string; version_number: number; file_name: string; file_url: string; uploaded_by: string; uploaded_at: string }>;
-  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
+  onAddVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<{ id: string; report_id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_by: string; uploaded_at: string }>;
+  getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
   currentUserName: string;
 }) {
   const isDraft = report.status === "draft";
@@ -496,13 +496,13 @@ function DocumentView({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const { fileUrl, storagePath } = await uploadReportVersionFile({
+      const { fileUrl, filePath } = await uploadReportVersionFile({
         file,
         reportId: report.id,
         reportType: "first",
       });
-      const savedVersion = await onAddVersion(report.id, file.name, fileUrl, currentUserName || "알 수 없음");
-      console.log("[ReportVersionUpload] 업로드 완료:", { storagePath, savedVersion });
+      const savedVersion = await onAddVersion(report.id, file.name, filePath, fileUrl, currentUserName || "알 수 없음");
+      console.log("[ReportVersionUpload] 업로드 완료:", { filePath, savedVersion });
       toast.success(`수정본 v${savedVersion.version_number}이 업로드되었습니다.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류";
