@@ -212,7 +212,7 @@ export default function StatusTable() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">추가필터</label>
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">구분</label>
           <Select value={extraFilter} onValueChange={(val) => { setExtraFilter(val); }}>
             <SelectTrigger className="h-8 text-xs w-[160px] bg-background">
               <SelectValue placeholder="없음" />
@@ -221,8 +221,6 @@ export default function StatusTable() {
               <SelectItem value="없음">없음</SelectItem>
               <SelectItem value="고객지원요청서">고객지원요청서</SelectItem>
               <SelectItem value="세일즈오더">세일즈오더</SelectItem>
-              <SelectItem value="반출 필요">반출 필요</SelectItem>
-              <SelectItem value="재설치 필요">재설치 필요</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -235,6 +233,28 @@ export default function StatusTable() {
           />
           <label htmlFor="due-toggle" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
             계약납기 7일전
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="need-outbound"
+            checked={needOutbound}
+            onCheckedChange={(checked) => setNeedOutbound(!!checked)}
+          />
+          <label htmlFor="need-outbound" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            반출 필요
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="need-reinstall"
+            checked={needReinstall}
+            onCheckedChange={(checked) => setNeedReinstall(!!checked)}
+          />
+          <label htmlFor="need-reinstall" className="text-xs font-medium text-muted-foreground cursor-pointer whitespace-nowrap">
+            재설치 필요
           </label>
         </div>
 
