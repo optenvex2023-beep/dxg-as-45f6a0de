@@ -636,7 +636,7 @@ function CreateForm({ onSubmit }: { onSubmit: (data: CreateFormData) => void }) 
     // contract_due_date is optional
     if (!form.client_pic_name.trim()) errs.push("발주처 담당자를 입력해주세요.");
     if (!form.client_pic_phone.trim()) errs.push("발주처 연락처를 입력해주세요.");
-    if (form.request_type === "고객지원요청서" && !form.support_request_file) errs.push("고객지원요청서 파일을 업로드해주세요.");
+    
     return errs;
   };
 
