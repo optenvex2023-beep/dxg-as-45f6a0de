@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadReportPhoto, resolvePhotoUrl } from "@/lib/reportPhotoStorage";
 import { useApp } from "@/contexts/AppContext";
 import type { OutboundInspection, OutboundEquipmentItem, InspectionReport, InspectionReportData, InspectionCheckItem, ReplacementPart, ReportPhoto, InspectionResultOption } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -727,22 +728,35 @@ function TemplateBody({
     upd({ summary_items: items });
   };
 
-  const handlePhotoUpload = (slotKey: string, files: FileList | null) => {
+  const handlePhotoUpload = async (slotKey: string, files: FileList | null) => {
     if (ro || !files) return;
     const photos = [...(data.photos || [])];
-    Array.from(files).forEach((file, i) => {
-      const url = URL.createObjectURL(file);
-      photos.push({
-        id: crypto.randomUUID(),
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const photoId = crypto.randomUUID();
+      // Immediate blob preview
+      const blobUrl = URL.createObjectURL(file);
+      const newPhoto: ReportPhoto = {
+        id: photoId,
         report_id: "",
-        file_url: url,
+        file_url: blobUrl,
         caption: "",
         page_slot: slotKey,
-        order_index: photos.filter(p => p.page_slot === slotKey).length + i,
+        order_index: photos.filter(p => p.page_slot === slotKey).length,
         uploaded_by: inspectorName,
         uploaded_at: new Date().toISOString(),
-      });
-    });
+      };
+      photos.push(newPhoto);
+      // Upload to storage in background
+      try {
+        const storagePath = await uploadReportPhoto(file, "first", photoId);
+        // Replace blob URL with storage path
+        const idx = photos.findIndex(p => p.id === photoId);
+        if (idx !== -1) photos[idx] = { ...photos[idx], file_url: storagePath };
+      } catch (err) {
+        console.error("[FirstReport] photo upload failed, keeping blob URL:", err);
+      }
+    }
     upd({ photos });
   };
 
@@ -1170,7 +1184,7 @@ function TemplateBody({
                     <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
                       {photo ? (
                         <div className="relative group border rounded overflow-hidden">
-                          <img src={photo.file_url} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
+                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
                           {!ro && (
                             <button
                               onClick={() => removePhoto(photo.id)}

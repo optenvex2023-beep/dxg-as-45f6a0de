@@ -3,6 +3,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import { saveAs } from "file-saver";
 import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "@/types";
+import { resolvePhotoUrl } from "@/lib/reportPhotoStorage";
 
 const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
@@ -233,7 +234,8 @@ async function fetchAllPhotoImages(photos: Array<{ id: string; file_url: string 
     photos.map(async (p) => {
       if (!p.file_url) return { id: p.id, base64: "" };
       try {
-        const base64 = await fetchImageBase64(p.file_url);
+        const url = resolvePhotoUrl(p.file_url);
+        const base64 = await fetchImageBase64(url);
         return { id: p.id, base64 };
       } catch {
         console.warn(`[WordExport] Failed to fetch photo: ${p.file_url}`);
