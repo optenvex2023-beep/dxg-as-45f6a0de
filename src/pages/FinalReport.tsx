@@ -1234,7 +1234,7 @@ function TemplateBody({
                     <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
                       {photo ? (
                         <div className="relative group border rounded overflow-hidden">
-                          <img src={photo.file_url} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
+                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
                           {!ro && (
                             <button
                               onClick={() => removePhoto(photo.id)}
