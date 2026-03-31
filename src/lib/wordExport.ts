@@ -308,7 +308,7 @@ async function buildTemplateData(
     REPORT_DATE: safe(report.created_date),
     MANAGEMENT_NO: safe(inspection.manage_no),
 
-    // ── Model checkboxes ──
+    // ── Model checkboxes (individual flags) ──
     IS_DGA_X: chk(data.model_checks.includes("DGA-X")),
     IS_DSM_XG: chk(data.model_checks.includes("DSM-XG")),
     IS_RGA_60: chk(data.model_checks.includes("RGA-60")),
@@ -319,6 +319,9 @@ async function buildTemplateData(
     IS_PGA_91: chk(data.model_checks.includes("PGA-91")),
     IS_OTHER_MODEL: chk(false),
     OTHER_MODEL_NAME: "",
+
+    // ── Model multiline (linebreaks: true makes \n → actual line breaks in Word) ──
+    MODEL_LIST: (data.model_checks || []).map(m => `☑ ${m}`).join("\n"),
 
     // ── Inbound items ──
     IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
@@ -331,6 +334,9 @@ async function buildTemplateData(
     CHECK_PURGE: chk(data.inbound_items.includes("Purge Air Unit")),
     CHECK_ETC: chk(false),
     INCOMING_ETC_TEXT: "",
+
+    // ── Inbound items multiline ──
+    INBOUND_ITEMS_LIST: (data.inbound_items || []).map(i => `☑ ${i}`).join("\n"),
 
     // ── Inspection type ──
     IS_REGULAR_INSPECTION: chk(data.inbound_type.includes("정기 반출 점검")),
