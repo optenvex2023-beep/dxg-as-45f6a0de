@@ -308,20 +308,8 @@ async function buildTemplateData(
     REPORT_DATE: safe(report.created_date),
     MANAGEMENT_NO: safe(inspection.manage_no),
 
-    // ── Model checkboxes (individual flags) ──
-    IS_DGA_X: chk(data.model_checks.includes("DGA-X")),
-    IS_DSM_XG: chk(data.model_checks.includes("DSM-XG")),
-    IS_RGA_60: chk(data.model_checks.includes("RGA-60")),
-    IS_RSM_61: chk(data.model_checks.includes("RSM-61")),
-    IS_TGA_50: chk(data.model_checks.includes("TGA-50")),
-    IS_LSM_30: chk(data.model_checks.includes("LSM-30")),
-    IS_GGA_70_1: chk(data.model_checks.includes("GGA-70-1")),
-    IS_PGA_91: chk(data.model_checks.includes("PGA-91")),
-    IS_OTHER_MODEL: chk(false),
-    OTHER_MODEL_NAME: "",
-
-    // ── Model multiline (linebreaks: true makes \n → actual line breaks in Word) ──
-    MODEL_LIST: (data.model_checks || []).map(m => `☑ ${m}`).join("\n"),
+    // ── Model checkboxes (fixed 8 models + 기타) ──
+    ...buildModelFlags(data.model_checks || []),
 
     // ── Inbound items ──
     IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
