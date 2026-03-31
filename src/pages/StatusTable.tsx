@@ -97,6 +97,7 @@ export default function StatusTable() {
   const [extraFilter, setExtraFilter] = useState<string>("없음");
   const [needOutbound, setNeedOutbound] = useState(false);
   const [needReinstall, setNeedReinstall] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
