@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download, ArrowLeft } from "lucide-react";
+import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
 import { isSuperAdmin } from "@/lib/permissions";
