@@ -336,7 +336,7 @@ export default function StatusTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((rec) => (
+            {searchFiltered.map((rec) => (
               <TableRow
                 key={rec.id}
                 className={cn(
