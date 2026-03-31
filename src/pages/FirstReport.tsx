@@ -55,6 +55,7 @@ export default function FirstReport() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [detailReportId, setDetailReportId] = useState<string | null>(null);
+  const [reportSearchKeyword, setReportSearchKeyword] = useState("");
 
   const superAdmin = isSuperAdmin(currentUser);
   const isManufacturing = superAdmin || currentUser?.department === "제조본부";
