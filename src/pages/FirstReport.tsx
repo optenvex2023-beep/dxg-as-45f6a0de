@@ -263,9 +263,22 @@ export default function FirstReport() {
 
       {/* ═══ Completed Reports List ═══ */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h2 className="text-sm font-semibold">작성완료된 보고서 리스트</h2>
-        {completedFirstReports.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">완료된 1차 점검보고서가 없습니다.</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold shrink-0">작성완료된 보고서 리스트</h2>
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="건명 / 관리번호 / Serial No 검색"
+              value={reportSearchKeyword}
+              onChange={e => setReportSearchKeyword(e.target.value)}
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
+        </div>
+        {filteredCompletedReports.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">
+            {reportSearchKeyword.trim() ? "검색 결과가 없습니다." : "완료된 1차 점검보고서가 없습니다."}
+          </p>
         ) : (
           <div className="overflow-auto">
             <Table>
@@ -282,7 +295,7 @@ export default function FirstReport() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedFirstReports.map(r => {
+                {filteredCompletedReports.map(r => {
                   const insp = inspections.find(i => i.id === r.inspection_id);
                   const equip = insp?.equipment_items.find(e => e.id === r.equipment_item_id);
                   const serial = r.serial_numbers[r.equipment_item_id] || equip?.serial_no || "";
