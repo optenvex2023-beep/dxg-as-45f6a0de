@@ -206,6 +206,7 @@ export default function StatusTable() {
     setNeedOutbound(false);
     setNeedReinstall(false);
     setDashboardFilter(null);
+    setSearchKeyword("");
     setSearchParams({});
   };
 
