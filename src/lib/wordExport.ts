@@ -191,6 +191,28 @@ const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }>
   { category: "프로브", item: "코너큐브 미러", key: "PROBE_CORNERMIRROR" },
 ];
 
+/** Fixed model list for template checkboxes */
+const FIXED_MODELS = ["DGA-X", "DSM-XG", "RGA-60", "RSM-61", "TGA-50", "LSM-30", "GGA-70-1", "PGA-91"];
+
+function buildModelFlags(selectedModels: string[]): Record<string, string> {
+  const flags: Record<string, string> = {
+    IS_DGA_X: chk(selectedModels.includes("DGA-X")),
+    IS_DSM_XG: chk(selectedModels.includes("DSM-XG")),
+    IS_RGA_60: chk(selectedModels.includes("RGA-60")),
+    IS_RSM_61: chk(selectedModels.includes("RSM-61")),
+    IS_TGA_50: chk(selectedModels.includes("TGA-50")),
+    IS_LSM_30: chk(selectedModels.includes("LSM-30")),
+    IS_GGA_70_1: chk(selectedModels.includes("GGA-70-1")),
+    IS_PGA_91: chk(selectedModels.includes("PGA-91")),
+  };
+  // 기타: any selected model NOT in the fixed 8
+  const otherModels = selectedModels.filter(m => !FIXED_MODELS.includes(m));
+  flags.IS_OTHER_MODEL = chk(otherModels.length > 0);
+  flags.OTHER_MODEL_NAME = otherModels.length > 0 ? otherModels.join(", ") : "";
+  flags.MODEL_LIST = "";
+  return flags;
+}
+
 function buildCheckFlags(items: InspectionCheckItem[]): Record<string, string> {
   const flags: Record<string, string> = {};
   for (const mapping of CHECK_ITEM_KEY_MAP) {
@@ -308,20 +330,8 @@ async function buildTemplateData(
     REPORT_DATE: safe(report.created_date),
     MANAGEMENT_NO: safe(inspection.manage_no),
 
-    // ── Model checkboxes (individual flags) ──
-    IS_DGA_X: chk(data.model_checks.includes("DGA-X")),
-    IS_DSM_XG: chk(data.model_checks.includes("DSM-XG")),
-    IS_RGA_60: chk(data.model_checks.includes("RGA-60")),
-    IS_RSM_61: chk(data.model_checks.includes("RSM-61")),
-    IS_TGA_50: chk(data.model_checks.includes("TGA-50")),
-    IS_LSM_30: chk(data.model_checks.includes("LSM-30")),
-    IS_GGA_70_1: chk(data.model_checks.includes("GGA-70-1")),
-    IS_PGA_91: chk(data.model_checks.includes("PGA-91")),
-    IS_OTHER_MODEL: chk(false),
-    OTHER_MODEL_NAME: "",
-
-    // ── Model multiline (linebreaks: true makes \n → actual line breaks in Word) ──
-    MODEL_LIST: (data.model_checks || []).map(m => `☑ ${m}`).join("\n"),
+    // ── Model checkboxes (fixed 8 models + 기타) ──
+    ...buildModelFlags(data.model_checks || []),
 
     // ── Inbound items ──
     IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
