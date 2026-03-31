@@ -395,10 +395,10 @@ export default function StatusTable() {
                 <TableCell className="text-xs">{rec.client_pic_phone}</TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {searchFiltered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
-                  데이터가 없습니다.
+                  {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
                 </TableCell>
               </TableRow>
             )}
