@@ -65,8 +65,17 @@ export default function FinalReport() {
 
   // Only inspections that have reached "1차 점검완료" or beyond
   const eligibleInspections = useMemo(() =>
-    inspections.filter(i => isAtLeastFirstDone(i.status) || i.first_inspection_done_date),
-    [inspections]
+    inspections.filter(i => {
+      if (!(isAtLeastFirstDone(i.status) || i.first_inspection_done_date)) return false;
+      // Exclude inspections where ALL equipment items already have a completed final report
+      const completedEquipIds = new Set(
+        reports
+          .filter(r => r.inspection_id === i.id && r.report_type === "final" && r.status !== "draft")
+          .map(r => r.equipment_item_id)
+      );
+      return i.equipment_items.some(eq => !completedEquipIds.has(eq.id));
+    }),
+    [inspections, reports]
   );
 
   const selectedInspection = inspections.find(i => i.id === selectedInspectionId) ?? null;
