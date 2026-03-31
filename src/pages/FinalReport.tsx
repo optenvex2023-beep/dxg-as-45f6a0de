@@ -783,22 +783,32 @@ function TemplateBody({
     upd({ summary_items: items });
   };
 
-  const handlePhotoUpload = (slotKey: string, files: FileList | null) => {
+  const handlePhotoUpload = async (slotKey: string, files: FileList | null) => {
     if (ro || !files) return;
     const photos = [...(data.photos || [])];
-    Array.from(files).forEach((file, i) => {
-      const url = URL.createObjectURL(file);
-      photos.push({
-        id: crypto.randomUUID(),
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const photoId = crypto.randomUUID();
+      const blobUrl = URL.createObjectURL(file);
+      const newPhoto: ReportPhoto = {
+        id: photoId,
         report_id: "",
-        file_url: url,
+        file_url: blobUrl,
         caption: "",
         page_slot: slotKey,
-        order_index: photos.filter(p => p.page_slot === slotKey).length + i,
+        order_index: photos.filter(p => p.page_slot === slotKey).length,
         uploaded_by: inspectorName,
         uploaded_at: new Date().toISOString(),
-      });
-    });
+      };
+      photos.push(newPhoto);
+      try {
+        const storagePath = await uploadReportPhoto(file, "final", photoId);
+        const idx = photos.findIndex(p => p.id === photoId);
+        if (idx !== -1) photos[idx] = { ...photos[idx], file_url: storagePath };
+      } catch (err) {
+        console.error("[FinalReport] photo upload failed, keeping blob URL:", err);
+      }
+    }
     upd({ photos });
   };
 
