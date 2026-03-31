@@ -169,7 +169,23 @@ export default function StatusTable() {
     return result;
   }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
 
-  const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
+  const searchFiltered = useMemo(() => {
+    const kw = searchKeyword.trim().toLowerCase();
+    if (!kw) return filtered;
+    return filtered.filter((rec) => {
+      const fields = [
+        rec.project_name,
+        rec.manage_no,
+        rec.special_note,
+        rec.client_pic_name,
+        rec.client_pic_phone,
+        ...(rec.equipment_items || []).flatMap((eq) => [eq.equipment_name, eq.serial_no]),
+      ];
+      return fields.some((f) => f != null && String(f).toLowerCase().includes(kw));
+    });
+  }, [filtered, searchKeyword]);
+
+  const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
 
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
