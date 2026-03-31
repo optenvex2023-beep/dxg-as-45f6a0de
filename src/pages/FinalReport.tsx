@@ -130,6 +130,25 @@ export default function FinalReport() {
       .sort((a, b) => b.created_date.localeCompare(a.created_date));
   }, [reports]);
 
+  const filteredCompletedReports = useMemo(() => {
+    const kw = reportSearchKeyword.trim().toLowerCase();
+    if (!kw) return completedFinalReports;
+    return completedFinalReports.filter(r => {
+      const insp = inspections.find(i => i.id === r.inspection_id);
+      const equip = insp?.equipment_items.find(e => e.id === r.equipment_item_id);
+      const serial = r.serial_numbers?.[r.equipment_item_id] || equip?.serial_no || "";
+      const targets = [
+        insp?.manage_no || "",
+        insp?.project_name || "",
+        equip?.equipment_name || "",
+        serial,
+        r.inspector_name || "",
+        r.created_date || "",
+      ];
+      return targets.some(t => t.toLowerCase().includes(kw));
+    });
+  }, [completedFinalReports, reportSearchKeyword, inspections]);
+
   const detailReport = detailReportId ? reports.find(r => r.id === detailReportId) ?? null : null;
   const detailInspection = detailReport ? inspections.find(i => i.id === detailReport.inspection_id) ?? null : null;
   const detailEquipment = detailInspection?.equipment_items.find(e => e.id === detailReport?.equipment_item_id) ?? null;
