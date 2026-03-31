@@ -291,6 +291,16 @@ export default function StatusTable() {
           </label>
         </div>
 
+        <div className="flex items-center gap-2 ml-auto">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="건명 / 관리번호 / Serial No 검색"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            className="h-8 text-xs w-[220px] bg-background"
+          />
+        </div>
+
         {hasActiveFilter && (
           <>
             <div className="h-4 w-px bg-border" />
