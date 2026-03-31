@@ -3,6 +3,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import { saveAs } from "file-saver";
 import type { OutboundInspection, InspectionReport, InspectionCheckItem } from "@/types";
+import { resolvePhotoUrl } from "@/lib/reportPhotoStorage";
 
 const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
