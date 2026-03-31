@@ -66,8 +66,17 @@ export default function FirstReport() {
   const canApprove = isQC || isAdmin;
 
   const eligibleInspections = useMemo(() =>
-    inspections.filter(i => isAtLeastInbound(i.status) || i.due_warning),
-    [inspections]
+    inspections.filter(i => {
+      if (!(isAtLeastInbound(i.status) || i.due_warning)) return false;
+      // Exclude inspections where ALL equipment items already have a completed first report
+      const completedEquipIds = new Set(
+        reports
+          .filter(r => r.inspection_id === i.id && r.report_type === "first" && r.status !== "draft")
+          .map(r => r.equipment_item_id)
+      );
+      return i.equipment_items.some(eq => !completedEquipIds.has(eq.id));
+    }),
+    [inspections, reports]
   );
 
   const selectedInspection = inspections.find(i => i.id === selectedInspectionId) ?? null;
