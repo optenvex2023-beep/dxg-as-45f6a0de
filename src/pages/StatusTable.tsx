@@ -36,7 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { isSuperAdmin, canRegister, canEditAdminFields, canEditCSFields, canEditMfgFields } from "@/lib/permissions";
 import { isEmpty, isInProgress, isExcludedFromDue7 } from "@/lib/inspectionFilters";
@@ -97,6 +97,7 @@ export default function StatusTable() {
   const [extraFilter, setExtraFilter] = useState<string>("없음");
   const [needOutbound, setNeedOutbound] = useState(false);
   const [needReinstall, setNeedReinstall] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -168,7 +169,23 @@ export default function StatusTable() {
     return result;
   }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
 
-  const selectedRecord = useMemo(() => filtered.find((r) => r.id === selectedId) ?? null, [filtered, selectedId]);
+  const searchFiltered = useMemo(() => {
+    const kw = searchKeyword.trim().toLowerCase();
+    if (!kw) return filtered;
+    return filtered.filter((rec) => {
+      const fields = [
+        rec.project_name,
+        rec.manage_no,
+        rec.special_note,
+        rec.client_pic_name,
+        rec.client_pic_phone,
+        ...(rec.equipment_items || []).flatMap((eq) => [eq.equipment_name, eq.serial_no]),
+      ];
+      return fields.some((f) => f != null && String(f).toLowerCase().includes(kw));
+    });
+  }, [filtered, searchKeyword]);
+
+  const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
 
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
@@ -180,7 +197,7 @@ export default function StatusTable() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall || dashboardFilter != null;
+  const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall || dashboardFilter != null || searchKeyword.trim() !== "";
 
   const resetFilters = () => {
     setLocalStatusFilter("전체");
@@ -189,6 +206,7 @@ export default function StatusTable() {
     setNeedOutbound(false);
     setNeedReinstall(false);
     setDashboardFilter(null);
+    setSearchKeyword("");
     setSearchParams({});
   };
 
@@ -273,6 +291,16 @@ export default function StatusTable() {
           </label>
         </div>
 
+        <div className="flex items-center gap-2 ml-auto">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="건명 / 관리번호 / Serial No 검색"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            className="h-8 text-xs w-[220px] bg-background"
+          />
+        </div>
+
         {hasActiveFilter && (
           <>
             <div className="h-4 w-px bg-border" />
@@ -308,7 +336,7 @@ export default function StatusTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((rec) => (
+            {searchFiltered.map((rec) => (
               <TableRow
                 key={rec.id}
                 className={cn(
@@ -367,10 +395,10 @@ export default function StatusTable() {
                 <TableCell className="text-xs">{rec.client_pic_phone}</TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {searchFiltered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
-                  데이터가 없습니다.
+                  {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
                 </TableCell>
               </TableRow>
             )}
