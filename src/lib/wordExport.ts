@@ -332,7 +332,7 @@ async function buildTemplateData(
   console.log("[WordExport] modelFlags:", modelFlags);
 
   // Build inbound item flags with debug
-  const inboundFlags: Record<string, string> = {
+  const inboundFlags: Record<string, unknown> = {
     IS_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
     IS_ACU: chk(selectedInboundItems.includes("ACU")),
     IS_PROBE: chk(selectedInboundItems.includes("Probe")),
