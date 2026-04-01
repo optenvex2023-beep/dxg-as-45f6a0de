@@ -341,7 +341,7 @@ export default function StatusTable() {
                 key={rec.id}
                 className={cn(
                   "cursor-pointer transition-colors",
-                  rec.due_warning && "border-l-4 border-l-accent bg-accent/5",
+                  rec.due_warning && "border-l-4 border-l-destructive bg-destructive/5",
                   selectedId === rec.id && "bg-primary/10 ring-1 ring-primary/30"
                 )}
                 onClick={() => handleRowClick(rec.id)}
