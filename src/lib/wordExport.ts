@@ -341,11 +341,12 @@ async function buildTemplateData(
     IS_ACU: chk(selectedInboundItems.includes("ACU")),
     IS_PROBE: chk(selectedInboundItems.includes("Probe")),
     IS_PURGE_AIR_UNIT: chk(selectedInboundItems.includes("Purge Air Unit")),
+    IS_OTHER_UNIT: chk(selectedInboundItems.includes("기타")),
     CHECK_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
     CHECK_ACU: chk(selectedInboundItems.includes("ACU")),
     CHECK_PROBE: chk(selectedInboundItems.includes("Probe")),
     CHECK_PURGE: chk(selectedInboundItems.includes("Purge Air Unit")),
-    CHECK_ETC: chk(false),
+    CHECK_ETC: chk(selectedInboundItems.includes("기타")),
     INCOMING_ETC_TEXT: "",
   };
   console.log("[WordExport] inboundFlags:", inboundFlags);
