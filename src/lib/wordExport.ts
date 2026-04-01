@@ -294,11 +294,15 @@ async function buildTemplateData(
   const selectedModels = toStringArray(data.model_checks);
   const selectedInboundItems = toStringArray(data.inbound_items);
   const selectedInboundType = toStringArray(data.inbound_type);
+  const selectedVoltageMain = toStringArray(data.voltage_main);
+  const selectedVoltagePurge = toStringArray(data.voltage_purge);
   const selectedMeasureGas = toStringArray(data.measure_gas);
   const selectedInstallType = toStringArray(data.install_type);
 
   console.log("[WordExport] selectedModels:", selectedModels);
   console.log("[WordExport] selectedInboundItems:", selectedInboundItems);
+  console.log("[WordExport] selectedVoltageMain:", selectedVoltageMain);
+  console.log("[WordExport] selectedVoltagePurge:", selectedVoltagePurge);
   console.log("[WordExport] selectedMeasureGas:", selectedMeasureGas);
   console.log("[WordExport] selectedInstallType:", selectedInstallType);
 
