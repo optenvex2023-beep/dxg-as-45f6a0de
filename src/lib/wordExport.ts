@@ -419,6 +419,7 @@ async function buildTemplateData(
     REPLACEMENT_LIST: (data.replacement_parts || []).map(p => ({
       ITEM_NAME: safe(p.name),
       ITEM_QT: safe(p.qty),
+      ITEM_QTY: safe(p.qty),
       ITEM_STATUS: safe(p.status),
       ITEM_COMMENT: safe(p.note),
     })),
