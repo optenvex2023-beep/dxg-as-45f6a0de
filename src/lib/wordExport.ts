@@ -195,7 +195,7 @@ const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }>
 const FIXED_MODELS = ["DGA-X", "DSM-XG", "RGA-60", "RSM-61", "TGA-50", "LSM-30", "GGA-70-1", "PGA-91"];
 
 function buildModelFlags(selectedModels: string[]): Record<string, unknown> {
-  const flags: Record<string, string> = {
+  const flags: Record<string, unknown> = {
     IS_DGA_X: chk(selectedModels.includes("DGA-X")),
     IS_DSM_XG: chk(selectedModels.includes("DSM-XG")),
     IS_RGA_60: chk(selectedModels.includes("RGA-60")),
