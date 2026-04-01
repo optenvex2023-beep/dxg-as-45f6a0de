@@ -385,6 +385,12 @@ async function buildTemplateData(
     IS_EMERGENCY_INSPECTION: chk(selectedInboundType.includes("긴급 점검")),
     IS_INCOMING_INSPECTION: chk(selectedInboundType.includes("입고 점검")),
 
+    // ── Voltage ──
+    CHECK_MAIN_110V: chk(selectedVoltageMain.includes("110V")),
+    CHECK_MAIN_220V: chk(selectedVoltageMain.includes("220V")),
+    CHECK_PURGE_220V: chk(selectedVoltagePurge.includes("220V")),
+    CHECK_PURGE_380_480V: chk(selectedVoltagePurge.includes("380-480V")),
+
     // ── Basic check: gas ──
     CHECK_GAS_NOX: chk(selectedMeasureGas.includes("NOx")),
     CHECK_GAS_NO2: chk(selectedMeasureGas.includes("NO2")),
@@ -393,6 +399,9 @@ async function buildTemplateData(
     CHECK_GAS_CO: chk(selectedMeasureGas.includes("CO")),
     CHECK_GAS_HCL: chk(selectedMeasureGas.includes("HCl")),
     CHECK_GAS_O2: chk(selectedMeasureGas.includes("O2")),
+    CHECK_GAS_FLOW: chk(selectedMeasureGas.includes("Flow")),
+    CHECK_GAS_ETC: chk(false),
+    GAS_ETC_TEXT: "",
 
     // ── Basic check: install type ──
     CHECK_INSTALL_BLR: chk(selectedInstallType.includes("BLR")),
