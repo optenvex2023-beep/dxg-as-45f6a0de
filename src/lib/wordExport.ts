@@ -370,40 +370,31 @@ async function buildTemplateData(
     ...modelFlags,
 
     // ── Inbound items ──
-    IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
-    IS_ACU: chk(data.inbound_items.includes("ACU")),
-    IS_PROBE: chk(data.inbound_items.includes("Probe")),
-    IS_PURGE_AIR_UNIT: chk(data.inbound_items.includes("Purge Air Unit")),
-    CHECK_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
-    CHECK_ACU: chk(data.inbound_items.includes("ACU")),
-    CHECK_PROBE: chk(data.inbound_items.includes("Probe")),
-    CHECK_PURGE: chk(data.inbound_items.includes("Purge Air Unit")),
-    CHECK_ETC: chk(false),
-    INCOMING_ETC_TEXT: "",
+    ...inboundFlags,
 
     // ── Inbound items multiline ──
-    INBOUND_ITEMS_LIST: (data.inbound_items || []).map(i => `☑ ${i}`).join("\n"),
+    INBOUND_ITEMS_LIST: selectedInboundItems.map(i => `☑ ${i}`).join("\n"),
 
     // ── Inspection type ──
-    IS_REGULAR_INSPECTION: chk(data.inbound_type.includes("정기 반출 점검")),
-    IS_EMERGENCY_INSPECTION: chk(data.inbound_type.includes("긴급 점검")),
-    IS_INCOMING_INSPECTION: chk(data.inbound_type.includes("입고 점검")),
+    IS_REGULAR_INSPECTION: chk(selectedInboundType.includes("정기 반출 점검")),
+    IS_EMERGENCY_INSPECTION: chk(selectedInboundType.includes("긴급 점검")),
+    IS_INCOMING_INSPECTION: chk(selectedInboundType.includes("입고 점검")),
 
     // ── Basic check: gas ──
-    CHECK_GAS_NOX: chk(data.measure_gas.includes("NOx")),
-    CHECK_GAS_NO2: chk(data.measure_gas.includes("NO2")),
-    CHECK_GAS_SO2: chk(data.measure_gas.includes("SO2")),
-    CHECK_GAS_NH3: chk(data.measure_gas.includes("NH3")),
-    CHECK_GAS_CO: chk(data.measure_gas.includes("CO")),
-    CHECK_GAS_HCL: chk(data.measure_gas.includes("HCl")),
-    CHECK_GAS_O2: chk(data.measure_gas.includes("O2")),
+    CHECK_GAS_NOX: chk(selectedMeasureGas.includes("NOx")),
+    CHECK_GAS_NO2: chk(selectedMeasureGas.includes("NO2")),
+    CHECK_GAS_SO2: chk(selectedMeasureGas.includes("SO2")),
+    CHECK_GAS_NH3: chk(selectedMeasureGas.includes("NH3")),
+    CHECK_GAS_CO: chk(selectedMeasureGas.includes("CO")),
+    CHECK_GAS_HCL: chk(selectedMeasureGas.includes("HCl")),
+    CHECK_GAS_O2: chk(selectedMeasureGas.includes("O2")),
 
     // ── Basic check: install type ──
-    CHECK_INSTALL_BLR: chk(data.install_type.includes("BLR")),
-    CHECK_INSTALL_SCR: chk(data.install_type.includes("SCR")),
-    CHECK_INSTALL_ESP: chk(data.install_type.includes("ESP")),
-    CHECK_INSTALL_FGD: chk(data.install_type.includes("FGD")),
-    CHECK_INSTALL_TMS: chk(data.install_type.includes("TMS")),
+    CHECK_INSTALL_BLR: chk(selectedInstallType.includes("BLR")),
+    CHECK_INSTALL_SCR: chk(selectedInstallType.includes("SCR")),
+    CHECK_INSTALL_ESP: chk(selectedInstallType.includes("ESP")),
+    CHECK_INSTALL_FGD: chk(selectedInstallType.includes("FGD")),
+    CHECK_INSTALL_TMS: chk(selectedInstallType.includes("TMS")),
     CHECK_INSTALL_ETC: chk(false),
     INSTALL_ETC_TEXT: "",
 
