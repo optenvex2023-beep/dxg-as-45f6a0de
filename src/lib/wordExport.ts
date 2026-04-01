@@ -16,9 +16,9 @@ function safe(val: unknown): string {
   return s === "undefined" || s === "null" ? "" : s;
 }
 
-/** Boolean → checkbox character */
-function chk(val: boolean): string {
-  return val ? "☑" : "☐";
+/** Boolean flag for conditional sections in docxtemplater */
+function chk(val: boolean): boolean {
+  return val;
 }
 
 /* ─── Fetch image as base64 ─── */
@@ -194,8 +194,8 @@ const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }>
 /** Fixed model list for template checkboxes */
 const FIXED_MODELS = ["DGA-X", "DSM-XG", "RGA-60", "RSM-61", "TGA-50", "LSM-30", "GGA-70-1", "PGA-91"];
 
-function buildModelFlags(selectedModels: string[]): Record<string, string> {
-  const flags: Record<string, string> = {
+function buildModelFlags(selectedModels: string[]): Record<string, unknown> {
+  const flags: Record<string, unknown> = {
     IS_DGA_X: chk(selectedModels.includes("DGA-X")),
     IS_DSM_XG: chk(selectedModels.includes("DSM-XG")),
     IS_RGA_60: chk(selectedModels.includes("RGA-60")),
@@ -213,8 +213,8 @@ function buildModelFlags(selectedModels: string[]): Record<string, string> {
   return flags;
 }
 
-function buildCheckFlags(items: InspectionCheckItem[]): Record<string, string> {
-  const flags: Record<string, string> = {};
+function buildCheckFlags(items: InspectionCheckItem[]): Record<string, unknown> {
+  const flags: Record<string, unknown> = {};
   for (const mapping of CHECK_ITEM_KEY_MAP) {
     const item = items.find(i => i.category === mapping.category && i.item === mapping.item);
     flags[`CHECK_${mapping.key}_OK`] = chk(item?.result === "양호");
@@ -294,11 +294,15 @@ async function buildTemplateData(
   const selectedModels = toStringArray(data.model_checks);
   const selectedInboundItems = toStringArray(data.inbound_items);
   const selectedInboundType = toStringArray(data.inbound_type);
+  const selectedVoltageMain = toStringArray(data.voltage_main);
+  const selectedVoltagePurge = toStringArray(data.voltage_purge);
   const selectedMeasureGas = toStringArray(data.measure_gas);
   const selectedInstallType = toStringArray(data.install_type);
 
   console.log("[WordExport] selectedModels:", selectedModels);
   console.log("[WordExport] selectedInboundItems:", selectedInboundItems);
+  console.log("[WordExport] selectedVoltageMain:", selectedVoltageMain);
+  console.log("[WordExport] selectedVoltagePurge:", selectedVoltagePurge);
   console.log("[WordExport] selectedMeasureGas:", selectedMeasureGas);
   console.log("[WordExport] selectedInstallType:", selectedInstallType);
 
@@ -332,16 +336,17 @@ async function buildTemplateData(
   console.log("[WordExport] modelFlags:", modelFlags);
 
   // Build inbound item flags with debug
-  const inboundFlags: Record<string, string> = {
+  const inboundFlags: Record<string, unknown> = {
     IS_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
     IS_ACU: chk(selectedInboundItems.includes("ACU")),
     IS_PROBE: chk(selectedInboundItems.includes("Probe")),
     IS_PURGE_AIR_UNIT: chk(selectedInboundItems.includes("Purge Air Unit")),
+    IS_OTHER_UNIT: chk(selectedInboundItems.includes("기타")),
     CHECK_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
     CHECK_ACU: chk(selectedInboundItems.includes("ACU")),
     CHECK_PROBE: chk(selectedInboundItems.includes("Probe")),
     CHECK_PURGE: chk(selectedInboundItems.includes("Purge Air Unit")),
-    CHECK_ETC: chk(false),
+    CHECK_ETC: chk(selectedInboundItems.includes("기타")),
     INCOMING_ETC_TEXT: "",
   };
   console.log("[WordExport] inboundFlags:", inboundFlags);
@@ -380,6 +385,12 @@ async function buildTemplateData(
     IS_EMERGENCY_INSPECTION: chk(selectedInboundType.includes("긴급 점검")),
     IS_INCOMING_INSPECTION: chk(selectedInboundType.includes("입고 점검")),
 
+    // ── Voltage ──
+    CHECK_MAIN_110V: chk(selectedVoltageMain.includes("110V")),
+    CHECK_MAIN_220V: chk(selectedVoltageMain.includes("220V")),
+    CHECK_PURGE_220V: chk(selectedVoltagePurge.includes("220V")),
+    CHECK_PURGE_380_480V: chk(selectedVoltagePurge.includes("380-480V")),
+
     // ── Basic check: gas ──
     CHECK_GAS_NOX: chk(selectedMeasureGas.includes("NOx")),
     CHECK_GAS_NO2: chk(selectedMeasureGas.includes("NO2")),
@@ -388,6 +399,9 @@ async function buildTemplateData(
     CHECK_GAS_CO: chk(selectedMeasureGas.includes("CO")),
     CHECK_GAS_HCL: chk(selectedMeasureGas.includes("HCl")),
     CHECK_GAS_O2: chk(selectedMeasureGas.includes("O2")),
+    CHECK_GAS_FLOW: chk(selectedMeasureGas.includes("Flow")),
+    CHECK_GAS_ETC: chk(false),
+    GAS_ETC_TEXT: "",
 
     // ── Basic check: install type ──
     CHECK_INSTALL_BLR: chk(selectedInstallType.includes("BLR")),
@@ -405,6 +419,7 @@ async function buildTemplateData(
     REPLACEMENT_LIST: (data.replacement_parts || []).map(p => ({
       ITEM_NAME: safe(p.name),
       ITEM_QT: safe(p.qty),
+      ITEM_QTY: safe(p.qty),
       ITEM_STATUS: safe(p.status),
       ITEM_COMMENT: safe(p.note),
     })),
