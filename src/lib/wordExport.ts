@@ -214,7 +214,7 @@ function buildModelFlags(selectedModels: string[]): Record<string, unknown> {
 }
 
 function buildCheckFlags(items: InspectionCheckItem[]): Record<string, unknown> {
-  const flags: Record<string, string> = {};
+  const flags: Record<string, unknown> = {};
   for (const mapping of CHECK_ITEM_KEY_MAP) {
     const item = items.find(i => i.category === mapping.category && i.item === mapping.item);
     flags[`CHECK_${mapping.key}_OK`] = chk(item?.result === "양호");
