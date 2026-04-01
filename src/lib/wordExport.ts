@@ -213,7 +213,7 @@ function buildModelFlags(selectedModels: string[]): Record<string, unknown> {
   return flags;
 }
 
-function buildCheckFlags(items: InspectionCheckItem[]): Record<string, string> {
+function buildCheckFlags(items: InspectionCheckItem[]): Record<string, unknown> {
   const flags: Record<string, string> = {};
   for (const mapping of CHECK_ITEM_KEY_MAP) {
     const item = items.find(i => i.category === mapping.category && i.item === mapping.item);
