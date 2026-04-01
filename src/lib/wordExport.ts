@@ -16,9 +16,9 @@ function safe(val: unknown): string {
   return s === "undefined" || s === "null" ? "" : s;
 }
 
-/** Boolean → checkbox character */
-function chk(val: boolean): string {
-  return val ? "☑" : "☐";
+/** Boolean flag for conditional sections in docxtemplater */
+function chk(val: boolean): boolean {
+  return val;
 }
 
 /* ─── Fetch image as base64 ─── */
