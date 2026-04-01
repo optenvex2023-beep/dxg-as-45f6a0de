@@ -275,6 +275,12 @@ async function fetchAllPhotoImages(photos: Array<{ id: string; file_url: string 
 }
 
 /* ─── Build full template data object ─── */
+/** Safely coerce a JSON value to string[] */
+function toStringArray(val: unknown): string[] {
+  if (Array.isArray(val)) return val.filter(v => typeof v === "string");
+  return [];
+}
+
 async function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
@@ -283,6 +289,18 @@ async function buildTemplateData(
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
   const serialNo = safe(report.serial_numbers[report.equipment_item_id]) || safe(equipItem?.serial_no);
+
+  // Safely extract arrays from JSON data
+  const selectedModels = toStringArray(data.model_checks);
+  const selectedInboundItems = toStringArray(data.inbound_items);
+  const selectedInboundType = toStringArray(data.inbound_type);
+  const selectedMeasureGas = toStringArray(data.measure_gas);
+  const selectedInstallType = toStringArray(data.install_type);
+
+  console.log("[WordExport] selectedModels:", selectedModels);
+  console.log("[WordExport] selectedInboundItems:", selectedInboundItems);
+  console.log("[WordExport] selectedMeasureGas:", selectedMeasureGas);
+  console.log("[WordExport] selectedInstallType:", selectedInstallType);
 
   // Pre-fetch all photo images
   const photoImageMap = await fetchAllPhotoImages(data.photos || []);
@@ -309,8 +327,27 @@ async function buildTemplateData(
   // QA signature: only when explicitly reviewed
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
 
+  // Build model flags with debug
+  const modelFlags = buildModelFlags(selectedModels);
+  console.log("[WordExport] modelFlags:", modelFlags);
+
+  // Build inbound item flags with debug
+  const inboundFlags: Record<string, string> = {
+    IS_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
+    IS_ACU: chk(selectedInboundItems.includes("ACU")),
+    IS_PROBE: chk(selectedInboundItems.includes("Probe")),
+    IS_PURGE_AIR_UNIT: chk(selectedInboundItems.includes("Purge Air Unit")),
+    CHECK_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
+    CHECK_ACU: chk(selectedInboundItems.includes("ACU")),
+    CHECK_PROBE: chk(selectedInboundItems.includes("Probe")),
+    CHECK_PURGE: chk(selectedInboundItems.includes("Purge Air Unit")),
+    CHECK_ETC: chk(false),
+    INCOMING_ETC_TEXT: "",
+  };
+  console.log("[WordExport] inboundFlags:", inboundFlags);
+
   const raw: Record<string, unknown> = {
-    // ── Cover page ── (keys must match template placeholders exactly)
+    // ── Cover page ──
     INSPECTOR_NAME: safe(report.inspector_name),
     INSPECTOR_NAM: safe(report.inspector_name),
     DEPT_HEAD_NAME: safe(data.department_head),
@@ -318,7 +355,6 @@ async function buildTemplateData(
     QA_REVIEWER_NAME: qaReviewDone ? safe(report.qa_reviewer_name) : "",
     QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name) : "",
 
-    // Image tag – base64 data for image module (empty string = no image)
     QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
@@ -331,43 +367,34 @@ async function buildTemplateData(
     MANAGEMENT_NO: safe(inspection.manage_no),
 
     // ── Model checkboxes (fixed 8 models + 기타) ──
-    ...buildModelFlags(data.model_checks || []),
+    ...modelFlags,
 
     // ── Inbound items ──
-    IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
-    IS_ACU: chk(data.inbound_items.includes("ACU")),
-    IS_PROBE: chk(data.inbound_items.includes("Probe")),
-    IS_PURGE_AIR_UNIT: chk(data.inbound_items.includes("Purge Air Unit")),
-    CHECK_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
-    CHECK_ACU: chk(data.inbound_items.includes("ACU")),
-    CHECK_PROBE: chk(data.inbound_items.includes("Probe")),
-    CHECK_PURGE: chk(data.inbound_items.includes("Purge Air Unit")),
-    CHECK_ETC: chk(false),
-    INCOMING_ETC_TEXT: "",
+    ...inboundFlags,
 
     // ── Inbound items multiline ──
-    INBOUND_ITEMS_LIST: (data.inbound_items || []).map(i => `☑ ${i}`).join("\n"),
+    INBOUND_ITEMS_LIST: selectedInboundItems.map(i => `☑ ${i}`).join("\n"),
 
     // ── Inspection type ──
-    IS_REGULAR_INSPECTION: chk(data.inbound_type.includes("정기 반출 점검")),
-    IS_EMERGENCY_INSPECTION: chk(data.inbound_type.includes("긴급 점검")),
-    IS_INCOMING_INSPECTION: chk(data.inbound_type.includes("입고 점검")),
+    IS_REGULAR_INSPECTION: chk(selectedInboundType.includes("정기 반출 점검")),
+    IS_EMERGENCY_INSPECTION: chk(selectedInboundType.includes("긴급 점검")),
+    IS_INCOMING_INSPECTION: chk(selectedInboundType.includes("입고 점검")),
 
     // ── Basic check: gas ──
-    CHECK_GAS_NOX: chk(data.measure_gas.includes("NOx")),
-    CHECK_GAS_NO2: chk(data.measure_gas.includes("NO2")),
-    CHECK_GAS_SO2: chk(data.measure_gas.includes("SO2")),
-    CHECK_GAS_NH3: chk(data.measure_gas.includes("NH3")),
-    CHECK_GAS_CO: chk(data.measure_gas.includes("CO")),
-    CHECK_GAS_HCL: chk(data.measure_gas.includes("HCl")),
-    CHECK_GAS_O2: chk(data.measure_gas.includes("O2")),
+    CHECK_GAS_NOX: chk(selectedMeasureGas.includes("NOx")),
+    CHECK_GAS_NO2: chk(selectedMeasureGas.includes("NO2")),
+    CHECK_GAS_SO2: chk(selectedMeasureGas.includes("SO2")),
+    CHECK_GAS_NH3: chk(selectedMeasureGas.includes("NH3")),
+    CHECK_GAS_CO: chk(selectedMeasureGas.includes("CO")),
+    CHECK_GAS_HCL: chk(selectedMeasureGas.includes("HCl")),
+    CHECK_GAS_O2: chk(selectedMeasureGas.includes("O2")),
 
     // ── Basic check: install type ──
-    CHECK_INSTALL_BLR: chk(data.install_type.includes("BLR")),
-    CHECK_INSTALL_SCR: chk(data.install_type.includes("SCR")),
-    CHECK_INSTALL_ESP: chk(data.install_type.includes("ESP")),
-    CHECK_INSTALL_FGD: chk(data.install_type.includes("FGD")),
-    CHECK_INSTALL_TMS: chk(data.install_type.includes("TMS")),
+    CHECK_INSTALL_BLR: chk(selectedInstallType.includes("BLR")),
+    CHECK_INSTALL_SCR: chk(selectedInstallType.includes("SCR")),
+    CHECK_INSTALL_ESP: chk(selectedInstallType.includes("ESP")),
+    CHECK_INSTALL_FGD: chk(selectedInstallType.includes("FGD")),
+    CHECK_INSTALL_TMS: chk(selectedInstallType.includes("TMS")),
     CHECK_INSTALL_ETC: chk(false),
     INSTALL_ETC_TEXT: "",
 
