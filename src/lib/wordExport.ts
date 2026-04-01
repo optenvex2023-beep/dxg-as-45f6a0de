@@ -275,6 +275,12 @@ async function fetchAllPhotoImages(photos: Array<{ id: string; file_url: string 
 }
 
 /* ─── Build full template data object ─── */
+/** Safely coerce a JSON value to string[] */
+function toStringArray(val: unknown): string[] {
+  if (Array.isArray(val)) return val.filter(v => typeof v === "string");
+  return [];
+}
+
 async function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
@@ -283,6 +289,18 @@ async function buildTemplateData(
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
   const serialNo = safe(report.serial_numbers[report.equipment_item_id]) || safe(equipItem?.serial_no);
+
+  // Safely extract arrays from JSON data
+  const selectedModels = toStringArray(data.model_checks);
+  const selectedInboundItems = toStringArray(data.inbound_items);
+  const selectedInboundType = toStringArray(data.inbound_type);
+  const selectedMeasureGas = toStringArray(data.measure_gas);
+  const selectedInstallType = toStringArray(data.install_type);
+
+  console.log("[WordExport] selectedModels:", selectedModels);
+  console.log("[WordExport] selectedInboundItems:", selectedInboundItems);
+  console.log("[WordExport] selectedMeasureGas:", selectedMeasureGas);
+  console.log("[WordExport] selectedInstallType:", selectedInstallType);
 
   // Pre-fetch all photo images
   const photoImageMap = await fetchAllPhotoImages(data.photos || []);
@@ -309,8 +327,27 @@ async function buildTemplateData(
   // QA signature: only when explicitly reviewed
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
 
+  // Build model flags with debug
+  const modelFlags = buildModelFlags(selectedModels);
+  console.log("[WordExport] modelFlags:", modelFlags);
+
+  // Build inbound item flags with debug
+  const inboundFlags: Record<string, string> = {
+    IS_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
+    IS_ACU: chk(selectedInboundItems.includes("ACU")),
+    IS_PROBE: chk(selectedInboundItems.includes("Probe")),
+    IS_PURGE_AIR_UNIT: chk(selectedInboundItems.includes("Purge Air Unit")),
+    CHECK_MAIN_UNIT: chk(selectedInboundItems.includes("Main Unit")),
+    CHECK_ACU: chk(selectedInboundItems.includes("ACU")),
+    CHECK_PROBE: chk(selectedInboundItems.includes("Probe")),
+    CHECK_PURGE: chk(selectedInboundItems.includes("Purge Air Unit")),
+    CHECK_ETC: chk(false),
+    INCOMING_ETC_TEXT: "",
+  };
+  console.log("[WordExport] inboundFlags:", inboundFlags);
+
   const raw: Record<string, unknown> = {
-    // ── Cover page ── (keys must match template placeholders exactly)
+    // ── Cover page ──
     INSPECTOR_NAME: safe(report.inspector_name),
     INSPECTOR_NAM: safe(report.inspector_name),
     DEPT_HEAD_NAME: safe(data.department_head),
@@ -318,7 +355,6 @@ async function buildTemplateData(
     QA_REVIEWER_NAME: qaReviewDone ? safe(report.qa_reviewer_name) : "",
     QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name) : "",
 
-    // Image tag – base64 data for image module (empty string = no image)
     QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
@@ -331,7 +367,7 @@ async function buildTemplateData(
     MANAGEMENT_NO: safe(inspection.manage_no),
 
     // ── Model checkboxes (fixed 8 models + 기타) ──
-    ...buildModelFlags(data.model_checks || []),
+    ...modelFlags,
 
     // ── Inbound items ──
     IS_MAIN_UNIT: chk(data.inbound_items.includes("Main Unit")),
