@@ -723,13 +723,13 @@ function StatusBadge({ status }: { status: StatusType }) {
     "반출예정": "bg-primary/10 text-primary",
     "반출완료": "bg-primary/15 text-primary",
     "입고완료": "bg-accent/10 text-accent",
-    "1차 점검완료": "bg-accent/15 text-accent",
+    "1차 점검완료": "bg-[hsl(100,45%,90%)] text-[hsl(100,45%,30%)]",
     "최종 점검완료": "bg-accent/20 text-accent",
     "설치 완료": "bg-primary/20 text-primary",
     "납기유의": "border-destructive text-destructive font-semibold bg-destructive/10",
   };
   return (
-    <span className={cn("inline-block rounded-full px-3 py-1.5 text-[10px] font-medium whitespace-nowrap leading-tight text-center", colors[status])}>
+    <span className={cn("inline-flex items-center justify-center rounded-full px-4 py-1 text-[10px] font-medium whitespace-nowrap leading-normal text-center", colors[status])}>
       {status}
     </span>
   );
