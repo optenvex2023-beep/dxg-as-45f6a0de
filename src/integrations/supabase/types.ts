@@ -251,6 +251,8 @@ export type Database = {
           inspection_id: string
           inspection_result: string
           inspector_name: string
+          manufacturing_review_completed: boolean
+          manufacturing_reviewed_at: string | null
           qa_notification_sent_to_sales: boolean
           qa_review_status: string
           qa_reviewed_at: string | null
@@ -274,6 +276,8 @@ export type Database = {
           inspection_id: string
           inspection_result?: string
           inspector_name?: string
+          manufacturing_review_completed?: boolean
+          manufacturing_reviewed_at?: string | null
           qa_notification_sent_to_sales?: boolean
           qa_review_status?: string
           qa_reviewed_at?: string | null
@@ -297,6 +301,8 @@ export type Database = {
           inspection_id?: string
           inspection_result?: string
           inspector_name?: string
+          manufacturing_review_completed?: boolean
+          manufacturing_reviewed_at?: string | null
           qa_notification_sent_to_sales?: boolean
           qa_review_status?: string
           qa_reviewed_at?: string | null
