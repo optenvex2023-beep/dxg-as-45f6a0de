@@ -45,6 +45,9 @@ function rewriteImageTags(zip: PizZip) {
   content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{{%QA_SIGNATURE_IMAG}}");
   content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{{%QA_SIGNATURE_IMAGE}}");
   content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "{{%QA_SIGNATURE}}");
+  // MFG signature tags
+  content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "{{%MFG_SIGNATURE_IMAGE}}");
+  content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "{{%MFG_SIGNATURE}}");
   // Photo image tags (inside loops and top-level)
   content = content.replace(/\{\{LEFT_IMAGE\}\}/g, "{{%LEFT_IMAGE}}");
   content = content.replace(/\{\{RIGHT_IMAGE\}\}/g, "{{%RIGHT_IMAGE}}");
