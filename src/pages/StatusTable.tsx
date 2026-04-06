@@ -36,7 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, X, Search } from "lucide-react";
+import { Plus, Trash2, X, Search, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { isSuperAdmin, canRegister, canEditAdminFields, canEditCSFields, canEditMfgFields } from "@/lib/permissions";
 import { isEmpty, isInProgress, isExcludedFromDue7 } from "@/lib/inspectionFilters";
