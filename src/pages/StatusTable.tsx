@@ -503,6 +503,11 @@ export default function StatusTable() {
             </Button>
           </>
         )}
+        {selectedId && selectedRecord && canClose(selectedRecord) && (
+          <Button variant="outline" onClick={handleClose} className="gap-1 border-accent text-accent hover:bg-accent/10">
+            <CheckCircle2 className="h-4 w-4" /> 종결
+          </Button>
+        )}
         {isCS && selectedId && selectedRecord && (
           <Button onClick={() => setCsModalOpen(true)}>반출예정/반출일 입력</Button>
         )}
