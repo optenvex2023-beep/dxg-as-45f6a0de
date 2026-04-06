@@ -339,24 +339,24 @@ export default function StatusTable() {
         <Table className="relative">
           <TableHeader className="sticky top-0 z-20 bg-card" style={{ boxShadow: '0 1px 0 0 hsl(var(--border))' }}>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="min-w-[80px]">현황</TableHead>
-              <TableHead className="min-w-[100px]">등록일자</TableHead>
-              <TableHead className="min-w-[100px]">관리번호</TableHead>
-              <TableHead className="min-w-[160px]">건명</TableHead>
-              <TableHead className="min-w-[180px]">반출장비</TableHead>
-              <TableHead className="min-w-[120px]">반출요청일자</TableHead>
-              <TableHead className="min-w-[100px]">반출예정일자</TableHead>
-              <TableHead className="min-w-[100px]">반출일자</TableHead>
-              <TableHead className="min-w-[100px]">입고일자</TableHead>
-              <TableHead className="min-w-[100px]">1차 점검완료일자</TableHead>
-              <TableHead className="min-w-[100px]">최종 점검완료일자</TableHead>
-              <TableHead className="min-w-[120px]">재설치 요청일자</TableHead>
-              <TableHead className="min-w-[100px]">재설치 일자</TableHead>
-              <TableHead className="min-w-[70px]">설치 예정/확정</TableHead>
-              <TableHead className="min-w-[100px]">계약납기</TableHead>
-              <TableHead className="min-w-[140px]">특이사항</TableHead>
-              <TableHead className="min-w-[90px]">발주처 담당자</TableHead>
-              <TableHead className="min-w-[100px]">발주처 연락처</TableHead>
+              <TableHead className="min-w-[80px] bg-card">현황</TableHead>
+              <TableHead className="min-w-[100px] bg-card">등록일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">관리번호</TableHead>
+              <TableHead className="min-w-[160px] bg-card">건명</TableHead>
+              <TableHead className="min-w-[180px] bg-card">반출장비</TableHead>
+              <TableHead className="min-w-[120px] bg-card">반출요청일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">반출예정일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">반출일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">입고일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">1차 점검완료일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">최종 점검완료일자</TableHead>
+              <TableHead className="min-w-[120px] bg-card">재설치 요청일자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">재설치 일자</TableHead>
+              <TableHead className="min-w-[70px] bg-card">설치 예정/확정</TableHead>
+              <TableHead className="min-w-[100px] bg-card">계약납기</TableHead>
+              <TableHead className="min-w-[140px] bg-card">특이사항</TableHead>
+              <TableHead className="min-w-[90px] bg-card">발주처 담당자</TableHead>
+              <TableHead className="min-w-[100px] bg-card">발주처 연락처</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
