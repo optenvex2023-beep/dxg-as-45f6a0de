@@ -437,6 +437,8 @@ function DocumentForm({
       qa_reviewed_at: null,
       qa_signature_applied: false,
       qa_notification_sent_to_sales: false,
+      manufacturing_review_completed: false,
+      manufacturing_reviewed_at: null,
     });
   };
 
