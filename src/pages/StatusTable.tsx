@@ -36,7 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, X, Search } from "lucide-react";
+import { Plus, Trash2, X, Search, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { isSuperAdmin, canRegister, canEditAdminFields, canEditCSFields, canEditMfgFields } from "@/lib/permissions";
 import { isEmpty, isInProgress, isExcludedFromDue7 } from "@/lib/inspectionFilters";
@@ -51,7 +51,7 @@ interface EquipmentDraft {
   qty_set: number;
 }
 
-type CreateFormData = Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at">;
+type CreateFormData = Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at" | "is_closed" | "closed_at">;
 
 function emptyFormData(): CreateFormData {
   return {
@@ -98,6 +98,7 @@ export default function StatusTable() {
   const [needOutbound, setNeedOutbound] = useState(false);
   const [needReinstall, setNeedReinstall] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [closedExpanded, setClosedExpanded] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export default function StatusTable() {
   };
 
   const filtered = useMemo(() => {
-    let result = inspections;
+    let result = inspections.filter(i => !i.is_closed);
 
     // Dashboard "점검중" filter
     if (dashboardFilter === "점검중") {
@@ -171,6 +172,12 @@ export default function StatusTable() {
     return result;
   }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
 
+  const closedItems = useMemo(() => {
+    return inspections
+      .filter(i => i.is_closed)
+      .sort((a, b) => new Date(b.closed_at || b.updated_at).getTime() - new Date(a.closed_at || a.updated_at).getTime());
+  }, [inspections]);
+
   const searchFiltered = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
     if (!kw) return filtered;
@@ -188,6 +195,17 @@ export default function StatusTable() {
   }, [filtered, searchKeyword]);
 
   const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
+
+  const canClose = (rec: OutboundInspection) => {
+    return !rec.is_closed && rec.reinstall_date && rec.reinstall_confirm_status === "확정";
+  };
+
+  const handleClose = () => {
+    if (!selectedRecord || !canClose(selectedRecord)) return;
+    updateInspection(selectedRecord.id, { is_closed: true, closed_at: new Date().toISOString() });
+    setSelectedId(null);
+    toast.success("종결 처리되었습니다.");
+  };
 
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
@@ -410,6 +428,69 @@ export default function StatusTable() {
         </Table>
       </div>
 
+      {/* Closed items section */}
+      <div className="mt-6 rounded-lg border bg-card shadow-sm">
+        <button
+          onClick={() => setClosedExpanded((prev) => !prev)}
+          className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {closedExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <CheckCircle2 className="h-4 w-4" />
+          완료된 건 ({closedItems.length})
+        </button>
+        {closedExpanded && (
+          <div className="overflow-x-auto border-t">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[80px]">현황</TableHead>
+                  <TableHead className="min-w-[100px]">종결일</TableHead>
+                  <TableHead className="min-w-[100px]">관리번호</TableHead>
+                  <TableHead className="min-w-[160px]">건명</TableHead>
+                  <TableHead className="min-w-[180px]">반출장비</TableHead>
+                  <TableHead className="min-w-[100px]">반출일자</TableHead>
+                  <TableHead className="min-w-[100px]">재설치 일자</TableHead>
+                  <TableHead className="min-w-[70px]">설치 예정/확정</TableHead>
+                  <TableHead className="min-w-[100px]">계약납기</TableHead>
+                  <TableHead className="min-w-[140px]">특이사항</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {closedItems.map((rec) => (
+                  <TableRow key={rec.id} className="opacity-70">
+                    <TableCell><StatusBadge status={rec.status} /></TableCell>
+                    <TableCell className="text-xs">{rec.closed_at ? new Date(rec.closed_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.manage_no}</TableCell>
+                    <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
+                    <TableCell className="text-xs">
+                      {rec.equipment_items.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {rec.equipment_items.map((item) => (
+                            <div key={item.id}>{item.equipment_name} ({item.qty_set} set)</div>
+                          ))}
+                        </div>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">{rec.outbound_date || "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.reinstall_date || "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.reinstall_confirm_status}</TableCell>
+                    <TableCell className="text-xs">{rec.contract_due_date || "—"}</TableCell>
+                    <TableCell className="text-xs max-w-[160px] truncate">{rec.special_note || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {closedItems.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
+                      완료된 건이 없습니다.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
       {/* Bottom fixed action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
         {isAdmin && (
@@ -421,6 +502,11 @@ export default function StatusTable() {
               <Plus className="h-4 w-4" /> 등록
             </Button>
           </>
+        )}
+        {selectedId && selectedRecord && canClose(selectedRecord) && (
+          <Button variant="outline" onClick={handleClose} className="gap-1 border-accent text-accent hover:bg-accent/10">
+            <CheckCircle2 className="h-4 w-4" /> 종결
+          </Button>
         )}
         {isCS && selectedId && selectedRecord && (
           <Button onClick={() => setCsModalOpen(true)}>반출예정/반출일 입력</Button>

@@ -71,6 +71,8 @@ export interface OutboundInspection {
   support_request_file: string | null;
 
   due_warning: boolean;
+  is_closed: boolean;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 

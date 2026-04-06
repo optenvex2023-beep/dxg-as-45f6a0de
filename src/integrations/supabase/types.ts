@@ -366,6 +366,7 @@ export type Database = {
         Row: {
           client_pic_name: string
           client_pic_phone: string
+          closed_at: string | null
           contract_due_date: string | null
           created_at: string
           created_by: string | null
@@ -376,6 +377,7 @@ export type Database = {
           id: string
           inbound_date: string | null
           install_completed: boolean
+          is_closed: boolean
           manage_no: string
           noti_confirm_needed_sent_at: string | null
           noti_dispatch_done_sent_at: string | null
@@ -405,6 +407,7 @@ export type Database = {
         Insert: {
           client_pic_name?: string
           client_pic_phone?: string
+          closed_at?: string | null
           contract_due_date?: string | null
           created_at?: string
           created_by?: string | null
@@ -415,6 +418,7 @@ export type Database = {
           id?: string
           inbound_date?: string | null
           install_completed?: boolean
+          is_closed?: boolean
           manage_no?: string
           noti_confirm_needed_sent_at?: string | null
           noti_dispatch_done_sent_at?: string | null
@@ -444,6 +448,7 @@ export type Database = {
         Update: {
           client_pic_name?: string
           client_pic_phone?: string
+          closed_at?: string | null
           contract_due_date?: string | null
           created_at?: string
           created_by?: string | null
@@ -454,6 +459,7 @@ export type Database = {
           id?: string
           inbound_date?: string | null
           install_completed?: boolean
+          is_closed?: boolean
           manage_no?: string
           noti_confirm_needed_sent_at?: string | null
           noti_dispatch_done_sent_at?: string | null
