@@ -591,6 +591,14 @@ function DocumentView({
     setIsQAReviewing(false);
   };
 
+  const handleManufacturingReview = () => {
+    onUpdate(report.id, {
+      manufacturing_review_completed: true,
+      manufacturing_reviewed_at: new Date().toISOString(),
+    });
+    toast.success("제조 검토가 완료되었습니다.");
+  };
+
   const handleWordDownload = async () => {
     try {
       const updatedReport = { ...report, serial_numbers: { [equipment.id]: serialNo }, inspection_data: data };
