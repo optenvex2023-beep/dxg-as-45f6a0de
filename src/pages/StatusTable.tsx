@@ -98,6 +98,7 @@ export default function StatusTable() {
   const [needOutbound, setNeedOutbound] = useState(false);
   const [needReinstall, setNeedReinstall] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [closedExpanded, setClosedExpanded] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
