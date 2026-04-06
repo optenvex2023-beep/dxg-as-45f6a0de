@@ -428,6 +428,69 @@ export default function StatusTable() {
         </Table>
       </div>
 
+      {/* Closed items section */}
+      <div className="mt-6 rounded-lg border bg-card shadow-sm">
+        <button
+          onClick={() => setClosedExpanded((prev) => !prev)}
+          className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {closedExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <CheckCircle2 className="h-4 w-4" />
+          완료된 건 ({closedItems.length})
+        </button>
+        {closedExpanded && (
+          <div className="overflow-x-auto border-t">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[80px]">현황</TableHead>
+                  <TableHead className="min-w-[100px]">종결일</TableHead>
+                  <TableHead className="min-w-[100px]">관리번호</TableHead>
+                  <TableHead className="min-w-[160px]">건명</TableHead>
+                  <TableHead className="min-w-[180px]">반출장비</TableHead>
+                  <TableHead className="min-w-[100px]">반출일자</TableHead>
+                  <TableHead className="min-w-[100px]">재설치 일자</TableHead>
+                  <TableHead className="min-w-[70px]">설치 예정/확정</TableHead>
+                  <TableHead className="min-w-[100px]">계약납기</TableHead>
+                  <TableHead className="min-w-[140px]">특이사항</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {closedItems.map((rec) => (
+                  <TableRow key={rec.id} className="opacity-70">
+                    <TableCell><StatusBadge status={rec.status} /></TableCell>
+                    <TableCell className="text-xs">{rec.closed_at ? new Date(rec.closed_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.manage_no}</TableCell>
+                    <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
+                    <TableCell className="text-xs">
+                      {rec.equipment_items.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {rec.equipment_items.map((item) => (
+                            <div key={item.id}>{item.equipment_name} ({item.qty_set} set)</div>
+                          ))}
+                        </div>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">{rec.outbound_date || "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.reinstall_date || "—"}</TableCell>
+                    <TableCell className="text-xs">{rec.reinstall_confirm_status}</TableCell>
+                    <TableCell className="text-xs">{rec.contract_due_date || "—"}</TableCell>
+                    <TableCell className="text-xs max-w-[160px] truncate">{rec.special_note || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {closedItems.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
+                      완료된 건이 없습니다.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
       {/* Bottom fixed action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
         {isAdmin && (
