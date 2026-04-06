@@ -9,6 +9,8 @@ const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
 const QA_SIGNATURE_IMAGE_URL = "/images/qa-signature.png";
 const MFG_SIGNATURE_IMAGE_URL = "/images/manufacturing-signature.jpg";
+const SIGNATURE_IMAGE_EMU = { width: 720000, height: 540000 };
+const SIGNATURE_IMAGE_SIZE_PX: [number, number] = [75, 56];
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
@@ -52,6 +54,70 @@ function rewriteImageTags(zip: PizZip) {
   content = content.replace(/\{\{LEFT_IMAGE\}\}/g, "{{%LEFT_IMAGE}}");
   content = content.replace(/\{\{RIGHT_IMAGE\}\}/g, "{{%RIGHT_IMAGE}}");
   zip.file("word/document.xml", content);
+}
+
+function ensureContentType(zip: PizZip, extension: string, contentType: string) {
+  const contentTypesFile = zip.file("[Content_Types].xml");
+  if (!contentTypesFile) return;
+
+  let content = contentTypesFile.asText();
+  const hasDefault = content.includes(`Extension="${extension}"`) && content.includes(`ContentType="${contentType}"`);
+  if (hasDefault) return;
+
+  content = content.replace(
+    "</Types>",
+    `<Default Extension="${extension}" ContentType="${contentType}"/></Types>`
+  );
+  zip.file("[Content_Types].xml", content);
+}
+
+function ensureImageContentTypes(zip: PizZip) {
+  ensureContentType(zip, "png", "image/png");
+  ensureContentType(zip, "jpg", "image/jpeg");
+  ensureContentType(zip, "jpeg", "image/jpeg");
+}
+
+function getApprovalTableParts(content: string) {
+  const tables = content.match(/<w:tbl\b[\s\S]*?<\/w:tbl>/g) || [];
+
+  for (const table of tables) {
+    if (!table.includes("점검자") || !table.includes("부서장")) continue;
+
+    const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) || [];
+    if (rows.length < 2) continue;
+
+    const valueRow = rows[1];
+    const cells = valueRow.match(/<w:tc\b[\s\S]*?<\/w:tc>/g) || [];
+    if (cells.length < 4) continue;
+
+    return { table, valueRow, cells };
+  }
+
+  return null;
+}
+
+function replaceTableCellContent(cellXml: string, innerXml: string) {
+  if (cellXml.includes("</w:tcPr>")) {
+    return cellXml.replace(/(<w:tc\b[\s\S]*?<\/w:tcPr>)[\s\S]*?(<\/w:tc>)/, `$1${innerXml}$2`);
+  }
+
+  return cellXml.replace(/(<w:tc\b[^>]*>)[\s\S]*?(<\/w:tc>)/, `$1${innerXml}$2`);
+}
+
+function buildCenteredImageParagraph(imageRunXml: string) {
+  return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>${imageRunXml}</w:p>`;
+}
+
+function replaceApprovalValueCell(content: string, cellIndex: number, innerXml: string) {
+  const tableParts = getApprovalTableParts(content);
+  if (!tableParts || !tableParts.cells[cellIndex]) return content;
+
+  const originalCell = tableParts.cells[cellIndex];
+  const updatedCell = replaceTableCellContent(originalCell, innerXml);
+  const updatedRow = tableParts.valueRow.replace(originalCell, updatedCell);
+  const updatedTable = tableParts.table.replace(tableParts.valueRow, updatedRow);
+
+  return content.replace(tableParts.table, updatedTable);
 }
 
 /* ─── Post-process: center-align name cells in the exported document ─── */
@@ -135,6 +201,8 @@ function postProcessSignatureClientSpacing(zip: PizZip) {
 function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
   if (!signatureBase64) return;
 
+  ensureImageContentTypes(zip);
+
   const contentFile = zip.file("word/document.xml");
   if (!contentFile) return;
   let content = contentFile.asText();
@@ -184,7 +252,7 @@ function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
   }
 
   // Build inline image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
-  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="720000" cy="540000"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="720000" cy="540000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
 
   // Replace placeholder text runs with the image
   // Find <w:r> elements containing the placeholder text and replace with image run
@@ -210,6 +278,8 @@ function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
 /* ─── Post-process: embed MFG (부서장) signature image directly into XML ─── */
 function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   if (!signatureBase64) return;
+
+  ensureImageContentTypes(zip);
 
   const contentFile = zip.file("word/document.xml");
   if (!contentFile) return;
@@ -237,7 +307,7 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   }
 
   // Image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
-  const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="720000" cy="540000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="720000" cy="540000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
 
   // First: try to replace any MFG_SIGNATURE placeholder text
   const placeholderPatterns = [
@@ -268,34 +338,7 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
     content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
     content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
   } else {
-    // No placeholder found – inject into the 부서장 value cell directly
-    // The signature table has 2 rows. Row 1: headers (점검자|부서장|품질본부 확인|품질 서명)
-    // Row 2: values. We need the 2nd cell (부서장) of row 2.
-    // Strategy: find "부서장" text in row 1, then find the corresponding cell in row 2.
-    // More robust: find the table row containing "부서장", then get the next <w:tr> (value row),
-    // and inject into its 2nd <w:tc>.
-    
-    // Find the header row containing 부서장, then the next row
-    const tablePattern = /(<w:tr[^>]*>(?:(?!<\/w:tr>).)*?부서장(?:(?!<\/w:tr>).)*?<\/w:tr>\s*<w:tr[^>]*>)((?:(?!<\/w:tr>).)*?)(<\/w:tr>)/s;
-    const match = content.match(tablePattern);
-    if (match) {
-      const valueRowContent = match[2];
-      // Find the 2nd <w:tc> in the value row (index 1 = 부서장 value cell)
-      const cells = valueRowContent.split(/<w:tc[ >]/);
-      if (cells.length >= 3) {
-        // cells[0] is before first cell, cells[1] is 점검자 value, cells[2] is 부서장 value
-        // Find the last </w:p> in the 2nd cell (부서장) and inject image before it
-        const cellContent = cells[2];
-        const lastPClose = cellContent.lastIndexOf("</w:p>");
-        if (lastPClose !== -1) {
-          const newCellContent = cellContent.substring(0, lastPClose) + imgXml + cellContent.substring(lastPClose);
-          cells[2] = newCellContent;
-          // Reconstruct: cells[0] stays as-is, rest get <w:tc prepended back
-          const reconstructed = cells[0] + cells.slice(1).map(c => "<w:tc" + c).join("");
-          content = content.replace(match[2], reconstructed);
-        }
-      }
-    }
+    content = replaceApprovalValueCell(content, 1, buildCenteredImageParagraph(imgXml));
   }
 
   zip.file("word/document.xml", content);
@@ -658,7 +701,7 @@ export async function exportReportToWord(
     getSize: (tagValue: string, tagName: string) => {
       // QA/MFG signature: ~1.98cm x 1.49cm ≈ 75px x 56px
       if (tagName && (tagName.includes("SIGNATURE") || tagName.includes("MFG_SIGNATURE"))) {
-        return [75, 56];
+        return SIGNATURE_IMAGE_SIZE_PX;
       }
       // Photo images: larger size to fill photo cells
       return [200, 150];
@@ -677,6 +720,8 @@ export async function exportReportToWord(
 
   // Post-process: center-align name cells
   const outputZip = doc.getZip();
+  ensureImageContentTypes(outputZip);
+
   // Post-process: center-align name cells
   postProcessNameAlignment(outputZip);
 
