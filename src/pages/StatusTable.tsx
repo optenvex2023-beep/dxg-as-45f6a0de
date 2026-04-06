@@ -412,7 +412,7 @@ export default function StatusTable() {
         <div
           ref={bodyScrollRef}
           onScroll={syncHorizontalScroll("body")}
-          className="min-h-0 overflow-auto"
+          className="flex-1 min-h-0 overflow-auto"
         >
           <table className="caption-bottom table-fixed text-sm" style={{ width: statusTableWidth }}>
             <StatusTableColGroup />
