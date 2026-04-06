@@ -368,6 +368,10 @@ async function buildTemplateData(
     QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
+    // Manufacturing (부서장) signature
+    MFG_SIGNATURE_IMAGE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
+    MFG_SIGNATURE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
+
     CLIENT_NAME: safe(data.client_name),
     CLIENT_N: safe(data.client_name),
     SERIAL_NO: serialNo,
