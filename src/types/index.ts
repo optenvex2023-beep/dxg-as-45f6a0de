@@ -223,6 +223,9 @@ export interface InspectionReport {
   qa_reviewed_at: string | null;
   qa_signature_applied: boolean;
   qa_notification_sent_to_sales: boolean;
+
+  manufacturing_review_completed: boolean;
+  manufacturing_reviewed_at: string | null;
 }
 
 export interface ReportVersion {

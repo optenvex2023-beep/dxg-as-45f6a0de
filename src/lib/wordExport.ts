@@ -8,6 +8,7 @@ import { resolvePhotoUrl } from "@/lib/reportPhotoStorage";
 const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
 const QA_SIGNATURE_IMAGE_URL = "/images/qa-signature.png";
+const MFG_SIGNATURE_IMAGE_URL = "/images/manufacturing-signature.jpg";
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
