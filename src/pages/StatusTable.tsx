@@ -336,7 +336,7 @@ export default function StatusTable() {
         className="rounded-lg border bg-card shadow-sm overflow-auto"
         style={{ maxHeight: 'calc(100vh - 280px)' }}
       >
-        <Table className="relative">
+        <Table className="relative [&>div]:!overflow-visible">
           <TableHeader className="sticky top-0 z-20 bg-card" style={{ boxShadow: '0 1px 0 0 hsl(var(--border))' }}>
             <TableRow className="hover:bg-transparent">
               <TableHead className="min-w-[80px] bg-card">현황</TableHead>
