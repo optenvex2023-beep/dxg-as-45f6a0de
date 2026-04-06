@@ -47,7 +47,10 @@ export default function UserManagement() {
   const [newDept, setNewDept] = useState<Department>("제조본부");
   const [assignDept, setAssignDept] = useState<Department>("제조본부");
 
-  const isAdmin = currentUser?.role_category === "관리자";
+  const USER_MGMT_ALLOWED = new Set([
+    "김현성", "이현석", "박소미", "김가영", "정혜림", "김세빈", "박소현", "송재석", "정두현", "하용선", "신준호",
+  ]);
+  const isAdmin = currentUser ? USER_MGMT_ALLOWED.has(currentUser.name) : false;
   const filtered = users.filter((u) => u.role_category === activeTab);
 
   const handleAddDamddangja = () => {
