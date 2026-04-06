@@ -556,6 +556,11 @@ export async function exportReportToWord(
     postProcessQASignatureImage(outputZip, qaSignatureBase64);
   }
 
+  // Post-process: embed MFG signature image in 부서장 cell
+  if (mfgNeeded && mfgSignatureBase64) {
+    postProcessMfgSignatureImage(outputZip, mfgSignatureBase64);
+  }
+
   const blob = outputZip.generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
