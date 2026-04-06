@@ -493,6 +493,8 @@ function DocumentForm({
       qa_reviewed_at: null,
       qa_signature_applied: false,
       qa_notification_sent_to_sales: false,
+      manufacturing_review_completed: false,
+      manufacturing_reviewed_at: null,
     });
   };
 
@@ -587,6 +589,14 @@ function DocumentView({
     });
     onQAReviewComplete();
     setIsQAReviewing(false);
+  };
+
+  const handleManufacturingReview = () => {
+    onUpdate(report.id, {
+      manufacturing_review_completed: true,
+      manufacturing_reviewed_at: new Date().toISOString(),
+    });
+    toast.success("제조 검토가 완료되었습니다.");
   };
 
   const handleWordDownload = async () => {
@@ -709,6 +719,12 @@ function DocumentView({
             <Button variant="outline" onClick={() => setIsEditing(false)}>취소</Button>
             <Button onClick={handleSave} className="gap-1"><Check className="h-4 w-4" /> 저장</Button>
           </>
+        )}
+
+        {isManufacturing && !isDraft && !isEditing && !isQAReviewing && !report.manufacturing_review_completed && (
+          <Button onClick={handleManufacturingReview} className="gap-1 bg-orange-600 text-white hover:bg-orange-700">
+            <ShieldCheck className="h-4 w-4" /> 제조 검토 완료
+          </Button>
         )}
 
         {isQC && !isDraft && !isEditing && !isQAReviewing && report.qa_review_status === "미검토" && (

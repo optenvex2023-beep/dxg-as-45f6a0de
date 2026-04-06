@@ -8,6 +8,7 @@ import { resolvePhotoUrl } from "@/lib/reportPhotoStorage";
 const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
 const QA_SIGNATURE_IMAGE_URL = "/images/qa-signature.png";
+const MFG_SIGNATURE_IMAGE_URL = "/images/manufacturing-signature.jpg";
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
@@ -44,6 +45,9 @@ function rewriteImageTags(zip: PizZip) {
   content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "{{%QA_SIGNATURE_IMAG}}");
   content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "{{%QA_SIGNATURE_IMAGE}}");
   content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "{{%QA_SIGNATURE}}");
+  // MFG signature tags
+  content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "{{%MFG_SIGNATURE_IMAGE}}");
+  content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "{{%MFG_SIGNATURE}}");
   // Photo image tags (inside loops and top-level)
   content = content.replace(/\{\{LEFT_IMAGE\}\}/g, "{{%LEFT_IMAGE}}");
   content = content.replace(/\{\{RIGHT_IMAGE\}\}/g, "{{%RIGHT_IMAGE}}");
@@ -173,6 +177,106 @@ function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
   zip.file("word/document.xml", content);
 }
 
+/* ─── Post-process: embed MFG (부서장) signature image directly into XML ─── */
+function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
+  if (!signatureBase64) return;
+
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+
+  // Check if there are unresolved MFG_SIGNATURE placeholders
+  const placeholderPatterns = [
+    /\{%MFG_SIGNATURE_IMAGE\}/g,
+    /\{%MFG_SIGNATURE\}/g,
+    /\{\{MFG_SIGNATURE_IMAGE\}\}/g,
+    /\{\{MFG_SIGNATURE\}\}/g,
+    /MFG_SIGNATURE_IMAGE/g,
+  ];
+
+  let hasPlaceholder = false;
+  for (const p of placeholderPatterns) {
+    if (p.test(content)) {
+      hasPlaceholder = true;
+      break;
+    }
+  }
+
+  if (!hasPlaceholder) {
+    // No placeholder found – try to inject into the 부서장 cell directly
+    // Find the cell after 부서장 label in the signature table row (2nd row = name row)
+    const deptHeadPattern = /(부서장(?:(?!<\/w:tc>).)*?<\/w:tc>\s*(?:<\/w:tr>\s*<w:tr[^>]*>\s*)?<w:tc[^>]*>(?:<w:tcPr>(?:(?!<\/w:tcPr>).)*?<\/w:tcPr>)?\s*<w:p[^>]*>)((?:(?!<\/w:p>).)*?)(<\/w:p>)/s;
+    
+    if (deptHeadPattern.test(content)) {
+      // Add the image to the docx media folder
+      const binary = atob(signatureBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      zip.file("word/media/mfg_signature.jpg", bytes);
+
+      // Add relationship
+      const relsFile = zip.file("word/_rels/document.xml.rels");
+      if (!relsFile) return;
+      let relsContent = relsFile.asText();
+      const rId = "rIdMfgSig";
+      if (!relsContent.includes(rId)) {
+        relsContent = relsContent.replace(
+          "</Relationships>",
+          `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
+        );
+        zip.file("word/_rels/document.xml.rels", relsContent);
+      }
+
+      const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+
+      content = content.replace(deptHeadPattern, `$1$2${imgXml}$3`);
+      zip.file("word/document.xml", content);
+    }
+    return;
+  }
+
+  // Add the image to the docx media folder
+  const binary = atob(signatureBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  zip.file("word/media/mfg_signature.jpg", bytes);
+
+  // Add relationship
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (!relsFile) return;
+  let relsContent = relsFile.asText();
+  const rId = "rIdMfgSig";
+  if (!relsContent.includes(rId)) {
+    relsContent = relsContent.replace(
+      "</Relationships>",
+      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
+    );
+    zip.file("word/_rels/document.xml.rels", relsContent);
+  }
+
+  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+
+  // Replace placeholder text runs with the image
+  for (const p of placeholderPatterns) {
+    content = content.replace(
+      new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:MFG_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
+      `<w:r>${imgXml}</w:r>`
+    );
+  }
+
+  // Clean up remaining plain-text placeholders
+  content = content.replace(/\{%MFG_SIGNATURE_IMAGE\}/g, "");
+  content = content.replace(/\{%MFG_SIGNATURE\}/g, "");
+  content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
+  content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
+
+  zip.file("word/document.xml", content);
+}
+
 /* ─── Check item → template boolean key mapping ─── */
 const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
   { category: "광학부", item: "Beam Splitter", key: "BEAMSPLITTER" },
@@ -285,6 +389,7 @@ async function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
   qaSignatureBase64: string,
+  mfgSignatureBase64: string,
 ): Promise<Record<string, unknown>> {
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
@@ -362,6 +467,10 @@ async function buildTemplateData(
 
     QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
+
+    // Manufacturing (부서장) signature
+    MFG_SIGNATURE_IMAGE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
+    MFG_SIGNATURE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
 
     CLIENT_NAME: safe(data.client_name),
     CLIENT_N: safe(data.client_name),
@@ -488,11 +597,13 @@ export async function exportReportToWord(
 ) {
   const templateUrl = report.report_type === "final" ? FINAL_TEMPLATE_URL : FIRST_TEMPLATE_URL;
 
-  // Fetch template and QA signature image in parallel
+  // Fetch template and signature images in parallel
   const qaNeeded = report.qa_review_status === "검토완료" && report.qa_signature_applied;
-  const [templateResponse, qaSignatureBase64] = await Promise.all([
+  const mfgNeeded = report.manufacturing_review_completed === true;
+  const [templateResponse, qaSignatureBase64, mfgSignatureBase64] = await Promise.all([
     fetch(templateUrl),
     qaNeeded ? fetchImageBase64(QA_SIGNATURE_IMAGE_URL) : Promise.resolve(""),
+    mfgNeeded ? fetchImageBase64(MFG_SIGNATURE_IMAGE_URL) : Promise.resolve(""),
   ]);
 
   if (!templateResponse.ok) throw new Error("Template file not found");
@@ -517,8 +628,8 @@ export async function exportReportToWord(
       return bytes.buffer;
     },
     getSize: (tagValue: string, tagName: string) => {
-      // QA signature: small size to fit table cell
-      if (tagName && (tagName.includes("QA_SIGNATURE") || tagName.includes("SIGNATURE"))) {
+      // QA/MFG signature: small size to fit table cell
+      if (tagName && (tagName.includes("SIGNATURE") || tagName.includes("MFG_SIGNATURE"))) {
         return [80, 40];
       }
       // Photo images: larger size to fill photo cells
@@ -533,7 +644,7 @@ export async function exportReportToWord(
     modules: [imageModule],
   });
 
-  const templateData = await buildTemplateData(inspection, report, qaSignatureBase64);
+  const templateData = await buildTemplateData(inspection, report, qaSignatureBase64, mfgSignatureBase64);
   doc.render(templateData);
 
   // Post-process: center-align name cells
@@ -543,6 +654,11 @@ export async function exportReportToWord(
   // Post-process: embed QA signature image if image module didn't handle it
   if (qaNeeded && qaSignatureBase64) {
     postProcessQASignatureImage(outputZip, qaSignatureBase64);
+  }
+
+  // Post-process: embed MFG signature image in 부서장 cell
+  if (mfgNeeded && mfgSignatureBase64) {
+    postProcessMfgSignatureImage(outputZip, mfgSignatureBase64);
   }
 
   const blob = outputZip.generate({
