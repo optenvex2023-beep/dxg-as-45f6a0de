@@ -128,7 +128,7 @@ export default function StatusTable() {
   };
 
   const filtered = useMemo(() => {
-    let result = inspections;
+    let result = inspections.filter(i => !i.is_closed);
 
     // Dashboard "점검중" filter
     if (dashboardFilter === "점검중") {
@@ -171,6 +171,12 @@ export default function StatusTable() {
     result = [...result].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return result;
   }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
+
+  const closedItems = useMemo(() => {
+    return inspections
+      .filter(i => i.is_closed)
+      .sort((a, b) => new Date(b.closed_at || b.updated_at).getTime() - new Date(a.closed_at || a.updated_at).getTime());
+  }, [inspections]);
 
   const searchFiltered = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
