@@ -177,6 +177,106 @@ function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
   zip.file("word/document.xml", content);
 }
 
+/* ─── Post-process: embed MFG (부서장) signature image directly into XML ─── */
+function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
+  if (!signatureBase64) return;
+
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+
+  // Check if there are unresolved MFG_SIGNATURE placeholders
+  const placeholderPatterns = [
+    /\{%MFG_SIGNATURE_IMAGE\}/g,
+    /\{%MFG_SIGNATURE\}/g,
+    /\{\{MFG_SIGNATURE_IMAGE\}\}/g,
+    /\{\{MFG_SIGNATURE\}\}/g,
+    /MFG_SIGNATURE_IMAGE/g,
+  ];
+
+  let hasPlaceholder = false;
+  for (const p of placeholderPatterns) {
+    if (p.test(content)) {
+      hasPlaceholder = true;
+      break;
+    }
+  }
+
+  if (!hasPlaceholder) {
+    // No placeholder found – try to inject into the 부서장 cell directly
+    // Find the cell after 부서장 label in the signature table row (2nd row = name row)
+    const deptHeadPattern = /(부서장(?:(?!<\/w:tc>).)*?<\/w:tc>\s*(?:<\/w:tr>\s*<w:tr[^>]*>\s*)?<w:tc[^>]*>(?:<w:tcPr>(?:(?!<\/w:tcPr>).)*?<\/w:tcPr>)?\s*<w:p[^>]*>)((?:(?!<\/w:p>).)*?)(<\/w:p>)/s;
+    
+    if (deptHeadPattern.test(content)) {
+      // Add the image to the docx media folder
+      const binary = atob(signatureBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      zip.file("word/media/mfg_signature.jpg", bytes);
+
+      // Add relationship
+      const relsFile = zip.file("word/_rels/document.xml.rels");
+      if (!relsFile) return;
+      let relsContent = relsFile.asText();
+      const rId = "rIdMfgSig";
+      if (!relsContent.includes(rId)) {
+        relsContent = relsContent.replace(
+          "</Relationships>",
+          `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
+        );
+        zip.file("word/_rels/document.xml.rels", relsContent);
+      }
+
+      const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+
+      content = content.replace(deptHeadPattern, `$1$2${imgXml}$3`);
+      zip.file("word/document.xml", content);
+    }
+    return;
+  }
+
+  // Add the image to the docx media folder
+  const binary = atob(signatureBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  zip.file("word/media/mfg_signature.jpg", bytes);
+
+  // Add relationship
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (!relsFile) return;
+  let relsContent = relsFile.asText();
+  const rId = "rIdMfgSig";
+  if (!relsContent.includes(rId)) {
+    relsContent = relsContent.replace(
+      "</Relationships>",
+      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
+    );
+    zip.file("word/_rels/document.xml.rels", relsContent);
+  }
+
+  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+
+  // Replace placeholder text runs with the image
+  for (const p of placeholderPatterns) {
+    content = content.replace(
+      new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:MFG_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
+      `<w:r>${imgXml}</w:r>`
+    );
+  }
+
+  // Clean up remaining plain-text placeholders
+  content = content.replace(/\{%MFG_SIGNATURE_IMAGE\}/g, "");
+  content = content.replace(/\{%MFG_SIGNATURE\}/g, "");
+  content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
+  content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
+
+  zip.file("word/document.xml", content);
+}
+
 /* ─── Check item → template boolean key mapping ─── */
 const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
   { category: "광학부", item: "Beam Splitter", key: "BEAMSPLITTER" },
