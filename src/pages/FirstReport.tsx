@@ -57,6 +57,7 @@ export default function FirstReport() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [detailReportId, setDetailReportId] = useState<string | null>(null);
   const [reportSearchKeyword, setReportSearchKeyword] = useState("");
+  const [qaFilter, setQaFilter] = useState<"all" | "미검토" | "검토완료">("all");
 
   const superAdmin = isSuperAdmin(currentUser);
   const isManufacturing = superAdmin || currentUser?.department === "제조본부";
@@ -108,9 +109,13 @@ export default function FirstReport() {
   }, [reports]);
 
   const filteredCompletedReports = useMemo(() => {
+    let list = completedFirstReports;
+    if (qaFilter !== "all") {
+      list = list.filter(r => r.qa_review_status === qaFilter);
+    }
     const kw = reportSearchKeyword.trim().toLowerCase();
-    if (!kw) return completedFirstReports;
-    return completedFirstReports.filter(r => {
+    if (!kw) return list;
+    return list.filter(r => {
       const insp = inspections.find(i => i.id === r.inspection_id);
       const equip = insp?.equipment_items.find(e => e.id === r.equipment_item_id);
       const serial = r.serial_numbers?.[r.equipment_item_id] || equip?.serial_no || "";
@@ -124,7 +129,7 @@ export default function FirstReport() {
       ];
       return targets.some(t => t.toLowerCase().includes(kw));
     });
-  }, [completedFirstReports, reportSearchKeyword, inspections]);
+  }, [completedFirstReports, reportSearchKeyword, qaFilter, inspections]);
 
   const detailReport = detailReportId ? reports.find(r => r.id === detailReportId) ?? null : null;
   const detailInspection = detailReport ? inspections.find(i => i.id === detailReport.inspection_id) ?? null : null;
@@ -273,16 +278,28 @@ export default function FirstReport() {
 
       {/* ═══ Completed Reports List ═══ */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-sm font-semibold shrink-0">작성완료된 보고서 리스트</h2>
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="건명 / 관리번호 / Serial No 검색"
-              value={reportSearchKeyword}
-              onChange={e => setReportSearchKeyword(e.target.value)}
-              className="h-8 pl-8 text-xs"
-            />
+          <div className="flex items-center gap-2">
+            <Select value={qaFilter} onValueChange={(v) => setQaFilter(v as "all" | "미검토" | "검토완료")}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[60]">
+                <SelectItem value="all" className="text-xs">전체</SelectItem>
+                <SelectItem value="미검토" className="text-xs">품질 미검토</SelectItem>
+                <SelectItem value="검토완료" className="text-xs">품질 검토완료</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="건명 / 관리번호 / Serial No 검색"
+                value={reportSearchKeyword}
+                onChange={e => setReportSearchKeyword(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
           </div>
         </div>
         {filteredCompletedReports.length === 0 ? (
