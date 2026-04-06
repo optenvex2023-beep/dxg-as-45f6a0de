@@ -60,42 +60,52 @@ function postProcessNameAlignment(zip: PizZip) {
   if (!contentFile) return;
   let content = contentFile.asText();
 
-  // Find rendered name values and ensure their paragraph has center alignment
-  // The names appear as plain text runs after rendering. We look for paragraphs
-  // containing INSPECTOR_NAME / DEPT_HEAD_NAME / QA_REVIEWER_NAME text or their
-  // rendered values, and ensure the paragraph properties include center justification.
-  // Strategy: Add w:jc center to all <w:p> that are inside table cells containing these names.
-  // Simpler approach: find all <w:tc> cells, and for ones that appear to be name cells
-  // in the QA signature table row, add center alignment.
+  // Strategy: find the signature table (contains 점검자), then center-align
+  // ALL paragraphs in the row below the header row (the value row).
+  // The signature table has 2 rows: [점검자 | 부서장 | 품질본부 확인 | 품질 서명] header,
+  // then a value row with names/signatures.
 
-  // More robust: ensure any paragraph in the document that had these template keys
-  // gets center alignment. After render, the keys are replaced with actual names.
-  // We'll look for the signature table pattern and center-align all cells in those rows.
+  // Find the table containing "점검자" - this is the signature table
+  const tables = content.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) || [];
+  for (const table of tables) {
+    if (!table.includes("점검자")) continue;
 
-  // Alternative simple approach: add center alignment to all paragraphs globally is too broad.
-  // Instead, patch paragraphs that don't have w:jc and are inside signature table cells.
-  // For simplicity, we'll scan for known patterns around the name cells.
+    // Get all rows in this table
+    const rows = table.match(/<w:tr>[\s\S]*?<\/w:tr>/g) || [];
+    if (rows.length < 2) continue;
 
-  // The safest approach: find runs that might contain the rendered names near 점검자/부서장/품질
-  // and add center justification to their parent paragraphs.
-  // We use a regex to find <w:p> elements that don't have <w:jc> and add center alignment.
+    // The second row contains the name/signature values
+    const valueRow = rows[1];
+    let newValueRow = valueRow;
 
-  // Find paragraphs that are right after cells containing 점검자, 부서장, 품질본부 확인
-  const nameKeys = ["점검자", "부서장", "품질본부"];
-  for (const key of nameKeys) {
-    // Pattern: find the table cell containing the key, then the NEXT cell (which has the name value)
-    // and center-align the paragraph in that next cell
-    const cellPattern = new RegExp(
-      `(<w:tc[^>]*>(?:(?!<\\/w:tc>).)*?${key}(?:(?!<\\/w:tc>).)*?<\\/w:tc>\\s*<w:tc[^>]*>\\s*<w:tcPr>(?:(?!<\\/w:tcPr>).)*?<\\/w:tcPr>\\s*<w:p[^>]*>)(\\s*<w:pPr>)((?:(?!<\\/w:pPr>).)*?)(<\\/w:pPr>)`,
-      "gs"
-    );
-    content = content.replace(cellPattern, (match, before, pprOpen, pprContent, pprClose) => {
-      if (pprContent.includes("<w:jc")) {
-        // Replace existing alignment with center
-        return before + pprOpen + pprContent.replace(/<w:jc\s+w:val="[^"]*"\s*\/?>/, '<w:jc w:val="center"/>') + pprClose;
+    // For each paragraph in this row, ensure center alignment
+    newValueRow = newValueRow.replace(/<w:p>([\s\S]*?)<\/w:p>/g, (pMatch, pContent) => {
+      if (pContent.includes("<w:pPr>")) {
+        // Has pPr - add or replace w:jc
+        if (pContent.includes("<w:jc")) {
+          pContent = pContent.replace(/<w:jc\s+w:val="[^"]*"\s*\/?>/g, '<w:jc w:val="center"/>');
+        } else {
+          pContent = pContent.replace(/<\/w:pPr>/, '<w:jc w:val="center"/></w:pPr>');
+        }
+      } else {
+        // No pPr - add one with center alignment
+        pContent = '<w:pPr><w:jc w:val="center"/></w:pPr>' + pContent;
       }
-      return before + pprOpen + pprContent + '<w:jc w:val="center"/>' + pprClose;
+      return `<w:p>${pContent}</w:p>`;
     });
+
+    // Also ensure vertical alignment (middle) for each cell in the value row
+    newValueRow = newValueRow.replace(/<w:tcPr>([\s\S]*?)<\/w:tcPr>/g, (tcMatch, tcContent) => {
+      if (tcContent.includes("<w:vAlign")) {
+        tcContent = tcContent.replace(/<w:vAlign\s+w:val="[^"]*"\s*\/?>/g, '<w:vAlign w:val="center"/>');
+      } else {
+        tcContent += '<w:vAlign w:val="center"/>';
+      }
+      return `<w:tcPr>${tcContent}</w:tcPr>`;
+    });
+
+    content = content.replace(valueRow, newValueRow);
+    break;
   }
 
   zip.file("word/document.xml", content);
