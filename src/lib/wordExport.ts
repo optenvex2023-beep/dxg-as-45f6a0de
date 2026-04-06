@@ -286,6 +286,7 @@ async function buildTemplateData(
   inspection: OutboundInspection,
   report: InspectionReport,
   qaSignatureBase64: string,
+  mfgSignatureBase64: string,
 ): Promise<Record<string, unknown>> {
   const data = report.inspection_data;
   const equipItem = inspection.equipment_items.find(e => e.id === report.equipment_item_id);
