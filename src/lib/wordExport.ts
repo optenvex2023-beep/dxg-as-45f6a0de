@@ -490,11 +490,13 @@ export async function exportReportToWord(
 ) {
   const templateUrl = report.report_type === "final" ? FINAL_TEMPLATE_URL : FIRST_TEMPLATE_URL;
 
-  // Fetch template and QA signature image in parallel
+  // Fetch template and signature images in parallel
   const qaNeeded = report.qa_review_status === "검토완료" && report.qa_signature_applied;
-  const [templateResponse, qaSignatureBase64] = await Promise.all([
+  const mfgNeeded = report.manufacturing_review_completed === true;
+  const [templateResponse, qaSignatureBase64, mfgSignatureBase64] = await Promise.all([
     fetch(templateUrl),
     qaNeeded ? fetchImageBase64(QA_SIGNATURE_IMAGE_URL) : Promise.resolve(""),
+    mfgNeeded ? fetchImageBase64(MFG_SIGNATURE_IMAGE_URL) : Promise.resolve(""),
   ]);
 
   if (!templateResponse.ok) throw new Error("Template file not found");
@@ -519,8 +521,8 @@ export async function exportReportToWord(
       return bytes.buffer;
     },
     getSize: (tagValue: string, tagName: string) => {
-      // QA signature: small size to fit table cell
-      if (tagName && (tagName.includes("QA_SIGNATURE") || tagName.includes("SIGNATURE"))) {
+      // QA/MFG signature: small size to fit table cell
+      if (tagName && (tagName.includes("SIGNATURE") || tagName.includes("MFG_SIGNATURE"))) {
         return [80, 40];
       }
       // Photo images: larger size to fill photo cells
@@ -535,7 +537,7 @@ export async function exportReportToWord(
     modules: [imageModule],
   });
 
-  const templateData = await buildTemplateData(inspection, report, qaSignatureBase64);
+  const templateData = await buildTemplateData(inspection, report, qaSignatureBase64, mfgSignatureBase64);
   doc.render(templateData);
 
   // Post-process: center-align name cells
