@@ -153,8 +153,8 @@ function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
     zip.file("word/_rels/document.xml.rels", relsContent);
   }
 
-  // Build inline image XML (width ~80px = 762000 EMU, height ~40px = 381000 EMU)
-  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+  // Build inline image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
+  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="720000" cy="540000"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="720000" cy="540000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
 
   // Replace placeholder text runs with the image
   // Find <w:r> elements containing the placeholder text and replace with image run
@@ -185,58 +185,6 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   if (!contentFile) return;
   let content = contentFile.asText();
 
-  // Check if there are unresolved MFG_SIGNATURE placeholders
-  const placeholderPatterns = [
-    /\{%MFG_SIGNATURE_IMAGE\}/g,
-    /\{%MFG_SIGNATURE\}/g,
-    /\{\{MFG_SIGNATURE_IMAGE\}\}/g,
-    /\{\{MFG_SIGNATURE\}\}/g,
-    /MFG_SIGNATURE_IMAGE/g,
-  ];
-
-  let hasPlaceholder = false;
-  for (const p of placeholderPatterns) {
-    if (p.test(content)) {
-      hasPlaceholder = true;
-      break;
-    }
-  }
-
-  if (!hasPlaceholder) {
-    // No placeholder found – try to inject into the 부서장 cell directly
-    // Find the cell after 부서장 label in the signature table row (2nd row = name row)
-    const deptHeadPattern = /(부서장(?:(?!<\/w:tc>).)*?<\/w:tc>\s*(?:<\/w:tr>\s*<w:tr[^>]*>\s*)?<w:tc[^>]*>(?:<w:tcPr>(?:(?!<\/w:tcPr>).)*?<\/w:tcPr>)?\s*<w:p[^>]*>)((?:(?!<\/w:p>).)*?)(<\/w:p>)/s;
-    
-    if (deptHeadPattern.test(content)) {
-      // Add the image to the docx media folder
-      const binary = atob(signatureBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      zip.file("word/media/mfg_signature.jpg", bytes);
-
-      // Add relationship
-      const relsFile = zip.file("word/_rels/document.xml.rels");
-      if (!relsFile) return;
-      let relsContent = relsFile.asText();
-      const rId = "rIdMfgSig";
-      if (!relsContent.includes(rId)) {
-        relsContent = relsContent.replace(
-          "</Relationships>",
-          `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
-        );
-        zip.file("word/_rels/document.xml.rels", relsContent);
-      }
-
-      const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-
-      content = content.replace(deptHeadPattern, `$1$2${imgXml}$3`);
-      zip.file("word/document.xml", content);
-    }
-    return;
-  }
-
   // Add the image to the docx media folder
   const binary = atob(signatureBase64);
   const bytes = new Uint8Array(binary.length);
@@ -258,21 +206,67 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
     zip.file("word/_rels/document.xml.rels", relsContent);
   }
 
-  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="762000" cy="381000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+  // Image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
+  const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="720000" cy="540000"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="720000" cy="540000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
 
-  // Replace placeholder text runs with the image
+  // First: try to replace any MFG_SIGNATURE placeholder text
+  const placeholderPatterns = [
+    /\{%MFG_SIGNATURE_IMAGE\}/g,
+    /\{%MFG_SIGNATURE\}/g,
+    /\{\{MFG_SIGNATURE_IMAGE\}\}/g,
+    /\{\{MFG_SIGNATURE\}\}/g,
+    /MFG_SIGNATURE_IMAGE/g,
+  ];
+
+  let hasPlaceholder = false;
   for (const p of placeholderPatterns) {
-    content = content.replace(
-      new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:MFG_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
-      `<w:r>${imgXml}</w:r>`
-    );
+    if (p.test(content)) {
+      hasPlaceholder = true;
+      break;
+    }
   }
 
-  // Clean up remaining plain-text placeholders
-  content = content.replace(/\{%MFG_SIGNATURE_IMAGE\}/g, "");
-  content = content.replace(/\{%MFG_SIGNATURE\}/g, "");
-  content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
-  content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
+  if (hasPlaceholder) {
+    for (const p of placeholderPatterns) {
+      content = content.replace(
+        new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:MFG_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
+        imgXml
+      );
+    }
+    content = content.replace(/\{%MFG_SIGNATURE_IMAGE\}/g, "");
+    content = content.replace(/\{%MFG_SIGNATURE\}/g, "");
+    content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
+    content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
+  } else {
+    // No placeholder found – inject into the 부서장 value cell directly
+    // The signature table has 2 rows. Row 1: headers (점검자|부서장|품질본부 확인|품질 서명)
+    // Row 2: values. We need the 2nd cell (부서장) of row 2.
+    // Strategy: find "부서장" text in row 1, then find the corresponding cell in row 2.
+    // More robust: find the table row containing "부서장", then get the next <w:tr> (value row),
+    // and inject into its 2nd <w:tc>.
+    
+    // Find the header row containing 부서장, then the next row
+    const tablePattern = /(<w:tr[^>]*>(?:(?!<\/w:tr>).)*?부서장(?:(?!<\/w:tr>).)*?<\/w:tr>\s*<w:tr[^>]*>)((?:(?!<\/w:tr>).)*?)(<\/w:tr>)/s;
+    const match = content.match(tablePattern);
+    if (match) {
+      const valueRowContent = match[2];
+      // Find the 2nd <w:tc> in the value row (index 1 = 부서장 value cell)
+      const cells = valueRowContent.split(/<w:tc[ >]/);
+      if (cells.length >= 3) {
+        // cells[0] is before first cell, cells[1] is 점검자 value, cells[2] is 부서장 value
+        // Find the last </w:p> in the 2nd cell (부서장) and inject image before it
+        const cellContent = cells[2];
+        const lastPClose = cellContent.lastIndexOf("</w:p>");
+        if (lastPClose !== -1) {
+          const newCellContent = cellContent.substring(0, lastPClose) + imgXml + cellContent.substring(lastPClose);
+          cells[2] = newCellContent;
+          // Reconstruct: cells[0] stays as-is, rest get <w:tc prepended back
+          const reconstructed = cells[0] + cells.slice(1).map(c => "<w:tc" + c).join("");
+          content = content.replace(match[2], reconstructed);
+        }
+      }
+    }
+  }
 
   zip.file("word/document.xml", content);
 }
@@ -456,21 +450,25 @@ async function buildTemplateData(
   };
   console.log("[WordExport] inboundFlags:", inboundFlags);
 
+  // When manufacturing review is completed, 부서장 cell shows ONLY the signature image (no name text)
+  const mfgReviewDone = report.manufacturing_review_completed === true;
+  const deptHeadNameValue = mfgReviewDone ? "" : safe(data.department_head);
+
   const raw: Record<string, unknown> = {
     // ── Cover page ──
     INSPECTOR_NAME: safe(report.inspector_name),
     INSPECTOR_NAM: safe(report.inspector_name),
-    DEPT_HEAD_NAME: safe(data.department_head),
-    DEPT_HEAD_NAM: safe(data.department_head),
+    DEPT_HEAD_NAME: deptHeadNameValue,
+    DEPT_HEAD_NAM: deptHeadNameValue,
     QA_REVIEWER_NAME: qaReviewDone ? safe(report.qa_reviewer_name) : "",
     QA_REVIEWER_NAM: qaReviewDone ? safe(report.qa_reviewer_name) : "",
 
     QA_SIGNATURE_IMAGE: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
     QA_SIGNATURE_IMAG: qaReviewDone && qaSignatureBase64 ? qaSignatureBase64 : "",
 
-    // Manufacturing (부서장) signature
-    MFG_SIGNATURE_IMAGE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
-    MFG_SIGNATURE: report.manufacturing_review_completed && mfgSignatureBase64 ? mfgSignatureBase64 : "",
+    // Manufacturing (부서장) signature - image only, no text
+    MFG_SIGNATURE_IMAGE: mfgReviewDone && mfgSignatureBase64 ? mfgSignatureBase64 : "",
+    MFG_SIGNATURE: mfgReviewDone && mfgSignatureBase64 ? mfgSignatureBase64 : "",
 
     CLIENT_NAME: safe(data.client_name),
     CLIENT_N: safe(data.client_name),
@@ -628,9 +626,9 @@ export async function exportReportToWord(
       return bytes.buffer;
     },
     getSize: (tagValue: string, tagName: string) => {
-      // QA/MFG signature: small size to fit table cell
+      // QA/MFG signature: ~1.98cm x 1.49cm ≈ 75px x 56px
       if (tagName && (tagName.includes("SIGNATURE") || tagName.includes("MFG_SIGNATURE"))) {
-        return [80, 40];
+        return [75, 56];
       }
       // Photo images: larger size to fill photo cells
       return [200, 150];
