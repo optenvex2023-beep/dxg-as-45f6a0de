@@ -196,6 +196,17 @@ export default function StatusTable() {
 
   const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
 
+  const canClose = (rec: OutboundInspection) => {
+    return !rec.is_closed && rec.reinstall_date && rec.reinstall_confirm_status === "확정";
+  };
+
+  const handleClose = () => {
+    if (!selectedRecord || !canClose(selectedRecord)) return;
+    updateInspection(selectedRecord.id, { is_closed: true, closed_at: new Date().toISOString() });
+    setSelectedId(null);
+    toast.success("종결 처리되었습니다.");
+  };
+
   const showSerialNo = (rec: OutboundInspection) => {
     const idx = allStatuses.indexOf(rec.status);
     const doneIdx = allStatuses.indexOf("1차 점검완료");
