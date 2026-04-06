@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useRef, useState, type UIEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import type {
@@ -53,6 +53,54 @@ interface EquipmentDraft {
 
 type CreateFormData = Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at" | "is_closed" | "closed_at">;
 
+const statusTableColumns = [
+  { key: "status", label: "현황", width: 80 },
+  { key: "created_at", label: "등록일자", width: 100 },
+  { key: "manage_no", label: "관리번호", width: 100 },
+  { key: "project_name", label: "건명", width: 160 },
+  { key: "equipment", label: "반출장비", width: 180 },
+  { key: "outbound_request", label: "반출요청일자", width: 120 },
+  { key: "planned_outbound", label: "반출예정일자", width: 100 },
+  { key: "outbound_date", label: "반출일자", width: 100 },
+  { key: "inbound_date", label: "입고일자", width: 100 },
+  { key: "first_inspection", label: "1차 점검완료일자", width: 100 },
+  { key: "final_inspection", label: "최종 점검완료일자", width: 100 },
+  { key: "reinstall_request", label: "재설치 요청일자", width: 120 },
+  { key: "reinstall_date", label: "재설치 일자", width: 100 },
+  { key: "reinstall_confirm", label: "설치 예정/확정", width: 70 },
+  { key: "contract_due_date", label: "계약납기", width: 100 },
+  { key: "special_note", label: "특이사항", width: 140 },
+  { key: "client_pic_name", label: "발주처 담당자", width: 90 },
+  { key: "client_pic_phone", label: "발주처 연락처", width: 100 },
+] as const;
+
+const statusTableWidth = `${statusTableColumns.reduce((total, column) => total + column.width, 0)}px`;
+
+function StatusTableColGroup() {
+  return (
+    <colgroup>
+      {statusTableColumns.map((column) => (
+        <col key={column.key} style={{ width: `${column.width}px` }} />
+      ))}
+    </colgroup>
+  );
+}
+
+function StatusTableHeaderRow() {
+  return (
+    <tr className="border-b">
+      {statusTableColumns.map((column) => (
+        <th
+          key={column.key}
+          className="h-12 bg-card px-4 text-left align-middle text-sm font-medium text-muted-foreground"
+        >
+          {column.label}
+        </th>
+      ))}
+    </tr>
+  );
+}
+
 function emptyFormData(): CreateFormData {
   return {
     manage_no: "",
@@ -100,11 +148,23 @@ export default function StatusTable() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [closedExpanded, setClosedExpanded] = useState(false);
 
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [csModalOpen, setCsModalOpen] = useState(false);
   const [mfgModalOpen, setMfgModalOpen] = useState(false);
+
+  const syncHorizontalScroll = (source: "header" | "body") => (event: UIEvent<HTMLDivElement>) => {
+    const scrollLeft = event.currentTarget.scrollLeft;
+    const target = source === "header" ? bodyScrollRef.current : headerScrollRef.current;
+
+    if (target && target.scrollLeft !== scrollLeft) {
+      target.scrollLeft = scrollLeft;
+    }
+  };
 
   const superAdmin = isSuperAdmin(currentUser);
   const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀");
@@ -333,102 +393,100 @@ export default function StatusTable() {
       </div>
 
       <div
-        className="rounded-lg border bg-card shadow-sm overflow-auto"
-        style={{ maxHeight: 'calc(100vh - 280px)' }}
+        className="rounded-lg border bg-card shadow-sm overflow-hidden flex flex-col"
+        style={{ maxHeight: "calc(100vh - 280px)" }}
       >
-        <Table className="relative [&>div]:!overflow-visible">
-          <TableHeader className="sticky top-0 z-20 bg-card" style={{ boxShadow: '0 1px 0 0 hsl(var(--border))' }}>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="min-w-[80px] bg-card">현황</TableHead>
-              <TableHead className="min-w-[100px] bg-card">등록일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">관리번호</TableHead>
-              <TableHead className="min-w-[160px] bg-card">건명</TableHead>
-              <TableHead className="min-w-[180px] bg-card">반출장비</TableHead>
-              <TableHead className="min-w-[120px] bg-card">반출요청일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">반출예정일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">반출일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">입고일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">1차 점검완료일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">최종 점검완료일자</TableHead>
-              <TableHead className="min-w-[120px] bg-card">재설치 요청일자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">재설치 일자</TableHead>
-              <TableHead className="min-w-[70px] bg-card">설치 예정/확정</TableHead>
-              <TableHead className="min-w-[100px] bg-card">계약납기</TableHead>
-              <TableHead className="min-w-[140px] bg-card">특이사항</TableHead>
-              <TableHead className="min-w-[90px] bg-card">발주처 담당자</TableHead>
-              <TableHead className="min-w-[100px] bg-card">발주처 연락처</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {searchFiltered.map((rec) => (
-              <TableRow
-                key={rec.id}
-                className={cn(
-                  "cursor-pointer transition-colors",
-                  rec.due_warning && "border-l-4 border-l-destructive bg-destructive/5",
-                  selectedId === rec.id && "bg-primary/10 ring-1 ring-primary/30"
-                )}
-                onClick={() => handleRowClick(rec.id)}
-              >
-                <TableCell>
-                  <div className="flex flex-col gap-0.5">
-                    <StatusBadge status={rec.status} />
-                    {rec.due_warning && rec.status !== "납기유의" && rec.status !== "설치 완료" && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive text-destructive font-semibold">
-                        납기유의
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-[11px] text-muted-foreground/70">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
-                <TableCell className="text-xs">{rec.manage_no}</TableCell>
-                <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
-                <TableCell className="text-xs">
-                  {rec.equipment_items.length > 0 ? (
-                    <div className="space-y-0.5">
-                      {rec.equipment_items.map((item) => (
-                        <div key={item.id}>
-                          {item.equipment_name} ({item.qty_set} set)
-                          {showSerialNo(rec) && item.serial_no && (
-                            <span className="text-muted-foreground ml-1">/ {item.serial_no}</span>
-                          )}
-                        </div>
-                      ))}
+        <div
+          ref={headerScrollRef}
+          onScroll={syncHorizontalScroll("header")}
+          className="overflow-x-auto overflow-y-hidden border-b [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <table className="caption-bottom table-fixed text-sm" style={{ width: statusTableWidth }}>
+            <StatusTableColGroup />
+            <thead className="bg-card" style={{ boxShadow: "0 1px 0 0 hsl(var(--border))" }}>
+              <StatusTableHeaderRow />
+            </thead>
+          </table>
+        </div>
+
+        <div
+          ref={bodyScrollRef}
+          onScroll={syncHorizontalScroll("body")}
+          className="min-h-0 overflow-auto"
+        >
+          <table className="caption-bottom table-fixed text-sm" style={{ width: statusTableWidth }}>
+            <StatusTableColGroup />
+            <tbody className="[&_tr:last-child]:border-0">
+              {searchFiltered.map((rec) => (
+                <tr
+                  key={rec.id}
+                  className={cn(
+                    "cursor-pointer border-b transition-colors hover:bg-muted/50",
+                    rec.due_warning && "border-l-4 border-l-destructive bg-destructive/5",
+                    selectedId === rec.id && "bg-primary/10 ring-1 ring-primary/30"
+                  )}
+                  onClick={() => handleRowClick(rec.id)}
+                >
+                  <td className="p-4 align-middle">
+                    <div className="flex flex-col gap-0.5">
+                      <StatusBadge status={rec.status} />
+                      {rec.due_warning && rec.status !== "납기유의" && rec.status !== "설치 완료" && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive text-destructive font-semibold">
+                          납기유의
+                        </Badge>
+                      )}
                     </div>
-                  ) : "—"}
-                </TableCell>
-                <TableCell className="text-xs">
-                  {rec.outbound_request_date_mode === "단일"
-                    ? rec.outbound_request_date_single || "—"
-                    : `${rec.outbound_request_date_start || ""} ~ ${rec.outbound_request_date_end || ""}`}
-                </TableCell>
-                <TableCell className="text-xs">{rec.planned_outbound_date || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.outbound_date || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.inbound_date || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.first_inspection_done_date || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.final_inspection_done_date || "—"}</TableCell>
-                <TableCell className="text-xs">
-                  {rec.reinstall_request_date_mode === "단일"
-                    ? rec.reinstall_request_date_single || "—"
-                    : `${rec.reinstall_request_date_start || ""} ~ ${rec.reinstall_request_date_end || ""}`}
-                </TableCell>
-                <TableCell className="text-xs">{rec.reinstall_date || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.reinstall_confirm_status}</TableCell>
-                <TableCell className="text-xs">{rec.contract_due_date || "—"}</TableCell>
-                <TableCell className="text-xs max-w-[160px] truncate">{rec.special_note || "—"}</TableCell>
-                <TableCell className="text-xs">{rec.client_pic_name}</TableCell>
-                <TableCell className="text-xs">{rec.client_pic_phone}</TableCell>
-              </TableRow>
-            ))}
-            {searchFiltered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
-                  {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  </td>
+                  <td className="p-4 align-middle text-[11px] text-muted-foreground/70">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.manage_no}</td>
+                  <td className="p-4 align-middle text-xs truncate">{rec.project_name}</td>
+                  <td className="p-4 align-middle text-xs">
+                    {rec.equipment_items.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {rec.equipment_items.map((item) => (
+                          <div key={item.id}>
+                            {item.equipment_name} ({item.qty_set} set)
+                            {showSerialNo(rec) && item.serial_no && (
+                              <span className="ml-1 text-muted-foreground">/ {item.serial_no}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : "—"}
+                  </td>
+                  <td className="p-4 align-middle text-xs">
+                    {rec.outbound_request_date_mode === "단일"
+                      ? rec.outbound_request_date_single || "—"
+                      : `${rec.outbound_request_date_start || ""} ~ ${rec.outbound_request_date_end || ""}`}
+                  </td>
+                  <td className="p-4 align-middle text-xs">{rec.planned_outbound_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.outbound_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.inbound_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.first_inspection_done_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.final_inspection_done_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">
+                    {rec.reinstall_request_date_mode === "단일"
+                      ? rec.reinstall_request_date_single || "—"
+                      : `${rec.reinstall_request_date_start || ""} ~ ${rec.reinstall_request_date_end || ""}`}
+                  </td>
+                  <td className="p-4 align-middle text-xs">{rec.reinstall_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.reinstall_confirm_status}</td>
+                  <td className="p-4 align-middle text-xs">{rec.contract_due_date || "—"}</td>
+                  <td className="p-4 align-middle text-xs truncate">{rec.special_note || "—"}</td>
+                  <td className="p-4 align-middle text-xs">{rec.client_pic_name}</td>
+                  <td className="p-4 align-middle text-xs">{rec.client_pic_phone}</td>
+                </tr>
+              ))}
+              {searchFiltered.length === 0 && (
+                <tr className="border-b">
+                  <td colSpan={18} className="p-4 py-8 text-center align-middle text-muted-foreground">
+                    {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Closed items section */}
