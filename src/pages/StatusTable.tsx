@@ -359,7 +359,7 @@ export default function StatusTable() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-xs">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
+                <TableCell className="text-[11px] text-muted-foreground/70">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
                 <TableCell className="text-xs">{rec.manage_no}</TableCell>
                 <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
                 <TableCell className="text-xs">
