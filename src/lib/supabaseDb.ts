@@ -185,6 +185,8 @@ export async function insertReport(report: InspectionReport) {
     qa_reviewed_at: report.qa_reviewed_at,
     qa_signature_applied: report.qa_signature_applied,
     qa_notification_sent_to_sales: report.qa_notification_sent_to_sales,
+    manufacturing_review_completed: report.manufacturing_review_completed,
+    manufacturing_reviewed_at: report.manufacturing_reviewed_at,
   });
   if (error) console.error("insertReport error:", error);
 }
