@@ -332,9 +332,9 @@ export default function StatusTable() {
         )}
       </div>
 
-      <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
+      <div className="rounded-lg border bg-card shadow-sm overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             <TableRow>
               <TableHead className="min-w-[80px]">현황</TableHead>
               <TableHead className="min-w-[100px]">등록일자</TableHead>
