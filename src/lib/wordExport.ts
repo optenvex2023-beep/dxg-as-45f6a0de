@@ -101,6 +101,26 @@ function postProcessNameAlignment(zip: PizZip) {
   zip.file("word/document.xml", content);
 }
 
+/* ─── Post-process: add spacing between signature table and Client table ─── */
+function postProcessSignatureClientSpacing(zip: PizZip) {
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  let content = contentFile.asText();
+
+  // Find the signature table (contains 점검자 and 부서장) end tag, then add empty paragraphs
+  // Look for the closing </w:tbl> after 부서장 content, then add spacing paragraphs before the next table
+  const sigTableEnd = /(<\/w:tbl>)(\s*<w:p[ >])/;
+  const match = content.match(sigTableEnd);
+  if (match) {
+    // Add 5 empty paragraphs with spacing (each ~120 twips after) for ~7 lines total gap
+    const spacingParas = Array(5).fill(
+      '<w:p><w:pPr><w:spacing w:after="120" w:line="240" w:lineRule="auto"/></w:pPr></w:p>'
+    ).join("");
+    content = content.replace(sigTableEnd, `$1${spacingParas}$2`);
+    zip.file("word/document.xml", content);
+  }
+}
+
 /* ─── Post-process: embed QA signature image directly into XML ─── */
 function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
   if (!signatureBase64) return;
