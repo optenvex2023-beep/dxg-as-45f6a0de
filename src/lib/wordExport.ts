@@ -647,7 +647,11 @@ export async function exportReportToWord(
 
   // Post-process: center-align name cells
   const outputZip = doc.getZip();
+  // Post-process: center-align name cells
   postProcessNameAlignment(outputZip);
+
+  // Post-process: add spacing between signature table and Client table
+  postProcessSignatureClientSpacing(outputZip);
 
   // Post-process: embed QA signature image if image module didn't handle it
   if (qaNeeded && qaSignatureBase64) {
