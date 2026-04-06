@@ -105,7 +105,66 @@ function replaceTableCellContent(cellXml: string, innerXml: string) {
 }
 
 function buildCenteredImageParagraph(imageRunXml: string) {
-  return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>${imageRunXml}</w:p>`;
+  return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:textAlignment w:val="baseline"/></w:pPr>${imageRunXml}</w:p>`;
+}
+
+type ApprovalSignatureImageOptions = {
+  cellIndex: number;
+  docPrId: number;
+  fileName: string;
+  label: string;
+  relationId: string;
+  signatureBase64: string;
+};
+
+function writeBase64MediaFile(zip: PizZip, fileName: string, signatureBase64: string) {
+  const binary = atob(signatureBase64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  zip.file(`word/media/${fileName}`, bytes);
+}
+
+function ensureDocumentImageRelationship(zip: PizZip, relationId: string, fileName: string) {
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (!relsFile) return;
+
+  let relsContent = relsFile.asText();
+  if (relsContent.includes(`Id="${relationId}"`)) return;
+
+  relsContent = relsContent.replace(
+    "</Relationships>",
+    `<Relationship Id="${relationId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fileName}"/></Relationships>`
+  );
+
+  zip.file("word/_rels/document.xml.rels", relsContent);
+}
+
+function buildSignatureImageRunXml(relationId: string, docPrId: number, label: string, fileName: string) {
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/><wp:docPr id="${docPrId}" name="${label}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${docPrId}" name="${fileName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relationId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+}
+
+function embedApprovalSignatureImage(zip: PizZip, options: ApprovalSignatureImageOptions) {
+  const { cellIndex, docPrId, fileName, label, relationId, signatureBase64 } = options;
+  if (!signatureBase64) return;
+
+  ensureImageContentTypes(zip);
+  writeBase64MediaFile(zip, fileName, signatureBase64);
+  ensureDocumentImageRelationship(zip, relationId, fileName);
+
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+
+  const content = contentFile.asText();
+  const imageRunXml = buildSignatureImageRunXml(relationId, docPrId, label, fileName);
+  const updatedContent = replaceApprovalValueCell(content, cellIndex, buildCenteredImageParagraph(imageRunXml));
+
+  if (updatedContent !== content) {
+    zip.file("word/document.xml", updatedContent);
+  }
 }
 
 function replaceApprovalValueCell(content: string, cellIndex: number, innerXml: string) {
@@ -199,149 +258,26 @@ function postProcessSignatureClientSpacing(zip: PizZip) {
 
 /* ─── Post-process: embed QA signature image directly into XML ─── */
 function postProcessQASignatureImage(zip: PizZip, signatureBase64: string) {
-  if (!signatureBase64) return;
-
-  ensureImageContentTypes(zip);
-
-  const contentFile = zip.file("word/document.xml");
-  if (!contentFile) return;
-  let content = contentFile.asText();
-
-  // Check if there are still unresolved QA_SIGNATURE placeholders as text
-  const placeholderPatterns = [
-    /\{%QA_SIGNATURE_IMAGE\}/g,
-    /\{%QA_SIGNATURE_IMAG\}/g,
-    /\{%QA_SIGNATURE\}/g,
-    /\{\{QA_SIGNATURE_IMAGE\}\}/g,
-    /\{\{QA_SIGNATURE_IMAG\}\}/g,
-    /\{\{QA_SIGNATURE\}\}/g,
-    /QA_SIGNATURE_IMAGE/g,
-    /QA_SIGNATURE_IMAG/g,
-  ];
-
-  let hasPlaceholder = false;
-  for (const p of placeholderPatterns) {
-    if (p.test(content)) {
-      hasPlaceholder = true;
-      break;
-    }
-  }
-
-  if (!hasPlaceholder) return; // Image module handled it successfully
-
-  // Add the image to the docx media folder
-  const binary = atob(signatureBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  const mediaPath = "word/media/qa_signature.png";
-  zip.file(mediaPath, bytes);
-
-  // Add relationship for the image
-  const relsFile = zip.file("word/_rels/document.xml.rels");
-  if (!relsFile) return;
-  let relsContent = relsFile.asText();
-  const rId = "rIdQASig";
-  if (!relsContent.includes(rId)) {
-    relsContent = relsContent.replace(
-      "</Relationships>",
-      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/qa_signature.png"/></Relationships>`
-    );
-    zip.file("word/_rels/document.xml.rels", relsContent);
-  }
-
-  // Build inline image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
-  const imgXml = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/><wp:docPr id="99" name="QA Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="99" name="qa_signature.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
-
-  // Replace placeholder text runs with the image
-  // Find <w:r> elements containing the placeholder text and replace with image run
-  for (const p of placeholderPatterns) {
-    // Replace the text content within <w:t> tags
-    content = content.replace(
-      new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:QA_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
-      `<w:r>${imgXml}</w:r>`
-    );
-  }
-
-  // Also clean up any remaining plain-text placeholders
-  content = content.replace(/\{%QA_SIGNATURE_IMAGE\}/g, "");
-  content = content.replace(/\{%QA_SIGNATURE_IMAG\}/g, "");
-  content = content.replace(/\{%QA_SIGNATURE\}/g, "");
-  content = content.replace(/\{\{QA_SIGNATURE_IMAGE\}\}/g, "");
-  content = content.replace(/\{\{QA_SIGNATURE_IMAG\}\}/g, "");
-  content = content.replace(/\{\{QA_SIGNATURE\}\}/g, "");
-
-  zip.file("word/document.xml", content);
+  embedApprovalSignatureImage(zip, {
+    cellIndex: 3,
+    docPrId: 99,
+    fileName: "qa_signature.png",
+    label: "QA Signature",
+    relationId: "rIdQASig",
+    signatureBase64,
+  });
 }
 
 /* ─── Post-process: embed MFG (부서장) signature image directly into XML ─── */
 function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
-  if (!signatureBase64) return;
-
-  ensureImageContentTypes(zip);
-
-  const contentFile = zip.file("word/document.xml");
-  if (!contentFile) return;
-  let content = contentFile.asText();
-
-  // Add the image to the docx media folder
-  const binary = atob(signatureBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  zip.file("word/media/mfg_signature.jpg", bytes);
-
-  // Add relationship
-  const relsFile = zip.file("word/_rels/document.xml.rels");
-  if (!relsFile) return;
-  let relsContent = relsFile.asText();
-  const rId = "rIdMfgSig";
-  if (!relsContent.includes(rId)) {
-    relsContent = relsContent.replace(
-      "</Relationships>",
-      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mfg_signature.jpg"/></Relationships>`
-    );
-    zip.file("word/_rels/document.xml.rels", relsContent);
-  }
-
-  // Image XML (~1.98cm x 1.49cm = 720000 EMU x 540000 EMU)
-  const imgXml = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/><wp:docPr id="98" name="MFG Signature"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="98" name="mfg_signature.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${SIGNATURE_IMAGE_EMU.width}" cy="${SIGNATURE_IMAGE_EMU.height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-
-  // First: try to replace any MFG_SIGNATURE placeholder text
-  const placeholderPatterns = [
-    /\{%MFG_SIGNATURE_IMAGE\}/g,
-    /\{%MFG_SIGNATURE\}/g,
-    /\{\{MFG_SIGNATURE_IMAGE\}\}/g,
-    /\{\{MFG_SIGNATURE\}\}/g,
-    /MFG_SIGNATURE_IMAGE/g,
-  ];
-
-  let hasPlaceholder = false;
-  for (const p of placeholderPatterns) {
-    if (p.test(content)) {
-      hasPlaceholder = true;
-      break;
-    }
-  }
-
-  if (hasPlaceholder) {
-    for (const p of placeholderPatterns) {
-      content = content.replace(
-        new RegExp(`(<w:r[^>]*>(?:<w:rPr>(?:(?!<\\/w:rPr>).)*<\\/w:rPr>)?\\s*<w:t[^>]*>)[^<]*(?:MFG_SIGNATURE[^<]*)(</w:t>\\s*</w:r>)`, "g"),
-        imgXml
-      );
-    }
-    content = content.replace(/\{%MFG_SIGNATURE_IMAGE\}/g, "");
-    content = content.replace(/\{%MFG_SIGNATURE\}/g, "");
-    content = content.replace(/\{\{MFG_SIGNATURE_IMAGE\}\}/g, "");
-    content = content.replace(/\{\{MFG_SIGNATURE\}\}/g, "");
-  } else {
-    content = replaceApprovalValueCell(content, 1, buildCenteredImageParagraph(imgXml));
-  }
-
-  zip.file("word/document.xml", content);
+  embedApprovalSignatureImage(zip, {
+    cellIndex: 1,
+    docPrId: 98,
+    fileName: "mfg_signature.jpg",
+    label: "MFG Signature",
+    relationId: "rIdMfgSig",
+    signatureBase64,
+  });
 }
 
 /* ─── Check item → template boolean key mapping ─── */
