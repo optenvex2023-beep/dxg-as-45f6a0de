@@ -166,6 +166,8 @@ export default function StatusTable() {
       result = result.filter((i) => i.final_inspection_done_date && !i.reinstall_date);
     }
 
+    // Sort by created_at DESC (newest first)
+    result = [...result].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return result;
   }, [inspections, localStatusFilter, dueToggle, extraFilter, needOutbound, needReinstall, dashboardFilter]);
 
@@ -317,6 +319,7 @@ export default function StatusTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="min-w-[80px]">현황</TableHead>
+              <TableHead className="min-w-[100px]">등록일자</TableHead>
               <TableHead className="min-w-[100px]">관리번호</TableHead>
               <TableHead className="min-w-[160px]">건명</TableHead>
               <TableHead className="min-w-[180px]">반출장비</TableHead>
@@ -356,6 +359,7 @@ export default function StatusTable() {
                     )}
                   </div>
                 </TableCell>
+                <TableCell className="text-xs">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</TableCell>
                 <TableCell className="text-xs">{rec.manage_no}</TableCell>
                 <TableCell className="text-xs max-w-[200px] truncate">{rec.project_name}</TableCell>
                 <TableCell className="text-xs">
@@ -397,7 +401,7 @@ export default function StatusTable() {
             ))}
             {searchFiltered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
                   {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
                 </TableCell>
               </TableRow>
