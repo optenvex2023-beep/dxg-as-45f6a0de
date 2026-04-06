@@ -713,6 +713,12 @@ function DocumentView({
           </>
         )}
 
+        {isManufacturing && !isDraft && !isEditing && !isQAReviewing && !report.manufacturing_review_completed && (
+          <Button onClick={handleManufacturingReview} className="gap-1 bg-orange-600 text-white hover:bg-orange-700">
+            <ShieldCheck className="h-4 w-4" /> 제조 검토 완료
+          </Button>
+        )}
+
         {isQC && !isDraft && !isEditing && !isQAReviewing && report.qa_review_status === "미검토" && (
           <Button onClick={() => setIsQAReviewing(true)} className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
             <ShieldCheck className="h-4 w-4" /> 품질 검토
