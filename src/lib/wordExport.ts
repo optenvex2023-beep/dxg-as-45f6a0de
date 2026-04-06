@@ -9,8 +9,8 @@ const FIRST_TEMPLATE_URL = "/templates/first-report-template.docx";
 const FINAL_TEMPLATE_URL = "/templates/final-report-template.docx";
 const QA_SIGNATURE_IMAGE_URL = "/images/qa-signature.png";
 const MFG_SIGNATURE_IMAGE_URL = "/images/manufacturing-signature.jpg";
-const SIGNATURE_IMAGE_EMU = { width: 720000, height: 540000 };
-const SIGNATURE_IMAGE_SIZE_PX: [number, number] = [75, 56];
+const SIGNATURE_IMAGE_EMU = { width: 650000, height: 450000 };
+const SIGNATURE_IMAGE_SIZE_PX: [number, number] = [68, 47];
 
 /** Safely return a string – never "undefined" or "null" */
 function safe(val: unknown): string {
@@ -188,9 +188,9 @@ function postProcessSignatureClientSpacing(zip: PizZip) {
   const sigTableEnd = /(<\/w:tbl>)(\s*<w:p[ >])/;
   const match = content.match(sigTableEnd);
   if (match) {
-    // Add 5 empty paragraphs with spacing (each ~120 twips after) for ~7 lines total gap
-    const spacingParas = Array(5).fill(
-      '<w:p><w:pPr><w:spacing w:after="120" w:line="240" w:lineRule="auto"/></w:pPr></w:p>'
+    // Add 2 empty paragraphs with minimal spacing for a compact gap
+    const spacingParas = Array(2).fill(
+      '<w:p><w:pPr><w:spacing w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:p>'
     ).join("");
     content = content.replace(sigTableEnd, `$1${spacingParas}$2`);
     zip.file("word/document.xml", content);
