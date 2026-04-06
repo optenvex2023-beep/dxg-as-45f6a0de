@@ -92,7 +92,7 @@ function StatusTableHeaderRow() {
       {statusTableColumns.map((column) => (
         <th
           key={column.key}
-          className="h-12 bg-card px-4 text-left align-middle text-sm font-medium text-muted-foreground"
+          className="bg-card px-4 py-3 text-left align-middle text-sm font-medium leading-normal text-muted-foreground whitespace-nowrap"
         >
           {column.label}
         </th>
@@ -393,13 +393,13 @@ export default function StatusTable() {
       </div>
 
       <div
-        className="rounded-lg border bg-card shadow-sm overflow-hidden flex flex-col"
+        className="rounded-lg border bg-card shadow-sm flex flex-col"
         style={{ maxHeight: "calc(100vh - 280px)" }}
       >
         <div
           ref={headerScrollRef}
           onScroll={syncHorizontalScroll("header")}
-          className="overflow-x-auto overflow-y-hidden border-b [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="shrink-0 overflow-x-auto border-b [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <table className="caption-bottom table-fixed text-sm" style={{ width: statusTableWidth }}>
             <StatusTableColGroup />
