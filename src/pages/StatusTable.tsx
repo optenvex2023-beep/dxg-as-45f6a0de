@@ -51,7 +51,7 @@ interface EquipmentDraft {
   qty_set: number;
 }
 
-type CreateFormData = Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at">;
+type CreateFormData = Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at" | "is_closed" | "closed_at">;
 
 function emptyFormData(): CreateFormData {
   return {
