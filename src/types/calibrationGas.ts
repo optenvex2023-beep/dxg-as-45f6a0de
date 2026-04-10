@@ -40,6 +40,10 @@ export interface CalibrationGasInventoryItem {
   monthly_amount: string;             // AC열: 월 금액
   contract_consumables: string;       // AD열: 계약 내 소모품 포함 항목
   notes: string;                      // AE열: 비고
+
+  /* ── 병합 그룹 (DB 전용) ── */
+  gas_inspection_merge_group?: number;
+  velocity_inspection_merge_group?: number;
 }
 
 /** Site name alias map for normalization */
