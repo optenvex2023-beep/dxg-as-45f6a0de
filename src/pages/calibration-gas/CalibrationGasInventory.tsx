@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import { toast } from "sonner";
-import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
+import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
