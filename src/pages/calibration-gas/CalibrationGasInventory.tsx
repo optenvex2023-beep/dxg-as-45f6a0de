@@ -258,6 +258,7 @@ export default function CalibrationGasInventory() {
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
+  const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
   /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
@@ -303,6 +304,8 @@ export default function CalibrationGasInventory() {
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
   const velocityInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.velocity_inspection_next);
+  const gasInspDueOrPast = (item: CalibrationGasInventoryItem) => isDueOrPast(item.gas_inspection_next);
+  const velInspDueOrPast = (item: CalibrationGasInventoryItem) => isDueOrPast(item.velocity_inspection_next);
 
   const FILTER_OPTIONS: { key: AlertFilterType; label: string; Icon: typeof Clock | null }[] = [
     { key: "all", label: "전체", Icon: null },
