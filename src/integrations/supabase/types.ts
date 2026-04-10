@@ -93,6 +93,7 @@ export type Database = {
           analyzer_range: string
           arrival_status: string
           branch: string
+          branch_merge_group: number
           concentration: string
           contract_consumables: string
           contract_end_date: string | null
@@ -114,6 +115,7 @@ export type Database = {
           monthly_amount: string
           notes: string
           purchase_entity: string
+          purchase_entity_merge_group: number
           remaining_percent: string
           site_name: string
           so_issue: string
@@ -133,6 +135,7 @@ export type Database = {
           analyzer_range?: string
           arrival_status?: string
           branch?: string
+          branch_merge_group?: number
           concentration?: string
           contract_consumables?: string
           contract_end_date?: string | null
@@ -154,6 +157,7 @@ export type Database = {
           monthly_amount?: string
           notes?: string
           purchase_entity?: string
+          purchase_entity_merge_group?: number
           remaining_percent?: string
           site_name?: string
           so_issue?: string
@@ -173,6 +177,7 @@ export type Database = {
           analyzer_range?: string
           arrival_status?: string
           branch?: string
+          branch_merge_group?: number
           concentration?: string
           contract_consumables?: string
           contract_end_date?: string | null
@@ -194,6 +199,7 @@ export type Database = {
           monthly_amount?: string
           notes?: string
           purchase_entity?: string
+          purchase_entity_merge_group?: number
           remaining_percent?: string
           site_name?: string
           so_issue?: string
