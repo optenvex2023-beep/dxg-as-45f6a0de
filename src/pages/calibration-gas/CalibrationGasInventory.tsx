@@ -395,11 +395,11 @@ export default function CalibrationGasInventory() {
           <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
               <tr className="bg-table-header">
-                <th rowSpan={2} className={`${thBase} min-w-[80px]`}>계약종료일</th>
-                <th rowSpan={2} className={`${thBase} min-w-[120px]`}>사업장명</th>
-                <th rowSpan={2} className={`${thBase} min-w-[60px]`}>TMS</th>
-                <th rowSpan={2} className={`${thBase} min-w-[70px]`}>호기</th>
-                <th rowSpan={2} className={`${thBase} min-w-[100px]`}>분석기 Range</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[0].left} ${stickyCol[0].w}`}>계약종료일</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[1].left} ${stickyCol[1].w} overflow-hidden text-ellipsis`}>사업장명</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[2].left} ${stickyCol[2].w}`}>TMS</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[3].left} ${stickyCol[3].w}`}>호기</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight}`}>분석기 Range</th>
                 <th colSpan={2} className={`${thBase}`}>교정가스</th>
                 <th colSpan={2} className={`${thBase}`}>사업장 보유 가스</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
