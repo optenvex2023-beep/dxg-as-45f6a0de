@@ -57,8 +57,8 @@ function createEmptyItem(): CalibrationGasInventoryItem {
     velocity_inspection_round: "", velocity_inspection_so: "",
     inspection_notes: "", inspection_date: "", inspection_cycle: "",
     md: "", monthly_amount: "", contract_consumables: "", notes: "",
+    gas_inspection_merge_group: 0, velocity_inspection_merge_group: 0,
   };
-}
 
 export default function CalibrationGasInventory() {
   const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
