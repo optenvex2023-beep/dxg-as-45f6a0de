@@ -275,6 +275,8 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
   const gasMerges = computeMergeRanges(allItems, "gas_inspection_merge_group");
   const velMerges = computeMergeRanges(allItems, "velocity_inspection_merge_group");
+  const purchaseMerges = computeMergeRanges(allItems, "purchase_entity_merge_group");
+  const branchMerges = computeMergeRanges(allItems, "branch_merge_group");
 
   for (const { startRow, endRow } of gasMerges) {
     for (let col = 14; col <= 19; col++) {
@@ -285,6 +287,12 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     for (let col = 20; col <= 24; col++) {
       try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
     }
+  }
+  for (const { startRow, endRow } of purchaseMerges) {
+    try { ws.mergeCells(startRow, 10, endRow, 10); } catch { /* skip */ }
+  }
+  for (const { startRow, endRow } of branchMerges) {
+    try { ws.mergeCells(startRow, 13, endRow, 13); } catch { /* skip */ }
   }
 
   for (const { startRow, endRow } of contractMerges) {
