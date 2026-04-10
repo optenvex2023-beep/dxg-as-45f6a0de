@@ -460,20 +460,20 @@ export default function CalibrationGasInventory() {
                   <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} text-center bg-muted/20 font-medium whitespace-nowrap`}>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center bg-muted/20 font-medium whitespace-nowrap`}>
                         {item.contract_end_date || "-"}
                       </td>
                     )}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} font-semibold whitespace-nowrap ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
-                        {item.site_name}
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-nowrap overflow-hidden text-ellipsis ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
+                        <span className="truncate block">{item.site_name}</span>
                         {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
                       </td>
                     )}
 
                     {/* ── TMS-level merged (C) ── */}
                     {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} text-center`}>
+                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center bg-background`}>
                         <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
                           {item.tms_status}
                         </Badge>
@@ -482,13 +482,15 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center font-medium`}>
+                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium bg-background`}>
                         {item.unit_no}
                       </td>
                     )}
 
-                    {/* ── Per-gas-row columns (E~I): NOT merged ── */}
-                    <td className={`${td} whitespace-nowrap`}>{item.analyzer_range}</td>
+                    {/* ── Per-gas-row columns (E): 분석기 Range ── */}
+                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap bg-background overflow-hidden text-ellipsis`}>
+                      <span className="truncate block">{item.analyzer_range}</span>
+                    </td>
                     {renderCell(item, "concentration", "text-center")}
                     {renderCell(item, "volume_L", "text-center")}
                     {/* Expiry date */}
