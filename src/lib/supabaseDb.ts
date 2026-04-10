@@ -269,7 +269,7 @@ export async function markAllNotificationsReadDb(userId: string) {
    ═══════════════════════════════════════════ */
 
 export async function fetchCalGasInventory(): Promise<CalibrationGasInventoryItem[]> {
-  const { data, error } = await supabase.from("calibration_gas_inventory").select("*").order("site_name");
+  const { data, error } = await supabase.from("calibration_gas_inventory").select("*").order("sort_order", { ascending: true });
   if (error) { console.error("fetchCalGasInventory error:", error); return []; }
   return (data ?? []).map(dbToCalGasItem);
 }
