@@ -269,13 +269,13 @@ export async function markAllNotificationsReadDb(userId: string) {
    ═══════════════════════════════════════════ */
 
 export async function fetchCalGasInventory(): Promise<CalibrationGasInventoryItem[]> {
-  const { data, error } = await supabase.from("calibration_gas_inventory").select("*").order("site_name");
+  const { data, error } = await supabase.from("calibration_gas_inventory").select("*").order("sort_order");
   if (error) { console.error("fetchCalGasInventory error:", error); return []; }
   return (data ?? []).map(dbToCalGasItem);
 }
 
 export async function insertCalGasInventoryItems(items: CalibrationGasInventoryItem[]) {
-  const rows = items.map(calGasItemToDb);
+  const rows = items.map((item, index) => ({ ...calGasItemToDb(item), sort_order: index + 1 }));
   // Insert in batches of 50
   for (let i = 0; i < rows.length; i += 50) {
     const batch = rows.slice(i, i + 50);
