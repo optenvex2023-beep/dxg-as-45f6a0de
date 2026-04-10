@@ -1,1 +1,0 @@
-ALTER TABLE public.calibration_gas_inventory ADD COLUMN sort_order integer NOT NULL DEFAULT 0; WITH numbered AS ( SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn FROM public.calibration_gas_inventory ) UPDATE public.calibration_gas_inventory AS c SET sort_order = n.rn FROM numbered AS n WHERE c.id = n.id;

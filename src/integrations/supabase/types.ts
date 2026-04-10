@@ -116,7 +116,6 @@ export type Database = {
           remaining_percent: string
           site_name: string
           so_issue: string
-          sort_order: number
           tms_status: string
           unit_no: string
           updated_at: string
@@ -154,7 +153,6 @@ export type Database = {
           remaining_percent?: string
           site_name?: string
           so_issue?: string
-          sort_order?: number
           tms_status?: string
           unit_no?: string
           updated_at?: string
@@ -192,7 +190,6 @@ export type Database = {
           remaining_percent?: string
           site_name?: string
           so_issue?: string
-          sort_order?: number
           tms_status?: string
           unit_no?: string
           updated_at?: string
