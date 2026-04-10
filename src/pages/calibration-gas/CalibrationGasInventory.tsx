@@ -260,6 +260,19 @@ export default function CalibrationGasInventory() {
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
   const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
+  /* ── Sticky column styles (left-pinned) ── */
+  const stickyTh = "sticky z-30 bg-table-header";
+  const stickyTd = "sticky z-10";
+  // Cumulative left offsets: 계약종료일(80) + 사업장명(60) + TMS(60) + 호기(70) + Range(100)
+  const stickyCol = [
+    { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },       // 계약종료일
+    { left: "left-[80px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },   // 사업장명 (50% of 120)
+    { left: "left-[140px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },  // TMS
+    { left: "left-[200px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },  // 호기
+    { left: "left-[270px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
+  ] as const;
+  const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
+
   /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
@@ -382,11 +395,11 @@ export default function CalibrationGasInventory() {
           <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
               <tr className="bg-table-header">
-                <th rowSpan={2} className={`${thBase} min-w-[80px]`}>계약종료일</th>
-                <th rowSpan={2} className={`${thBase} min-w-[120px]`}>사업장명</th>
-                <th rowSpan={2} className={`${thBase} min-w-[60px]`}>TMS</th>
-                <th rowSpan={2} className={`${thBase} min-w-[70px]`}>호기</th>
-                <th rowSpan={2} className={`${thBase} min-w-[100px]`}>분석기 Range</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[0].left} ${stickyCol[0].w}`}>계약종료일</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[1].left} ${stickyCol[1].w} overflow-hidden text-ellipsis`}>사업장명</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[2].left} ${stickyCol[2].w}`}>TMS</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[3].left} ${stickyCol[3].w}`}>호기</th>
+                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight}`}>분석기 Range</th>
                 <th colSpan={2} className={`${thBase}`}>교정가스</th>
                 <th colSpan={2} className={`${thBase}`}>사업장 보유 가스</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
@@ -447,20 +460,20 @@ export default function CalibrationGasInventory() {
                   <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} text-center bg-muted/20 font-medium whitespace-nowrap`}>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center bg-muted/20 font-medium whitespace-nowrap`}>
                         {item.contract_end_date || "-"}
                       </td>
                     )}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} font-semibold whitespace-nowrap ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
-                        {item.site_name}
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-nowrap overflow-hidden text-ellipsis ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
+                        <span className="truncate block">{item.site_name}</span>
                         {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
                       </td>
                     )}
 
                     {/* ── TMS-level merged (C) ── */}
                     {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} text-center`}>
+                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center bg-background`}>
                         <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
                           {item.tms_status}
                         </Badge>
@@ -469,13 +482,15 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center font-medium`}>
+                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium bg-background`}>
                         {item.unit_no}
                       </td>
                     )}
 
-                    {/* ── Per-gas-row columns (E~I): NOT merged ── */}
-                    <td className={`${td} whitespace-nowrap`}>{item.analyzer_range}</td>
+                    {/* ── Per-gas-row columns (E): 분석기 Range ── */}
+                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap bg-background overflow-hidden text-ellipsis`}>
+                      <span className="truncate block">{item.analyzer_range}</span>
+                    </td>
                     {renderCell(item, "concentration", "text-center")}
                     {renderCell(item, "volume_L", "text-center")}
                     {/* Expiry date */}
