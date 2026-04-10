@@ -521,7 +521,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap")}
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -559,7 +559,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap")}
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
