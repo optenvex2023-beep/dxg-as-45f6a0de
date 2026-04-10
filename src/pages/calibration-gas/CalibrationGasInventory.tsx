@@ -460,12 +460,12 @@ export default function CalibrationGasInventory() {
                   <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center bg-muted/20 font-medium whitespace-nowrap`}>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center !bg-muted font-medium whitespace-nowrap`}>
                         {item.contract_end_date || "-"}
                       </td>
                     )}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-nowrap overflow-hidden text-ellipsis ${anyInspDue ? pinkBg : "bg-muted/30"}`}>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-nowrap overflow-hidden text-ellipsis ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
                         <span className="truncate block">{item.site_name}</span>
                         {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
                       </td>
