@@ -121,7 +121,7 @@ export default function CalibrationGasInventory() {
 
   /* ── Row span calculation ── */
   const rowSpanData = useMemo(() => {
-    const spans: { site: number; tms: number; unit: number }[] = [];
+    const spans: { site: number; tms: number; unit: number; gas: number; vel: number }[] = [];
     for (let i = 0; i < filtered.length; i++) {
       const cur = filtered[i];
       let siteSpan = 1;
@@ -139,7 +139,21 @@ export default function CalibrationGasInventory() {
         for (let j = i + 1; j < filtered.length && filtered[j].site_name === cur.site_name && filtered[j].tms_status === cur.tms_status && filtered[j].unit_no === cur.unit_no; j++) unitSpan++;
       } else { unitSpan = 0; }
 
-      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan });
+      // Gas inspection merge group span
+      const gasGroup = cur.gas_inspection_merge_group ?? 0;
+      let gasSpan = 1;
+      if (i === 0 || (filtered[i - 1].gas_inspection_merge_group ?? 0) !== gasGroup) {
+        for (let j = i + 1; j < filtered.length && (filtered[j].gas_inspection_merge_group ?? 0) === gasGroup; j++) gasSpan++;
+      } else { gasSpan = 0; }
+
+      // Velocity inspection merge group span
+      const velGroup = cur.velocity_inspection_merge_group ?? 0;
+      let velSpan = 1;
+      if (i === 0 || (filtered[i - 1].velocity_inspection_merge_group ?? 0) !== velGroup) {
+        for (let j = i + 1; j < filtered.length && (filtered[j].velocity_inspection_merge_group ?? 0) === velGroup; j++) velSpan++;
+      } else { velSpan = 0; }
+
+      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan, gas: gasSpan, vel: velSpan });
     }
     return spans;
   }, [filtered]);
