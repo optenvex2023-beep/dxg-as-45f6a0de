@@ -61,6 +61,7 @@ function createEmptyItem(): CalibrationGasInventoryItem {
   };
 }
 
+export default function CalibrationGasInventory() {
 
   const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
   const [search, setSearch] = useState("");
