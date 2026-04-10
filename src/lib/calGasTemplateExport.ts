@@ -175,6 +175,7 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
       setCellValue(row.getCell(6), item.concentration);
       setCellValue(row.getCell(7), item.volume_L);
+      row.getCell(7).numFmt = 'General';
       setCellValue(row.getCell(8), item.expiry_date);
       setCellValue(row.getCell(9), item.remaining_percent);
 
