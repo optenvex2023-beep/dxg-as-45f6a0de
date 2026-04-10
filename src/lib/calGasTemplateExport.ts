@@ -258,7 +258,7 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
   // Merge gas inspection (N-S, cols 14-19) and velocity inspection (T-X, cols 20-24)
   // based on merge group IDs from the inventory data
   const allItems = groups.flatMap(g => g.items);
-  function computeMergeRanges(items: CalibrationGasInventoryItem[], groupKey: "gas_inspection_merge_group" | "velocity_inspection_merge_group") {
+  function computeMergeRanges(items: CalibrationGasInventoryItem[], groupKey: "gas_inspection_merge_group" | "velocity_inspection_merge_group" | "purchase_entity_merge_group" | "branch_merge_group") {
     const ranges: { startRow: number; endRow: number }[] = [];
     let i = 0;
     while (i < items.length) {
