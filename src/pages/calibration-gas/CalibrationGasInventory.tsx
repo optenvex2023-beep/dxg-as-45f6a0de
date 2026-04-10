@@ -123,7 +123,15 @@ export default function CalibrationGasInventory() {
 
   /* ── Row span calculation ── */
   const rowSpanData = useMemo(() => {
-    const spans: { site: number; tms: number; unit: number; gas: number; vel: number }[] = [];
+    const calcGroupSpan = (i: number, groupKey: (item: CalibrationGasInventoryItem) => number) => {
+      const g = groupKey(filtered[i]);
+      if (i > 0 && groupKey(filtered[i - 1]) === g) return 0;
+      let span = 1;
+      for (let j = i + 1; j < filtered.length && groupKey(filtered[j]) === g; j++) span++;
+      return span;
+    };
+
+    const spans: { site: number; tms: number; unit: number; gas: number; vel: number; purchase: number; branch: number }[] = [];
     for (let i = 0; i < filtered.length; i++) {
       const cur = filtered[i];
       let siteSpan = 1;
@@ -141,21 +149,12 @@ export default function CalibrationGasInventory() {
         for (let j = i + 1; j < filtered.length && filtered[j].site_name === cur.site_name && filtered[j].tms_status === cur.tms_status && filtered[j].unit_no === cur.unit_no; j++) unitSpan++;
       } else { unitSpan = 0; }
 
-      // Gas inspection merge group span
-      const gasGroup = cur.gas_inspection_merge_group ?? 0;
-      let gasSpan = 1;
-      if (i === 0 || (filtered[i - 1].gas_inspection_merge_group ?? 0) !== gasGroup) {
-        for (let j = i + 1; j < filtered.length && (filtered[j].gas_inspection_merge_group ?? 0) === gasGroup; j++) gasSpan++;
-      } else { gasSpan = 0; }
+      const gasSpan = calcGroupSpan(i, (it) => it.gas_inspection_merge_group ?? 0);
+      const velSpan = calcGroupSpan(i, (it) => it.velocity_inspection_merge_group ?? 0);
+      const purchase = calcGroupSpan(i, (it) => it.purchase_entity_merge_group ?? 0);
+      const branch = calcGroupSpan(i, (it) => it.branch_merge_group ?? 0);
 
-      // Velocity inspection merge group span
-      const velGroup = cur.velocity_inspection_merge_group ?? 0;
-      let velSpan = 1;
-      if (i === 0 || (filtered[i - 1].velocity_inspection_merge_group ?? 0) !== velGroup) {
-        for (let j = i + 1; j < filtered.length && (filtered[j].velocity_inspection_merge_group ?? 0) === velGroup; j++) velSpan++;
-      } else { velSpan = 0; }
-
-      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan, gas: gasSpan, vel: velSpan });
+      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan, gas: gasSpan, vel: velSpan, purchase, branch });
     }
     return spans;
   }, [filtered]);
@@ -508,11 +507,11 @@ export default function CalibrationGasInventory() {
                     )}
 
                     {/* ── Unit-level merged: J구매주체, M 지점 ── */}
-                    {renderMergedCell(item, "purchase_entity", s.unit, "text-center")}
+                    {renderMergedCell(item, "purchase_entity", s.purchase, "text-center")}
                     {/* ── K S/O, L 도착: 개별 셀 (병합 안 함) ── */}
                     {renderCell(item, "so_issue", "text-center whitespace-nowrap")}
                     {renderCell(item, "arrival_status", "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "branch", s.unit, "text-center")}
+                    {renderMergedCell(item, "branch", s.branch, "text-center")}
 
                     {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
                     {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}

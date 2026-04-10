@@ -44,6 +44,8 @@ function dbToCalGasItem(row: any): CalibrationGasInventoryItem {
     notes: row.notes,
     gas_inspection_merge_group: row.gas_inspection_merge_group ?? 0,
     velocity_inspection_merge_group: row.velocity_inspection_merge_group ?? 0,
+    purchase_entity_merge_group: row.purchase_entity_merge_group ?? 0,
+    branch_merge_group: row.branch_merge_group ?? 0,
   };
 }
 

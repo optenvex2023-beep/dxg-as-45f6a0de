@@ -44,6 +44,8 @@ export interface CalibrationGasInventoryItem {
   /* ── 병합 그룹 (DB 전용) ── */
   gas_inspection_merge_group?: number;
   velocity_inspection_merge_group?: number;
+  purchase_entity_merge_group?: number;
+  branch_merge_group?: number;
 }
 
 /** Site name alias map for normalization */

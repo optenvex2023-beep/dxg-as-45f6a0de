@@ -1,0 +1,2 @@
+ALTER TABLE calibration_gas_inventory ADD COLUMN IF NOT EXISTS purchase_entity_merge_group integer NOT NULL DEFAULT 0;
+ALTER TABLE calibration_gas_inventory ADD COLUMN IF NOT EXISTS branch_merge_group integer NOT NULL DEFAULT 0;
