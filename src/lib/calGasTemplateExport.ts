@@ -51,9 +51,10 @@ function setCellValue(cell: ExcelJS.Cell, value: string | null | undefined) {
     cell.value = null;
     return;
   }
-  // Try to detect dates (YYYY-MM-DD format)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    cell.value = new Date(value + "T00:00:00");
+  // Try to detect dates (YYYY-MM-DD format) — use Date.UTC to avoid timezone shift
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    cell.value = new Date(Date.UTC(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]));
     cell.numFmt = "yyyy-mm-dd";
     return;
   }
