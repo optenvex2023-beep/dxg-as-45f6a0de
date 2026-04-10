@@ -167,9 +167,10 @@ export default function StatusTable() {
   };
 
   const superAdmin = isSuperAdmin(currentUser);
-  const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀");
-  const isCS = superAdmin || currentUser?.department === "CS팀";
-  const isManufacturing = superAdmin || currentUser?.department === "제조본부";
+  const isNoh = currentUser?.emp_no === "7023013";
+  const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀") || isNoh;
+  const isCS = superAdmin || currentUser?.department === "CS팀" || isNoh;
+  const isManufacturing = superAdmin || currentUser?.department === "제조본부" || isNoh;
 
   const hasValue = (v: string | null | undefined) => v != null && v !== "";
 
