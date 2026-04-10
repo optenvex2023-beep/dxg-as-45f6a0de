@@ -28,9 +28,16 @@ export function isSuperAdmin(user: AppUser | null): boolean {
  * Super admins always return true.
  */
 
+/** Emp numbers additionally allowed to register inspections */
+const REGISTER_ALLOWED_EMP_NOS = new Set([
+  "7023121", // 류상헌
+  "7023013", // 노주형
+]);
+
 /** Can register new inspections */
 export function canRegister(user: AppUser | null): boolean {
   if (isSuperAdmin(user)) return true;
+  if (user && REGISTER_ALLOWED_EMP_NOS.has(user.emp_no)) return true;
   return user?.role_category === "관리자" && user.department === "환경영업팀";
 }
 
