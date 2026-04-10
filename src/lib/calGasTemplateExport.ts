@@ -217,7 +217,16 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
   for (const { startRow, endRow } of siteStartRows) {
     if (endRow > startRow) {
+      // B: site_name
       try { ws.mergeCells(startRow, 2, endRow, 2); } catch { /* skip */ }
+      // N-S (14-19): 가스상 정도검사 columns – merge per site group
+      for (let col = 14; col <= 19; col++) {
+        try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
+      }
+      // T-X (20-24): 유속계 정도검사 columns – merge per site group
+      for (let col = 20; col <= 24; col++) {
+        try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
+      }
     }
   }
 
