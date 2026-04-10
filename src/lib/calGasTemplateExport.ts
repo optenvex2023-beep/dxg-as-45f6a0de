@@ -222,6 +222,38 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     }
   }
 
+  // Merge C (TMS) and D (unit_no) using same logic as UI:
+  // TMS: same site_name + same tms_status
+  // unit_no: same site_name + same tms_status + same unit_no
+  const allItemsForMerge = groups.flatMap(g => g.items);
+  {
+    let i = 0;
+    while (i < allItemsForMerge.length) {
+      // TMS merge: consecutive rows with same site_name + tms_status
+      let j = i + 1;
+      while (j < allItemsForMerge.length
+        && allItemsForMerge[j].site_name === allItemsForMerge[i].site_name
+        && allItemsForMerge[j].tms_status === allItemsForMerge[i].tms_status) j++;
+      if (j - i > 1) {
+        try { ws.mergeCells(DATA_START + i, 3, DATA_START + j - 1, 3); } catch { /* skip */ }
+      }
+      i = j;
+    }
+    // unit_no merge: consecutive rows with same site_name + tms_status + unit_no
+    i = 0;
+    while (i < allItemsForMerge.length) {
+      let j = i + 1;
+      while (j < allItemsForMerge.length
+        && allItemsForMerge[j].site_name === allItemsForMerge[i].site_name
+        && allItemsForMerge[j].tms_status === allItemsForMerge[i].tms_status
+        && allItemsForMerge[j].unit_no === allItemsForMerge[i].unit_no) j++;
+      if (j - i > 1) {
+        try { ws.mergeCells(DATA_START + i, 4, DATA_START + j - 1, 4); } catch { /* skip */ }
+      }
+      i = j;
+    }
+  }
+
   // Merge gas inspection (N-S, cols 14-19) and velocity inspection (T-X, cols 20-24)
   // based on merge group IDs from the inventory data
   const allItems = groups.flatMap(g => g.items);
