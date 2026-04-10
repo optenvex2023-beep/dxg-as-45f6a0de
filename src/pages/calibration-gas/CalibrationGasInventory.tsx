@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import { toast } from "sonner";
-import { calcFirstEntry, calcCompletion, isWithin60Days } from "@/lib/inspectionCycleLogic";
+import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -258,6 +258,7 @@ export default function CalibrationGasInventory() {
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
+  const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
   /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
@@ -303,6 +304,8 @@ export default function CalibrationGasInventory() {
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
   const velocityInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.velocity_inspection_next);
+  const gasInspDueOrPast = (item: CalibrationGasInventoryItem) => isDueOrPast(item.gas_inspection_next);
+  const velInspDueOrPast = (item: CalibrationGasInventoryItem) => isDueOrPast(item.velocity_inspection_next);
 
   const FILTER_OPTIONS: { key: AlertFilterType; label: string; Icon: typeof Clock | null }[] = [
     { key: "all", label: "전체", Icon: null },
@@ -518,7 +521,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap")}
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -556,7 +559,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap")}
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"

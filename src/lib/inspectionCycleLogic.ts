@@ -80,3 +80,19 @@ export function isWithin60Days(dateStr: string | null | undefined): boolean {
   sixtyLater.setDate(sixtyLater.getDate() + 60);
   return target >= today && target <= sixtyLater;
 }
+
+/**
+ * Check if a date is within 60 days from today OR already past.
+ * Used for inspection due-date highlighting (green shade).
+ */
+export function isDueOrPast(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  if (isNaN(target.getTime())) return false;
+  const sixtyLater = new Date(today);
+  sixtyLater.setDate(sixtyLater.getDate() + 60);
+  // past dates OR within 60 days
+  return target <= sixtyLater;
+}
