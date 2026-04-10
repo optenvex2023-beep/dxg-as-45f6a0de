@@ -219,14 +219,38 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     if (endRow > startRow) {
       // B: site_name
       try { ws.mergeCells(startRow, 2, endRow, 2); } catch { /* skip */ }
-      // N-S (14-19): 가스상 정도검사 columns – merge per site group
-      for (let col = 14; col <= 19; col++) {
-        try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
+    }
+  }
+
+  // Merge gas inspection (N-S, cols 14-19) and velocity inspection (T-X, cols 20-24)
+  // based on merge group IDs from the inventory data
+  const allItems = groups.flatMap(g => g.items);
+  function computeMergeRanges(items: CalibrationGasInventoryItem[], groupKey: "gas_inspection_merge_group" | "velocity_inspection_merge_group") {
+    const ranges: { startRow: number; endRow: number }[] = [];
+    let i = 0;
+    while (i < items.length) {
+      const gid = (items[i] as any)[groupKey] ?? 0;
+      let j = i + 1;
+      while (j < items.length && ((items[j] as any)[groupKey] ?? 0) === gid) j++;
+      if (j - i > 1) {
+        ranges.push({ startRow: DATA_START + i, endRow: DATA_START + j - 1 });
       }
-      // T-X (20-24): 유속계 정도검사 columns – merge per site group
-      for (let col = 20; col <= 24; col++) {
-        try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
-      }
+      i = j;
+    }
+    return ranges;
+  }
+
+  const gasMerges = computeMergeRanges(allItems, "gas_inspection_merge_group");
+  const velMerges = computeMergeRanges(allItems, "velocity_inspection_merge_group");
+
+  for (const { startRow, endRow } of gasMerges) {
+    for (let col = 14; col <= 19; col++) {
+      try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
+    }
+  }
+  for (const { startRow, endRow } of velMerges) {
+    for (let col = 20; col <= 24; col++) {
+      try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
     }
   }
 

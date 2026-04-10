@@ -42,6 +42,8 @@ function dbToCalGasItem(row: any): CalibrationGasInventoryItem {
     monthly_amount: row.monthly_amount,
     contract_consumables: row.contract_consumables,
     notes: row.notes,
+    gas_inspection_merge_group: row.gas_inspection_merge_group ?? 0,
+    velocity_inspection_merge_group: row.velocity_inspection_merge_group ?? 0,
   };
 }
 

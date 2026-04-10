@@ -100,6 +100,7 @@ export type Database = {
           expiry_date: string | null
           gas_inspection_first: string
           gas_inspection_last: string
+          gas_inspection_merge_group: number
           gas_inspection_next: string
           gas_inspection_round: string
           gas_inspection_so: string
@@ -122,6 +123,7 @@ export type Database = {
           updated_at: string
           velocity_inspection_first: string
           velocity_inspection_last: string
+          velocity_inspection_merge_group: number
           velocity_inspection_next: string
           velocity_inspection_round: string
           velocity_inspection_so: string
@@ -138,6 +140,7 @@ export type Database = {
           expiry_date?: string | null
           gas_inspection_first?: string
           gas_inspection_last?: string
+          gas_inspection_merge_group?: number
           gas_inspection_next?: string
           gas_inspection_round?: string
           gas_inspection_so?: string
@@ -160,6 +163,7 @@ export type Database = {
           updated_at?: string
           velocity_inspection_first?: string
           velocity_inspection_last?: string
+          velocity_inspection_merge_group?: number
           velocity_inspection_next?: string
           velocity_inspection_round?: string
           velocity_inspection_so?: string
@@ -176,6 +180,7 @@ export type Database = {
           expiry_date?: string | null
           gas_inspection_first?: string
           gas_inspection_last?: string
+          gas_inspection_merge_group?: number
           gas_inspection_next?: string
           gas_inspection_round?: string
           gas_inspection_so?: string
@@ -198,6 +203,7 @@ export type Database = {
           updated_at?: string
           velocity_inspection_first?: string
           velocity_inspection_last?: string
+          velocity_inspection_merge_group?: number
           velocity_inspection_next?: string
           velocity_inspection_round?: string
           velocity_inspection_so?: string

@@ -57,10 +57,12 @@ function createEmptyItem(): CalibrationGasInventoryItem {
     velocity_inspection_round: "", velocity_inspection_so: "",
     inspection_notes: "", inspection_date: "", inspection_cycle: "",
     md: "", monthly_amount: "", contract_consumables: "", notes: "",
+    gas_inspection_merge_group: 0, velocity_inspection_merge_group: 0,
   };
 }
 
 export default function CalibrationGasInventory() {
+
   const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
@@ -121,7 +123,7 @@ export default function CalibrationGasInventory() {
 
   /* ── Row span calculation ── */
   const rowSpanData = useMemo(() => {
-    const spans: { site: number; tms: number; unit: number }[] = [];
+    const spans: { site: number; tms: number; unit: number; gas: number; vel: number }[] = [];
     for (let i = 0; i < filtered.length; i++) {
       const cur = filtered[i];
       let siteSpan = 1;
@@ -139,7 +141,21 @@ export default function CalibrationGasInventory() {
         for (let j = i + 1; j < filtered.length && filtered[j].site_name === cur.site_name && filtered[j].tms_status === cur.tms_status && filtered[j].unit_no === cur.unit_no; j++) unitSpan++;
       } else { unitSpan = 0; }
 
-      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan });
+      // Gas inspection merge group span
+      const gasGroup = cur.gas_inspection_merge_group ?? 0;
+      let gasSpan = 1;
+      if (i === 0 || (filtered[i - 1].gas_inspection_merge_group ?? 0) !== gasGroup) {
+        for (let j = i + 1; j < filtered.length && (filtered[j].gas_inspection_merge_group ?? 0) === gasGroup; j++) gasSpan++;
+      } else { gasSpan = 0; }
+
+      // Velocity inspection merge group span
+      const velGroup = cur.velocity_inspection_merge_group ?? 0;
+      let velSpan = 1;
+      if (i === 0 || (filtered[i - 1].velocity_inspection_merge_group ?? 0) !== velGroup) {
+        for (let j = i + 1; j < filtered.length && (filtered[j].velocity_inspection_merge_group ?? 0) === velGroup; j++) velSpan++;
+      } else { velSpan = 0; }
+
+      spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan, gas: gasSpan, vel: velSpan });
     }
     return spans;
   }, [filtered]);
@@ -498,12 +514,12 @@ export default function CalibrationGasInventory() {
                     {renderCell(item, "arrival_status", "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "branch", s.unit, "text-center")}
 
-                    {/* ── Unit-level merged: N~S 가스상 정도검사 ── */}
-                    {renderMergedCell(item, "gas_inspection_first", s.unit, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_last", s.unit, "text-center whitespace-nowrap")}
+                    {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
+                    {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap")}
                     {/* P: 예정 - pink if within 60 days */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                    {s.gas > 0 && (
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -518,10 +534,10 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_round", s.unit, "text-center")}
+                    {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center")}
                     {/* 예정/완료 column */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center`}>
+                    {s.gas > 0 && (
+                      <td rowSpan={s.gas} className={`${td} text-center`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
@@ -533,15 +549,15 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_so", s.unit, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_so_arrival", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
 
-                    {/* ── Unit-level merged: T~X 유속계 정도검사 ── */}
-                    {renderMergedCell(item, "velocity_inspection_first", s.unit, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "velocity_inspection_last", s.unit, "text-center whitespace-nowrap")}
+                    {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
+                    {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap")}
                     {/* V: 예정 - pink if within 60 days */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
+                    {s.vel > 0 && (
+                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velDue ? pinkBg + " font-semibold text-destructive" : ""}`}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -556,10 +572,10 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_round", s.unit, "text-center")}
+                    {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center")}
                     {/* 예정/완료 column */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} text-center`}>
+                    {s.vel > 0 && (
+                      <td rowSpan={s.vel} className={`${td} text-center`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
@@ -571,7 +587,7 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_so", s.unit, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
 
                     {/* ── Unit-level merged: Y~AE ── */}
                     {renderMergedCell(item, "inspection_notes", s.unit, "max-w-[200px] truncate")}
