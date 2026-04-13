@@ -76,7 +76,7 @@ export default function Install() {
           ) : (
             <>
               <img
-                src="/app-icon-192.png"
+                src="/pwa-icon-192.png"
                 alt="DXG 반출/가스"
                 className="w-24 h-24 rounded-2xl shadow-sm"
               />
