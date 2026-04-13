@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png", "images/dxg-logo.png"],
+      includeAssets: ["favicon.png", "app-icon-192.png", "app-icon-512.png", "apple-touch-icon.png", "images/dxg-logo.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
@@ -34,9 +34,9 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         icons: [
-          { src: "/pwa-icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-icon-512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/app-icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/app-icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/app-icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),
