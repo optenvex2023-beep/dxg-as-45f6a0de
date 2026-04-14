@@ -1135,8 +1135,19 @@ function EditForm({
   );
 }
 
-/* ─── Detail View (read-only popup) ─── */
-function DetailView({ record }: { record: OutboundInspection }) {
+/* ─── Permission: 교체부품 확정사항 작성 가능 계정 ─── */
+const REPLACEMENT_NOTE_EMP_NOS = new Set([
+  "9024125", "9017091", "7023013", "7023121", "9022113",
+  "9025082", "9019042", "9024105", "9014094", "9019081",
+  "9023031", "9026011",
+]);
+
+/* ─── Detail View (read-only popup with editable memos) ─── */
+function DetailView({ record, currentUser, onSaveMemo }: {
+  record: OutboundInspection;
+  currentUser: AppUser | null;
+  onSaveMemo: (id: string, field: "replacement_parts_note" | "special_note", value: string) => Promise<void>;
+}) {
   const val = (v: string | null | undefined) => v || "—";
   const outboundReqDate = record.outbound_request_date_mode === "단일"
     ? val(record.outbound_request_date_single)
@@ -1145,10 +1156,33 @@ function DetailView({ record }: { record: OutboundInspection }) {
     ? val(record.reinstall_request_date_single)
     : `${val(record.reinstall_request_date_start)} ~ ${val(record.reinstall_request_date_end)}`;
 
+  const canEditReplacement = currentUser ? REPLACEMENT_NOTE_EMP_NOS.has(currentUser.emp_no) : false;
+  const canEditSpecial = currentUser ? currentUser.role_category !== "미배정" : false;
+
+  const [replacementNote, setReplacementNote] = useState(record.replacement_parts_note || "");
+  const [specialNote, setSpecialNote] = useState(record.special_note || "");
+  const [savingField, setSavingField] = useState<string | null>(null);
+
+  // Sync when record changes
+  useEffect(() => {
+    setReplacementNote(record.replacement_parts_note || "");
+    setSpecialNote(record.special_note || "");
+  }, [record.id, record.replacement_parts_note, record.special_note]);
+
+  const handleSave = async (field: "replacement_parts_note" | "special_note") => {
+    const value = field === "replacement_parts_note" ? replacementNote : specialNote;
+    setSavingField(field);
+    try {
+      await onSaveMemo(record.id, field, value);
+    } finally {
+      setSavingField(null);
+    }
+  };
+
   const fieldRow = (label: string, value: string, highlight?: boolean) => (
     <div className={cn("flex items-center border-b border-border/40 py-2", highlight && "bg-primary/5")}>
-      <span className="w-[140px] shrink-0 text-xs font-medium text-muted-foreground pl-1">{label}</span>
-      <span className="text-xs text-foreground flex-1">{value}</span>
+      <span className="w-[90px] shrink-0 text-[11px] font-medium text-muted-foreground pl-1">{label}</span>
+      <span className="text-xs text-foreground flex-1 whitespace-nowrap">{value}</span>
     </div>
   );
 
@@ -1165,7 +1199,7 @@ function DetailView({ record }: { record: OutboundInspection }) {
         {fieldRow("요청 유형", record.request_type)}
         {fieldRow("등록일자", record.created_at ? new Date(record.created_at).toLocaleDateString('ko-KR') : "—")}
         <div className="border-b border-border/40 py-2">
-          <span className="w-[140px] shrink-0 text-xs font-medium text-muted-foreground pl-1 block mb-1">반출장비</span>
+          <span className="w-[90px] shrink-0 text-[11px] font-medium text-muted-foreground pl-1 block mb-1">반출장비</span>
           {record.equipment_items.length > 0 ? (
             <div className="pl-1 space-y-0.5">
               {record.equipment_items.map((item) => (
@@ -1186,28 +1220,64 @@ function DetailView({ record }: { record: OutboundInspection }) {
       <div className="rounded-lg border p-3 space-y-0">
         <p className="text-xs font-semibold text-foreground mb-2">일자 정보</p>
         <div className="grid grid-cols-3 gap-x-4">
-          {fieldRow("반출요청일자", outboundReqDate)}
-          {fieldRow("반출예정일자", val(record.planned_outbound_date))}
+          {fieldRow("반출요청", outboundReqDate)}
+          {fieldRow("반출예정", val(record.planned_outbound_date))}
           {fieldRow("반출일자", val(record.outbound_date))}
         </div>
         <div className="grid grid-cols-3 gap-x-4">
           {fieldRow("입고일자", val(record.inbound_date))}
-          {fieldRow("1차 점검완료", val(record.first_inspection_done_date))}
-          {fieldRow("최종 점검완료", val(record.final_inspection_done_date))}
+          {fieldRow("1차 점검", val(record.first_inspection_done_date))}
+          {fieldRow("최종 점검", val(record.final_inspection_done_date))}
         </div>
         <div className="grid grid-cols-3 gap-x-4">
-          {fieldRow("재설치 요청일자", reinstallReqDate)}
+          {fieldRow("재설치 요청", reinstallReqDate)}
           {fieldRow("재설치 일자", val(record.reinstall_date))}
-          {fieldRow("설치 예정/확정", record.reinstall_confirm_status, record.reinstall_confirm_status === "확정")}
+          {fieldRow("예정/확정", record.reinstall_confirm_status, record.reinstall_confirm_status === "확정")}
         </div>
       </div>
 
-      {/* 특이사항 / 메모 */}
+      {/* 교체부품 확정사항 */}
       <div className="rounded-lg border p-3 space-y-2">
-        <p className="text-xs font-semibold text-foreground">교체부품 확정사항 / 특이사항</p>
-        <div className="min-h-[80px] rounded-md border bg-muted/30 p-3 text-xs text-foreground whitespace-pre-wrap">
-          {record.special_note || "내용 없음"}
-        </div>
+        <p className="text-xs font-semibold text-foreground">교체부품 확정사항 (환경영업팀 작성)</p>
+        <Textarea
+          className="text-xs min-h-[80px]"
+          value={replacementNote}
+          onChange={(e) => setReplacementNote(e.target.value)}
+          disabled={!canEditReplacement}
+          placeholder={canEditReplacement ? "교체부품 확정사항을 입력하세요" : ""}
+        />
+        {canEditReplacement && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "replacement_parts_note" || replacementNote === (record.replacement_parts_note || "")}
+            onClick={() => handleSave("replacement_parts_note")}
+          >
+            {savingField === "replacement_parts_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
+      </div>
+
+      {/* 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">특이사항</p>
+        <Textarea
+          className="text-xs min-h-[80px]"
+          value={specialNote}
+          onChange={(e) => setSpecialNote(e.target.value)}
+          disabled={!canEditSpecial}
+          placeholder={canEditSpecial ? "특이사항을 입력하세요" : ""}
+        />
+        {canEditSpecial && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "special_note" || specialNote === (record.special_note || "")}
+            onClick={() => handleSave("special_note")}
+          >
+            {savingField === "special_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
       </div>
     </div>
   );
