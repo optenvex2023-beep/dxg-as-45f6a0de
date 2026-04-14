@@ -506,8 +506,8 @@ export default function CalibrationGasInventory() {
           <span className="text-sm text-muted-foreground">
             총 <span className="font-semibold text-foreground">{filtered.length}</span>건
           </span>
-          <Button size="sm" variant="outline" onClick={() => setAddRowOpen(true)} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> 행 추가
+          <Button size="sm" variant={isAddMode ? "default" : "outline"} onClick={() => setIsAddMode((v) => !v)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> {isAddMode ? "추가모드 해제" : "행 추가"}
           </Button>
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
