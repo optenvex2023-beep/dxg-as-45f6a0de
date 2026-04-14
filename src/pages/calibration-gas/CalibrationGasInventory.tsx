@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
+import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import type { CalibrationGasHistory } from "@/types/calibrationGas";
 import { toast } from "sonner";
@@ -77,7 +78,7 @@ function createEmptyItem(): CalibrationGasInventoryItem {
 
 export default function CalibrationGasInventory() {
 
-  const { inventory, updateInventoryItem, addInventoryItem, addHistoryItems } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems } = useCalGas();
   const { currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
@@ -87,6 +88,7 @@ export default function CalibrationGasInventory() {
   const [completionTarget, setCompletionTarget] = useState<CompletionTarget>(null);
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [newRow, setNewRow] = useState<CalibrationGasInventoryItem>(createEmptyItem);
+  const [deleteTarget, setDeleteTarget] = useState<CalibrationGasInventoryItem | null>(null);
 
   const sites = useMemo(() => {
     const s = new Set(inventory.map((i) => i.site_name));
@@ -358,6 +360,22 @@ export default function CalibrationGasInventory() {
     toast.success(isExistingSite ? "기존 사업장에 Range가 추가되었습니다." : "새 항목이 추가되었습니다.");
   }, [newRow, addInventoryItem, addHistoryItems, currentUser, inventory]);
 
+  /* ── Delete row handler ── */
+  const handleDeleteRow = useCallback(() => {
+    if (!deleteTarget) return;
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: deleteTarget.id,
+      file_name: "현황표 삭제", field_name: "삭제",
+      before_value: `${deleteTarget.site_name} / ${deleteTarget.unit_no} / ${deleteTarget.analyzer_range}`,
+      after_value: "",
+      updated_at: now, updated_by: userName,
+    }]);
+    deleteInventoryItem(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.success("항목이 삭제되었습니다.");
+  }, [deleteTarget, deleteInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40";
@@ -519,6 +537,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>월 금액</th>
                 <th rowSpan={2} className={`${thBase} min-w-[90px]`}>소모품포함</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px] border-r-0`}>비고</th>
+                <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               </tr>
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[80px]`}>농도</th>
@@ -724,7 +743,16 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "md", s.unit, "text-center")}
                     {renderMergedCell(item, "monthly_amount", s.unit, "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "contract_consumables", s.unit, "text-center")}
-                    {renderMergedCell(item, "notes", s.unit, "border-r-0 max-w-[160px] truncate")}
+                    {renderMergedCell(item, "notes", s.unit, "max-w-[160px] truncate")}
+                    <td className={`${td} text-center border-r-0`}>
+                      <button
+                        onClick={() => setDeleteTarget(item)}
+                        className="inline-flex items-center justify-center p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -768,6 +796,27 @@ export default function CalibrationGasInventory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>항목 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && (
+                <>
+                  <strong>{deleteTarget.site_name}</strong> / {deleteTarget.unit_no}호기 / {deleteTarget.analyzer_range}
+                  <br />이 항목을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRow} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
