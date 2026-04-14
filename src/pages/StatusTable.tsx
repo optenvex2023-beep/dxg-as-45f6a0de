@@ -256,7 +256,7 @@ export default function StatusTable() {
     });
   }, [filtered, searchKeyword]);
 
-  const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
+  const selectedRecord = useMemo(() => inspections.find((r) => r.id === selectedId) ?? null, [inspections, selectedId]);
 
   const canClose = (rec: OutboundInspection) => {
     return !rec.is_closed && rec.reinstall_date && rec.reinstall_confirm_status === "확정";
