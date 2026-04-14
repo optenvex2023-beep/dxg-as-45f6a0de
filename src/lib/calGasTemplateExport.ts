@@ -154,6 +154,12 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
         }
       }
 
+      // Remove yellow background from data cells in columns N(14)~Z(26),
+      // keeping header rows untouched (they stay yellow).
+      for (let c = 14; c <= 26; c++) {
+        row.getCell(c).fill = { type: "pattern", pattern: "none" } as ExcelJS.FillPattern;
+      }
+
       if (item.contract_end_date !== prevContract && currentRow > contractStart) {
         if (currentRow - 1 > contractStart) {
           contractMerges.push({ startRow: contractStart, endRow: currentRow - 1 });
