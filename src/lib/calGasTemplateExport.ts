@@ -142,16 +142,21 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
       const styleIdx = Math.min(i, templateStyles.length - 1);
       const styles = templateStyles[styleIdx];
+      const thinBorder: ExcelJS.Border = { style: "thin" };
+      const defaultBorder: Partial<ExcelJS.Borders> = {
+        top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder,
+      };
       for (let c = 1; c <= LAST_COL; c++) {
         const cell = row.getCell(c);
         const s = styles[c];
         if (s) {
           if ((s as any).font) cell.font = (s as any).font;
           if ((s as any).alignment) cell.alignment = (s as any).alignment;
-          if ((s as any).border) cell.border = (s as any).border;
           if ((s as any).fill) cell.fill = (s as any).fill;
           if ((s as any).numFmt) cell.numFmt = (s as any).numFmt;
         }
+        // Ensure every data cell has border — use template border if available, fallback to thin
+        cell.border = (s && (s as any).border) ? (s as any).border : defaultBorder;
       }
 
       // Remove yellow background from data cells in columns N(14)~Z(26),
