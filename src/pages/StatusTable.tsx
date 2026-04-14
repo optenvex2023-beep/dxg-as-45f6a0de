@@ -156,6 +156,7 @@ export default function StatusTable() {
   const [editOpen, setEditOpen] = useState(false);
   const [csModalOpen, setCsModalOpen] = useState(false);
   const [mfgModalOpen, setMfgModalOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const syncHorizontalScroll = (source: "header" | "body") => (event: UIEvent<HTMLDivElement>) => {
     const scrollLeft = event.currentTarget.scrollLeft;
