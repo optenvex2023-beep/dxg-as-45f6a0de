@@ -275,7 +275,23 @@ export async function markAllNotificationsReadDb(userId: string) {
 export async function fetchCalGasInventory(): Promise<CalibrationGasInventoryItem[]> {
   const { data, error } = await supabase.from("calibration_gas_inventory").select("*").order("sort_order", { ascending: true });
   if (error) { console.error("fetchCalGasInventory error:", error); return []; }
-  return (data ?? []).map(dbToCalGasItem);
+  const rows = data ?? [];
+
+  // Stable sort: group by site_name (first-appearance order), then sort_order within each site
+  const siteOrder = new Map<string, number>();
+  for (const row of rows) {
+    if (!siteOrder.has(row.site_name)) {
+      siteOrder.set(row.site_name, siteOrder.size);
+    }
+  }
+  rows.sort((a, b) => {
+    const siteA = siteOrder.get(a.site_name) ?? 0;
+    const siteB = siteOrder.get(b.site_name) ?? 0;
+    if (siteA !== siteB) return siteA - siteB;
+    return a.sort_order - b.sort_order;
+  });
+
+  return rows.map(dbToCalGasItem);
 }
 
 export async function insertCalGasInventoryItems(items: CalibrationGasInventoryItem[]) {
