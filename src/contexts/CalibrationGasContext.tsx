@@ -210,6 +210,13 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     insertCalGasItemDb(item);
   }, []);
 
+  const addHistoryItems = useCallback((items: CalibrationGasHistory[]) => {
+    if (items.length === 0) return;
+    setHistory((prev) => [...items, ...prev]);
+    insertCalGasHistoryItems(items);
+  }, []);
+  }, []);
+
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
     setUploads((prev) => [...prev, file]);
   }, []);
@@ -429,7 +436,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     <CalGasContext.Provider
       value={{
         inventory, uploads, extractions, history, notifications, isLoading,
-        updateInventoryItem, addInventoryItem,
+        updateInventoryItem, addInventoryItem, addHistoryItems,
         addUploadFile, addExtraction, updateExtractionField, updateExtractionItem,
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,
