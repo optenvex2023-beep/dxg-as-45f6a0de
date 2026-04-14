@@ -378,6 +378,50 @@ export default function CalibrationGasInventory() {
     setDeleteTarget(null);
     toast.success("항목이 삭제되었습니다.");
   }, [deleteTarget, deleteInventoryItem, addHistoryItems, currentUser]);
+
+  /* ── Inline add (Range or Unit) handler ── */
+  const handleInlineAdd = useCallback(() => {
+    if (!inlineAddTarget || !inlineAddRange.trim()) {
+      toast.error(inlineAddTarget?.mode === "unit" ? "호기를 입력하세요." : "분석기 Range를 입력하세요.");
+      return;
+    }
+    const newId = crypto.randomUUID();
+    const { site_name, tms_status, contract_end_date, unit_no, mode } = inlineAddTarget;
+    const actualUnitNo = mode === "unit" ? inlineAddRange.trim() : unit_no;
+    const actualRange = mode === "unit" ? "" : inlineAddRange.trim();
+
+    const sameSiteRows = inventory.filter((i) => i.site_name === site_name);
+    const maxSiteSortOrder = sameSiteRows.length > 0 ? Math.max(...sameSiteRows.map((r) => r.sort_order ?? 0)) : 0;
+
+    const itemToAdd: CalibrationGasInventoryItem = {
+      ...createEmptyItem(),
+      id: newId,
+      site_name,
+      tms_status,
+      contract_end_date,
+      unit_no: actualUnitNo,
+      analyzer_range: actualRange,
+      gas_name: actualRange,
+      sort_order: maxSiteSortOrder + 1,
+    };
+
+    addInventoryItem(itemToAdd);
+
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: newId,
+      file_name: mode === "unit" ? "현황표 호기 추가" : "현황표 Range 추가",
+      field_name: mode === "unit" ? "호기 추가" : "Range 추가",
+      before_value: "",
+      after_value: mode === "unit" ? `${site_name} / ${actualUnitNo}` : `${site_name} / ${unit_no} / ${actualRange}`,
+      updated_at: now, updated_by: userName,
+    }]);
+
+    setInlineAddTarget(null);
+    setInlineAddRange("");
+    toast.success(mode === "unit" ? "새 호기가 추가되었습니다." : "분석기 Range가 추가되었습니다.");
+  }, [inlineAddTarget, inlineAddRange, inventory, addInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40";
