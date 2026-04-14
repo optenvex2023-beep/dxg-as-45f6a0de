@@ -40,6 +40,7 @@ const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
 ];
 
 type CompletionTarget = { itemId: string; type: "gas" | "velocity" } | null;
+type InlineAddTarget = { site_name: string; tms_status: string; unit_no: string; contract_end_date: string | null; mode: "range" | "unit" } | null;
 type AlertFilterType = "all" | "expiry" | "low" | "gas_insp" | "vel_insp";
 
 const NEW_ROW_FIELDS: { key: keyof CalibrationGasInventoryItem; label: string; required?: boolean }[] = [
@@ -89,7 +90,8 @@ export default function CalibrationGasInventory() {
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [newRow, setNewRow] = useState<CalibrationGasInventoryItem>(createEmptyItem);
   const [deleteTarget, setDeleteTarget] = useState<CalibrationGasInventoryItem | null>(null);
-
+  const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
+  const [inlineAddRange, setInlineAddRange] = useState("");
   const sites = useMemo(() => {
     const s = new Set(inventory.map((i) => i.site_name));
     return Array.from(s).sort();
@@ -376,6 +378,50 @@ export default function CalibrationGasInventory() {
     setDeleteTarget(null);
     toast.success("항목이 삭제되었습니다.");
   }, [deleteTarget, deleteInventoryItem, addHistoryItems, currentUser]);
+
+  /* ── Inline add (Range or Unit) handler ── */
+  const handleInlineAdd = useCallback(() => {
+    if (!inlineAddTarget || !inlineAddRange.trim()) {
+      toast.error(inlineAddTarget?.mode === "unit" ? "호기를 입력하세요." : "분석기 Range를 입력하세요.");
+      return;
+    }
+    const newId = crypto.randomUUID();
+    const { site_name, tms_status, contract_end_date, unit_no, mode } = inlineAddTarget;
+    const actualUnitNo = mode === "unit" ? inlineAddRange.trim() : unit_no;
+    const actualRange = mode === "unit" ? "" : inlineAddRange.trim();
+
+    const sameSiteRows = inventory.filter((i) => i.site_name === site_name);
+    const maxSiteSortOrder = sameSiteRows.length > 0 ? Math.max(...sameSiteRows.map((r) => r.sort_order ?? 0)) : 0;
+
+    const itemToAdd: CalibrationGasInventoryItem = {
+      ...createEmptyItem(),
+      id: newId,
+      site_name,
+      tms_status,
+      contract_end_date,
+      unit_no: actualUnitNo,
+      analyzer_range: actualRange,
+      gas_name: actualRange,
+      sort_order: maxSiteSortOrder + 1,
+    };
+
+    addInventoryItem(itemToAdd);
+
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: newId,
+      file_name: mode === "unit" ? "현황표 호기 추가" : "현황표 Range 추가",
+      field_name: mode === "unit" ? "호기 추가" : "Range 추가",
+      before_value: "",
+      after_value: mode === "unit" ? `${site_name} / ${actualUnitNo}` : `${site_name} / ${unit_no} / ${actualRange}`,
+      updated_at: now, updated_by: userName,
+    }]);
+
+    setInlineAddTarget(null);
+    setInlineAddRange("");
+    toast.success(mode === "unit" ? "새 호기가 추가되었습니다." : "분석기 Range가 추가되었습니다.");
+  }, [inlineAddTarget, inlineAddRange, inventory, addInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40";
@@ -613,13 +659,31 @@ export default function CalibrationGasInventory() {
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
-                        {item.unit_no}
+                        <div className="flex items-center justify-center gap-0.5">
+                          <span>{item.unit_no}</span>
+                          <button
+                            onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                            className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                            title="새 호기 추가"
+                          >
+                            <Plus className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
                     <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap group-hover:!bg-accent/40 overflow-hidden text-ellipsis`}>
-                      <span className="truncate block">{item.analyzer_range}</span>
+                      <div className="flex items-center gap-0.5">
+                        <span className="truncate flex-1">{item.analyzer_range}</span>
+                        <button
+                          onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                          title="같은 호기에 Range 추가"
+                        >
+                          <Plus className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
                     {renderCell(item, "volume_L", "text-center")}
@@ -817,6 +881,40 @@ export default function CalibrationGasInventory() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Inline Add (Range or Unit) Dialog */}
+      <Dialog open={!!inlineAddTarget} onOpenChange={(open) => { if (!open) { setInlineAddTarget(null); setInlineAddRange(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {inlineAddTarget?.mode === "unit" ? "새 호기 추가" : "같은 호기에 Range 추가"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>사업장: <span className="font-medium text-foreground">{inlineAddTarget?.site_name}</span></p>
+              {inlineAddTarget?.mode === "range" && (
+                <p>호기: <span className="font-medium text-foreground">{inlineAddTarget?.unit_no}</span></p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">
+                {inlineAddTarget?.mode === "unit" ? "호기" : "분석기 Range"} <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                className="h-8 text-sm"
+                value={inlineAddRange}
+                onChange={(e) => setInlineAddRange(e.target.value)}
+                placeholder={inlineAddTarget?.mode === "unit" ? "예: 2" : "예: SO2 Span"}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setInlineAddTarget(null); setInlineAddRange(""); }}>취소</Button>
+            <Button onClick={handleInlineAdd}>추가</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
