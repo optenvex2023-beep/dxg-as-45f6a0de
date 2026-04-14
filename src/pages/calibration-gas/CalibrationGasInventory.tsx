@@ -262,7 +262,7 @@ export default function CalibrationGasInventory() {
 
   /* ── Sticky column styles (left-pinned) ── */
   const stickyTh = "sticky z-30 bg-table-header border-r border-border";
-  const stickyTd = "sticky z-10 bg-background border-r border-border";
+  const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
   // Cumulative left offsets: 계약종료일(80) + 사업장명(90) + TMS(60) + 호기(70) + Range(100)
   const stickyCol = [
     { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // 계약종료일
