@@ -465,8 +465,8 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-nowrap overflow-hidden text-ellipsis ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
-                        <span className="truncate block">{item.site_name}</span>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
+                        <span className="block leading-tight">{item.site_name}</span>
                         {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
                       </td>
                     )}
