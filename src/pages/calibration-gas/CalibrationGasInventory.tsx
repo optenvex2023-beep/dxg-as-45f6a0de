@@ -90,6 +90,7 @@ export default function CalibrationGasInventory() {
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [newRow, setNewRow] = useState<CalibrationGasInventoryItem>(createEmptyItem);
   const [deleteTarget, setDeleteTarget] = useState<CalibrationGasInventoryItem | null>(null);
+  const [isAddMode, setIsAddMode] = useState(false);
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
   const sites = useMemo(() => {
@@ -505,8 +506,8 @@ export default function CalibrationGasInventory() {
           <span className="text-sm text-muted-foreground">
             총 <span className="font-semibold text-foreground">{filtered.length}</span>건
           </span>
-          <Button size="sm" variant="outline" onClick={() => setAddRowOpen(true)} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> 행 추가
+          <Button size="sm" variant={isAddMode ? "default" : "outline"} onClick={() => setIsAddMode((v) => !v)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> {isAddMode ? "추가모드 해제" : "행 추가"}
           </Button>
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
@@ -555,6 +556,14 @@ export default function CalibrationGasInventory() {
         <ChevronRight className="h-3 w-3" />
         <span>테이블을 좌우로 스크롤하여 모든 컬럼을 확인하세요</span>
         {editMode && <Badge variant="secondary" className="ml-2 text-[10px]">편집 모드</Badge>}
+        {isAddMode && (
+          <>
+            <Badge variant="default" className="ml-2 text-[10px]">추가 모드</Badge>
+            <Button size="sm" variant="outline" onClick={() => setAddRowOpen(true)} className="ml-2 gap-1 h-6 text-[10px] px-2">
+              <Plus className="h-3 w-3" /> 신규 사업장 추가
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Table */}
@@ -661,13 +670,15 @@ export default function CalibrationGasInventory() {
                       <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
                         <div className="flex items-center justify-center gap-0.5">
                           <span>{item.unit_no}</span>
-                          <button
-                            onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
-                            className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                            title="새 호기 추가"
-                          >
-                            <Plus className="h-2.5 w-2.5" />
-                          </button>
+                          {isAddMode && (
+                            <button
+                              onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                              className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                              title="새 호기 추가"
+                            >
+                              <Plus className="h-2.5 w-2.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -676,13 +687,15 @@ export default function CalibrationGasInventory() {
                     <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap group-hover:!bg-accent/40 overflow-hidden text-ellipsis`}>
                       <div className="flex items-center gap-0.5">
                         <span className="truncate flex-1">{item.analyzer_range}</span>
-                        <button
-                          onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
-                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                          title="같은 호기에 Range 추가"
-                        >
-                          <Plus className="h-2.5 w-2.5" />
-                        </button>
+                        {isAddMode && (
+                          <button
+                            onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                            className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                            title="같은 호기에 Range 추가"
+                          >
+                            <Plus className="h-2.5 w-2.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
