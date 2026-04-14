@@ -662,13 +662,15 @@ export default function CalibrationGasInventory() {
                       <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
                         <div className="flex items-center justify-center gap-0.5">
                           <span>{item.unit_no}</span>
-                          <button
-                            onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
-                            className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                            title="새 호기 추가"
-                          >
-                            <Plus className="h-2.5 w-2.5" />
-                          </button>
+                          {isAddMode && (
+                            <button
+                              onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                              className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                              title="새 호기 추가"
+                            >
+                              <Plus className="h-2.5 w-2.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
