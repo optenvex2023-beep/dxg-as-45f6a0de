@@ -14,7 +14,19 @@ import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
+const FIELD_LABELS: Record<string, string> = {
+  concentration: "농도", volume_L: "용량(L)", expiry_date: "유효기간", remaining_percent: "잔량(%)",
+  purchase_entity: "구매주체", so_issue: "S/O 발행", arrival_status: "도착예정", branch: "지점",
+  gas_inspection_first: "가스상검사-최초", gas_inspection_last: "가스상검사-최종", gas_inspection_next: "가스상검사-예정",
+  gas_inspection_round: "가스상검사-차수", gas_inspection_so: "가스상검사-S/O", gas_inspection_so_arrival: "가스상검사-S/O도착",
+  velocity_inspection_first: "유속계검사-최초", velocity_inspection_last: "유속계검사-최종", velocity_inspection_next: "유속계검사-예정",
+  velocity_inspection_round: "유속계검사-차수", velocity_inspection_so: "유속계검사-S/O",
+  inspection_notes: "비고사항", inspection_date: "점검일", inspection_cycle: "점검주기",
+  md: "M/D", monthly_amount: "월 금액", contract_consumables: "소모품", notes: "비고",
+  contract_end_date: "계약종료일", site_name: "사업장명", tms_status: "TMS", unit_no: "호기",
+  analyzer_range: "분석기 Range", gas_name: "가스명",
+};
+
   "concentration", "volume_L", "expiry_date", "remaining_percent",
   "purchase_entity", "so_issue", "arrival_status", "branch",
   "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
