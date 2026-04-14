@@ -27,7 +27,7 @@ export default function InspectionCompleteDialog({ open, onClose, onConfirm, tit
 
   const handleConfirm = () => {
     if (!date) return;
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = format(date, "yyyy-MM-dd");
     onConfirm(dateStr);
     onClose();
   };
