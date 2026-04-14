@@ -276,7 +276,8 @@ export default function StatusTable() {
   };
 
   const handleRowClick = (id: string) => {
-    setSelectedId((prev) => (prev === id ? null : id));
+    setSelectedId(id);
+    setDetailOpen(true);
   };
 
   const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall || dashboardFilter != null || searchKeyword.trim() !== "";
