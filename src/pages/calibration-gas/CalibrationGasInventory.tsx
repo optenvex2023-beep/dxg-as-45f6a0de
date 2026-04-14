@@ -360,6 +360,22 @@ export default function CalibrationGasInventory() {
     toast.success(isExistingSite ? "기존 사업장에 Range가 추가되었습니다." : "새 항목이 추가되었습니다.");
   }, [newRow, addInventoryItem, addHistoryItems, currentUser, inventory]);
 
+  /* ── Delete row handler ── */
+  const handleDeleteRow = useCallback(() => {
+    if (!deleteTarget) return;
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: deleteTarget.id,
+      file_name: "현황표 삭제", field_name: "삭제",
+      before_value: `${deleteTarget.site_name} / ${deleteTarget.unit_no} / ${deleteTarget.analyzer_range}`,
+      after_value: "",
+      updated_at: now, updated_by: userName,
+    }]);
+    deleteInventoryItem(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.success("항목이 삭제되었습니다.");
+  }, [deleteTarget, deleteInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
   const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40";
