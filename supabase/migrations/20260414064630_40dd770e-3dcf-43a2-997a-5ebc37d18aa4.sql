@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can delete calibration_gas_inventory" ON public.calibration_gas_inventory FOR DELETE TO anon, authenticated USING (true);

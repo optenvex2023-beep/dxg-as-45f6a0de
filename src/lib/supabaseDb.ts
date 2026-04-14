@@ -320,6 +320,11 @@ export async function updateCalGasInventoryItem(id: string, updates: Partial<Cal
   if (error) console.error("updateCalGasInventoryItem error:", error);
 }
 
+export async function deleteCalGasInventoryItem(id: string) {
+  const { error } = await supabase.from("calibration_gas_inventory").delete().eq("id", id);
+  if (error) console.error("deleteCalGasInventoryItem error:", error);
+}
+
 /* ═══════════════════════════════════════════
    CALIBRATION GAS HISTORY
    ═══════════════════════════════════════════ */
