@@ -45,8 +45,7 @@ const NEW_ROW_FIELDS: { key: keyof CalibrationGasInventoryItem; label: string; r
   { key: "site_name", label: "사업장명", required: true },
   { key: "tms_status", label: "TMS 전송유무" },
   { key: "unit_no", label: "호기", required: true },
-  { key: "analyzer_range", label: "분석기 Range" },
-  { key: "gas_name", label: "가스명", required: true },
+  { key: "analyzer_range", label: "분석기 Range", required: true },
   { key: "concentration", label: "농도" },
   { key: "volume_L", label: "용량(L)" },
   { key: "expiry_date", label: "유효기간" },
@@ -303,27 +302,61 @@ export default function CalibrationGasInventory() {
 
   /* ── Add row handler ── */
   const handleAddRow = useCallback(() => {
-    if (!newRow.site_name.trim() || !newRow.unit_no.trim() || !newRow.gas_name.trim()) {
-      toast.error("사업장명, 호기, 가스명은 필수입니다.");
+    if (!newRow.site_name.trim() || !newRow.unit_no.trim() || !newRow.analyzer_range.trim()) {
+      toast.error("사업장명, 호기, 분석기 Range는 필수입니다.");
       return;
     }
     const newId = crypto.randomUUID();
-    addInventoryItem({ ...newRow, id: newId });
+
+    // Determine sort_order: find max sort_order among same site_name rows,
+    // or overall max if it's a brand new site
+    const sameSiteRows = inventory.filter((i) => i.site_name === newRow.site_name.trim());
+    let newSortOrder: number;
+    if (sameSiteRows.length > 0) {
+      // Existing site: place right after the last row of that site
+      const maxSiteSortOrder = Math.max(...sameSiteRows.map((r) => r.sort_order ?? 0));
+      // Also need to ensure we don't collide with rows between site groups
+      // Use maxSiteSortOrder + 1 and shift any rows after if needed
+      newSortOrder = maxSiteSortOrder + 1;
+    } else {
+      // New site: place at the very end
+      const maxOverall = inventory.length > 0 ? Math.max(...inventory.map((r) => r.sort_order ?? 0)) : 0;
+      newSortOrder = maxOverall + 1;
+    }
+
+    // Copy shared fields from existing site rows (contract_end_date, tms_status) if not provided
+    const itemToAdd: CalibrationGasInventoryItem = {
+      ...newRow,
+      id: newId,
+      gas_name: newRow.analyzer_range, // Use analyzer_range as gas_name
+      sort_order: newSortOrder,
+    };
+
+    if (sameSiteRows.length > 0) {
+      // Inherit site-level fields if user didn't provide them
+      const ref = sameSiteRows[0];
+      if (!itemToAdd.contract_end_date) itemToAdd.contract_end_date = ref.contract_end_date;
+      if (!itemToAdd.tms_status) itemToAdd.tms_status = ref.tms_status;
+    }
+
+    addInventoryItem(itemToAdd);
 
     const now = new Date().toISOString();
     const userName = currentUser?.name || "시스템";
+    const isExistingSite = sameSiteRows.length > 0;
     addHistoryItems([{
       id: crypto.randomUUID(), inventory_item_id: newId,
-      file_name: "현황표 신규등록", field_name: "신규등록",
+      file_name: isExistingSite ? "현황표 Range 추가" : "현황표 신규등록",
+      field_name: isExistingSite ? "Range 추가" : "신규등록",
       before_value: "",
-      after_value: `${newRow.site_name} / ${newRow.unit_no} / ${newRow.gas_name}`,
+      after_value: `${newRow.site_name} / ${newRow.unit_no} / ${newRow.analyzer_range}`,
       updated_at: now, updated_by: userName,
     }]);
 
     setNewRow(createEmptyItem());
     setAddRowOpen(false);
-    toast.success("새 항목이 추가되었습니다.");
-  }, [newRow, addInventoryItem, addHistoryItems, currentUser]);
+    toast.success(isExistingSite ? "기존 사업장에 Range가 추가되었습니다." : "새 항목이 추가되었습니다.");
+  }, [newRow, addInventoryItem, addHistoryItems, currentUser, inventory]);
 
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
