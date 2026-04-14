@@ -367,6 +367,22 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
     }
   }
+  // J열(col 10) 기존 병합 해제 후 재적용 — 다른 병합과의 충돌 방지
+  const jMergesToRemove: string[] = [];
+  ws.model.merges?.forEach((m: string) => {
+    // J열(col 10) 데이터 영역 병합만 대상
+    const match = m.match(/^J(\d+):J(\d+)$/);
+    if (match && parseInt(match[1]) >= DATA_START) {
+      jMergesToRemove.push(m);
+    }
+  });
+  jMergesToRemove.forEach((m) => {
+    try { ws.unMergeCells(m); } catch { /* ignore */ }
+  });
+
+  // 병합 범위를 startRow 기준 정렬하여 순차 적용
+  purchaseMerges.sort((a, b) => a.startRow - b.startRow);
+
   for (const { startRow, endRow } of purchaseMerges) {
     try {
       ws.mergeCells(startRow, 10, endRow, 10);
