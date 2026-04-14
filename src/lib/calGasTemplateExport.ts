@@ -213,21 +213,21 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       const now = new Date();
       const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
 
+      // N(14)~Z(26): 모든 데이터 셀을 먼저 흰색으로 초기화
       for (let c = 14; c <= 26; c++) {
-        const cell = row.getCell(c);
-        // 예정일 열(P=16: gas_inspection_next, V=22: velocity_inspection_next)
-        if (c === 16 || c === 22) {
-          const dateVal = c === 16 ? item.gas_inspection_next : item.velocity_inspection_next;
-          const isoMatch = dateVal?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-          if (isoMatch) {
-            const d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
-            if (d.getTime() - now.getTime() <= sixtyDaysMs) {
-              cell.fill = LIME_FILL;
-              continue;
-            }
+        row.getCell(c).fill = WHITE_FILL;
+      }
+      // 연두색은 오직 예정 열(P=16, V=22)에만 적용 — 최초/최종 열(N,O,T,U)은 절대 불가
+      const NEXT_COLS = [16, 22] as const;
+      for (const nc of NEXT_COLS) {
+        const dateVal = nc === 16 ? item.gas_inspection_next : item.velocity_inspection_next;
+        const isoMatch = dateVal?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) {
+          const d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
+          if (d.getTime() - now.getTime() <= sixtyDaysMs) {
+            row.getCell(nc).fill = LIME_FILL;
           }
         }
-        cell.fill = WHITE_FILL;
       }
 
       row.commit();
