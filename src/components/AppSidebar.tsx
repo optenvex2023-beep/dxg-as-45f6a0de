@@ -39,8 +39,6 @@ const navItems: NavItem[] = [
     icon: <FlaskConical className="h-4 w-4" />,
     children: [
       { label: "현황표", path: "/calibration-gas/inventory" },
-      { label: "보고서 업로드", path: "/calibration-gas/upload" },
-      { label: "업데이트 검토", path: "/calibration-gas/review" },
       { label: "이력관리", path: "/calibration-gas/history" },
       { label: "알림센터", path: "/calibration-gas/notifications" },
       { label: "엑셀 다운로드", path: "/calibration-gas/export" },
