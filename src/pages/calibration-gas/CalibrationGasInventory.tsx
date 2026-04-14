@@ -189,10 +189,14 @@ export default function CalibrationGasInventory() {
 
   const handleSave = useCallback(() => {
     let count = 0;
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    const newHistory: CalibrationGasHistory[] = [];
+
     for (const [id, updates] of Object.entries(editBuffer)) {
       if (Object.keys(updates).length > 0) {
+        const item = inventory.find((i) => i.id === id);
         if (updates.gas_inspection_first) {
-          const item = inventory.find((i) => i.id === id);
           if (item && !item.gas_inspection_last && !updates.gas_inspection_last) {
             const auto = calcFirstEntry(updates.gas_inspection_first);
             updates.gas_inspection_next = auto.next;
@@ -200,7 +204,6 @@ export default function CalibrationGasInventory() {
           }
         }
         if (updates.velocity_inspection_first) {
-          const item = inventory.find((i) => i.id === id);
           if (item && !item.velocity_inspection_last && !updates.velocity_inspection_last) {
             const auto = calcFirstEntry(updates.velocity_inspection_first);
             updates.velocity_inspection_next = auto.next;
@@ -209,12 +212,33 @@ export default function CalibrationGasInventory() {
         }
         updateInventoryItem(id, updates);
         count++;
+
+        // Record history for each changed field
+        if (item) {
+          for (const [field, newVal] of Object.entries(updates)) {
+            const oldVal = (item[field as keyof CalibrationGasInventoryItem] as string) ?? "";
+            const newValStr = String(newVal ?? "");
+            if (oldVal !== newValStr) {
+              newHistory.push({
+                id: crypto.randomUUID(),
+                inventory_item_id: id,
+                file_name: "현황표 수정",
+                field_name: FIELD_LABELS[field] || field,
+                before_value: oldVal,
+                after_value: newValStr,
+                updated_at: now,
+                updated_by: userName,
+              });
+            }
+          }
+        }
       }
     }
+    addHistoryItems(newHistory);
     setEditMode(false);
     setEditBuffer({});
     toast.success(`${count}건의 항목이 저장되었습니다.`);
-  }, [editBuffer, updateInventoryItem, inventory]);
+  }, [editBuffer, updateInventoryItem, inventory, addHistoryItems, currentUser]);
 
   const handleCellChange = useCallback((itemId: string, field: keyof CalibrationGasInventoryItem, value: string) => {
     setEditBuffer((prev) => ({
@@ -236,6 +260,10 @@ export default function CalibrationGasInventory() {
     const item = inventory.find((i) => i.id === itemId);
     if (!item) return;
 
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    const newHistory: CalibrationGasHistory[] = [];
+
     if (type === "gas") {
       const currentRound = item.gas_inspection_round || "1차";
       const result = calcCompletion(dateStr, currentRound);
@@ -243,6 +271,13 @@ export default function CalibrationGasInventory() {
         gas_inspection_last: result.last,
         gas_inspection_next: result.next,
         gas_inspection_round: result.round,
+      });
+      newHistory.push({
+        id: crypto.randomUUID(), inventory_item_id: itemId,
+        file_name: "가스상 정도검사 완료", field_name: "최종→예정",
+        before_value: `최종: ${item.gas_inspection_last || "-"}, 예정: ${item.gas_inspection_next || "-"}`,
+        after_value: `최종: ${result.last}, 예정: ${result.next} (${result.round})`,
+        updated_at: now, updated_by: userName,
       });
       toast.success(`가스상 정도검사 완료: 다음 예정일 ${result.next} (${result.round})`);
     } else {
@@ -253,10 +288,18 @@ export default function CalibrationGasInventory() {
         velocity_inspection_next: result.next,
         velocity_inspection_round: result.round,
       });
+      newHistory.push({
+        id: crypto.randomUUID(), inventory_item_id: itemId,
+        file_name: "유속계 정도검사 완료", field_name: "최종→예정",
+        before_value: `최종: ${item.velocity_inspection_last || "-"}, 예정: ${item.velocity_inspection_next || "-"}`,
+        after_value: `최종: ${result.last}, 예정: ${result.next} (${result.round})`,
+        updated_at: now, updated_by: userName,
+      });
       toast.success(`유속계 정도검사 완료: 다음 예정일 ${result.next} (${result.round})`);
     }
+    addHistoryItems(newHistory);
     setCompletionTarget(null);
-  }, [completionTarget, inventory, updateInventoryItem]);
+  }, [completionTarget, inventory, updateInventoryItem, addHistoryItems, currentUser]);
 
   /* ── Add row handler ── */
   const handleAddRow = useCallback(() => {
@@ -264,11 +307,23 @@ export default function CalibrationGasInventory() {
       toast.error("사업장명, 호기, 가스명은 필수입니다.");
       return;
     }
-    addInventoryItem({ ...newRow, id: crypto.randomUUID() });
+    const newId = crypto.randomUUID();
+    addInventoryItem({ ...newRow, id: newId });
+
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: newId,
+      file_name: "현황표 신규등록", field_name: "신규등록",
+      before_value: "",
+      after_value: `${newRow.site_name} / ${newRow.unit_no} / ${newRow.gas_name}`,
+      updated_at: now, updated_by: userName,
+    }]);
+
     setNewRow(createEmptyItem());
     setAddRowOpen(false);
     toast.success("새 항목이 추가되었습니다.");
-  }, [newRow, addInventoryItem]);
+  }, [newRow, addInventoryItem, addHistoryItems, currentUser]);
 
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
