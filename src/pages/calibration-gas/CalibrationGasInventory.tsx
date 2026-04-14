@@ -489,7 +489,7 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium bg-background`}>
+                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
                         {item.unit_no}
                       </td>
                     )}
