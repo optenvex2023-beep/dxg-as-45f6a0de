@@ -28,6 +28,9 @@ interface CalGasState {
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
   addInventoryItem: (item: CalibrationGasInventoryItem) => void;
 
+  /* History */
+  addHistoryItems: (items: CalibrationGasHistory[]) => void;
+
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;
   addExtraction: (extraction: CalibrationGasExtraction) => void;
@@ -205,6 +208,12 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
   const addInventoryItem = useCallback((item: CalibrationGasInventoryItem) => {
     setInventory((prev) => [...prev, item]);
     insertCalGasItemDb(item);
+  }, []);
+
+  const addHistoryItems = useCallback((items: CalibrationGasHistory[]) => {
+    if (items.length === 0) return;
+    setHistory((prev) => [...items, ...prev]);
+    insertCalGasHistoryItems(items);
   }, []);
 
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
@@ -426,7 +435,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     <CalGasContext.Provider
       value={{
         inventory, uploads, extractions, history, notifications, isLoading,
-        updateInventoryItem, addInventoryItem,
+        updateInventoryItem, addInventoryItem, addHistoryItems,
         addUploadFile, addExtraction, updateExtractionField, updateExtractionItem,
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,

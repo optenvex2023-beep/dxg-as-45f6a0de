@@ -1,16 +1,31 @@
 import { useState, useMemo, useCallback } from "react";
 import { useCalGas } from "@/contexts/CalibrationGasContext";
+import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
+import type { CalibrationGasHistory } from "@/types/calibrationGas";
 import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+
+const FIELD_LABELS: Record<string, string> = {
+  concentration: "농도", volume_L: "용량(L)", expiry_date: "유효기간", remaining_percent: "잔량(%)",
+  purchase_entity: "구매주체", so_issue: "S/O 발행", arrival_status: "도착예정", branch: "지점",
+  gas_inspection_first: "가스상검사-최초", gas_inspection_last: "가스상검사-최종", gas_inspection_next: "가스상검사-예정",
+  gas_inspection_round: "가스상검사-차수", gas_inspection_so: "가스상검사-S/O", gas_inspection_so_arrival: "가스상검사-S/O도착",
+  velocity_inspection_first: "유속계검사-최초", velocity_inspection_last: "유속계검사-최종", velocity_inspection_next: "유속계검사-예정",
+  velocity_inspection_round: "유속계검사-차수", velocity_inspection_so: "유속계검사-S/O",
+  inspection_notes: "비고사항", inspection_date: "점검일", inspection_cycle: "점검주기",
+  md: "M/D", monthly_amount: "월 금액", contract_consumables: "소모품", notes: "비고",
+  contract_end_date: "계약종료일", site_name: "사업장명", tms_status: "TMS", unit_no: "호기",
+  analyzer_range: "분석기 Range", gas_name: "가스명",
+};
 
 const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
   "concentration", "volume_L", "expiry_date", "remaining_percent",
@@ -63,7 +78,8 @@ function createEmptyItem(): CalibrationGasInventoryItem {
 
 export default function CalibrationGasInventory() {
 
-  const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem, addHistoryItems } = useCalGas();
+  const { currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
   const [alertFilter, setAlertFilter] = useState<AlertFilterType>("all");
@@ -173,10 +189,14 @@ export default function CalibrationGasInventory() {
 
   const handleSave = useCallback(() => {
     let count = 0;
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    const newHistory: CalibrationGasHistory[] = [];
+
     for (const [id, updates] of Object.entries(editBuffer)) {
       if (Object.keys(updates).length > 0) {
+        const item = inventory.find((i) => i.id === id);
         if (updates.gas_inspection_first) {
-          const item = inventory.find((i) => i.id === id);
           if (item && !item.gas_inspection_last && !updates.gas_inspection_last) {
             const auto = calcFirstEntry(updates.gas_inspection_first);
             updates.gas_inspection_next = auto.next;
@@ -184,7 +204,6 @@ export default function CalibrationGasInventory() {
           }
         }
         if (updates.velocity_inspection_first) {
-          const item = inventory.find((i) => i.id === id);
           if (item && !item.velocity_inspection_last && !updates.velocity_inspection_last) {
             const auto = calcFirstEntry(updates.velocity_inspection_first);
             updates.velocity_inspection_next = auto.next;
@@ -193,12 +212,33 @@ export default function CalibrationGasInventory() {
         }
         updateInventoryItem(id, updates);
         count++;
+
+        // Record history for each changed field
+        if (item) {
+          for (const [field, newVal] of Object.entries(updates)) {
+            const oldVal = (item[field as keyof CalibrationGasInventoryItem] as string) ?? "";
+            const newValStr = String(newVal ?? "");
+            if (oldVal !== newValStr) {
+              newHistory.push({
+                id: crypto.randomUUID(),
+                inventory_item_id: id,
+                file_name: "현황표 수정",
+                field_name: FIELD_LABELS[field] || field,
+                before_value: oldVal,
+                after_value: newValStr,
+                updated_at: now,
+                updated_by: userName,
+              });
+            }
+          }
+        }
       }
     }
+    addHistoryItems(newHistory);
     setEditMode(false);
     setEditBuffer({});
     toast.success(`${count}건의 항목이 저장되었습니다.`);
-  }, [editBuffer, updateInventoryItem, inventory]);
+  }, [editBuffer, updateInventoryItem, inventory, addHistoryItems, currentUser]);
 
   const handleCellChange = useCallback((itemId: string, field: keyof CalibrationGasInventoryItem, value: string) => {
     setEditBuffer((prev) => ({
@@ -220,6 +260,10 @@ export default function CalibrationGasInventory() {
     const item = inventory.find((i) => i.id === itemId);
     if (!item) return;
 
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    const newHistory: CalibrationGasHistory[] = [];
+
     if (type === "gas") {
       const currentRound = item.gas_inspection_round || "1차";
       const result = calcCompletion(dateStr, currentRound);
@@ -227,6 +271,13 @@ export default function CalibrationGasInventory() {
         gas_inspection_last: result.last,
         gas_inspection_next: result.next,
         gas_inspection_round: result.round,
+      });
+      newHistory.push({
+        id: crypto.randomUUID(), inventory_item_id: itemId,
+        file_name: "가스상 정도검사 완료", field_name: "최종→예정",
+        before_value: `최종: ${item.gas_inspection_last || "-"}, 예정: ${item.gas_inspection_next || "-"}`,
+        after_value: `최종: ${result.last}, 예정: ${result.next} (${result.round})`,
+        updated_at: now, updated_by: userName,
       });
       toast.success(`가스상 정도검사 완료: 다음 예정일 ${result.next} (${result.round})`);
     } else {
@@ -237,10 +288,18 @@ export default function CalibrationGasInventory() {
         velocity_inspection_next: result.next,
         velocity_inspection_round: result.round,
       });
+      newHistory.push({
+        id: crypto.randomUUID(), inventory_item_id: itemId,
+        file_name: "유속계 정도검사 완료", field_name: "최종→예정",
+        before_value: `최종: ${item.velocity_inspection_last || "-"}, 예정: ${item.velocity_inspection_next || "-"}`,
+        after_value: `최종: ${result.last}, 예정: ${result.next} (${result.round})`,
+        updated_at: now, updated_by: userName,
+      });
       toast.success(`유속계 정도검사 완료: 다음 예정일 ${result.next} (${result.round})`);
     }
+    addHistoryItems(newHistory);
     setCompletionTarget(null);
-  }, [completionTarget, inventory, updateInventoryItem]);
+  }, [completionTarget, inventory, updateInventoryItem, addHistoryItems, currentUser]);
 
   /* ── Add row handler ── */
   const handleAddRow = useCallback(() => {
@@ -248,11 +307,23 @@ export default function CalibrationGasInventory() {
       toast.error("사업장명, 호기, 가스명은 필수입니다.");
       return;
     }
-    addInventoryItem({ ...newRow, id: crypto.randomUUID() });
+    const newId = crypto.randomUUID();
+    addInventoryItem({ ...newRow, id: newId });
+
+    const now = new Date().toISOString();
+    const userName = currentUser?.name || "시스템";
+    addHistoryItems([{
+      id: crypto.randomUUID(), inventory_item_id: newId,
+      file_name: "현황표 신규등록", field_name: "신규등록",
+      before_value: "",
+      after_value: `${newRow.site_name} / ${newRow.unit_no} / ${newRow.gas_name}`,
+      updated_at: now, updated_by: userName,
+    }]);
+
     setNewRow(createEmptyItem());
     setAddRowOpen(false);
     toast.success("새 항목이 추가되었습니다.");
-  }, [newRow, addInventoryItem]);
+  }, [newRow, addInventoryItem, addHistoryItems, currentUser]);
 
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
