@@ -21,16 +21,30 @@ export function formatRound(n: number): string {
   return `${n}차`;
 }
 
+/** Parse "YYYY-MM-DD" into local Date without UTC shift */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Format Date to "YYYY-MM-DD" using local values */
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Add years to a date string (YYYY-MM-DD) */
 function addYears(dateStr: string, years: number): string {
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   d.setFullYear(d.getFullYear() + years);
-  return d.toISOString().split("T")[0];
+  return formatLocalDate(d);
 }
 
 /** Format date to YYYY-MM-DD */
 export function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return formatLocalDate(d);
 }
 
 /**
