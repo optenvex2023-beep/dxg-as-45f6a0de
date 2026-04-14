@@ -142,8 +142,8 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
       const styleIdx = Math.min(i, templateStyles.length - 1);
       const styles = templateStyles[styleIdx];
-      const thinBorder: ExcelJS.Border = { style: "thin" };
-      const defaultBorder: Partial<ExcelJS.Borders> = {
+      const thinBorder = { style: "thin" as const, color: { argb: "FF000000" } };
+      const defaultBorder = {
         top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder,
       };
       for (let c = 1; c <= LAST_COL; c++) {
