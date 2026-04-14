@@ -286,6 +286,18 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
   // Purchase entity: merge first-to-last row per (site_name, group_id) — not just consecutive
   const purchaseMerges: { startRow: number; endRow: number }[] = [];
   {
+    console.group("[CalGasExport] 구매주체(J열) 병합 디버그");
+
+    // 1. 각 row의 기본 정보 로그
+    console.log("=== Row별 purchase_entity_merge_group 목록 ===");
+    for (let idx = 0; idx < allItems.length; idx++) {
+      const item = allItems[idx];
+      const gid = (item as any).purchase_entity_merge_group ?? 0;
+      const excelRow = DATA_START + idx;
+      console.log(`  dataIdx=${idx}, excelRow=${excelRow}, site="${item.site_name}", gid=${gid}, purchase_entity="${item.purchase_entity}"`);
+    }
+
+    // 2. 그룹 계산
     const seen = new Map<string, { startRow: number; endRow: number }>();
     for (let idx = 0; idx < allItems.length; idx++) {
       const gid = (allItems[idx] as any).purchase_entity_merge_group ?? 0;
@@ -298,9 +310,33 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
         entry.endRow = DATA_START + idx;
       }
     }
-    for (const range of seen.values()) {
-      if (range.endRow > range.startRow) purchaseMerges.push(range);
+
+    // 3. 비연속 row 감지
+    console.log("=== 비연속 row 감지 ===");
+    for (const [key, range] of seen.entries()) {
+      const rowCount = range.endRow - range.startRow + 1;
+      // 해당 key에 속하는 실제 row 수
+      const [sitePart, gidPart] = key.split("::");
+      const actualCount = allItems.filter((it, idx) =>
+        it.site_name === sitePart && ((it as any).purchase_entity_merge_group ?? 0) === Number(gidPart)
+      ).length;
+      if (actualCount !== rowCount) {
+        console.warn(`  ⚠ 비연속 감지: key="${key}", excelRange=${range.startRow}~${range.endRow} (span=${rowCount}), 실제rows=${actualCount}`);
+      }
     }
+
+    // 4. 병합 대상 로그
+    console.log("=== 계산된 병합 범위 ===");
+    for (const [key, range] of seen.entries()) {
+      if (range.endRow > range.startRow) {
+        purchaseMerges.push(range);
+        console.log(`  key="${key}", mergeCells(${range.startRow}, 10, ${range.endRow}, 10)`);
+      } else {
+        console.log(`  key="${key}", 단일행(${range.startRow}) — 병합 안 함`);
+      }
+    }
+
+    console.groupEnd();
   }
   const branchMerges = computeMergeRanges(allItems, "branch_merge_group");
 
@@ -315,7 +351,12 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     }
   }
   for (const { startRow, endRow } of purchaseMerges) {
-    try { ws.mergeCells(startRow, 10, endRow, 10); } catch { /* skip */ }
+    try {
+      ws.mergeCells(startRow, 10, endRow, 10);
+      console.log(`[CalGasExport] J열 mergeCells 성공: row ${startRow}~${endRow}`);
+    } catch (err) {
+      console.error(`[CalGasExport] J열 mergeCells 실패: row ${startRow}~${endRow}`, err);
+    }
   }
   for (const { startRow, endRow } of branchMerges) {
     try { ws.mergeCells(startRow, 13, endRow, 13); } catch { /* skip */ }
