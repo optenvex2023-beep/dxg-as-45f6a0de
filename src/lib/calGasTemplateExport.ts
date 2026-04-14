@@ -296,11 +296,23 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       try { ws.mergeCells(startRow, col, endRow, col); } catch { /* skip */ }
     }
   }
+  console.log("[CalGas Export] purchaseMerges:", JSON.stringify(purchaseMerges));
+  console.log("[CalGas Export] branchMerges:", JSON.stringify(branchMerges));
   for (const { startRow, endRow } of purchaseMerges) {
-    try { ws.mergeCells(startRow, 10, endRow, 10); } catch { /* skip */ }
+    try {
+      ws.mergeCells(startRow, 10, endRow, 10);
+      console.log(`[CalGas Export] Merged purchase J${startRow}:J${endRow} OK`);
+    } catch (e) {
+      console.error(`[CalGas Export] Failed to merge purchase J${startRow}:J${endRow}`, e);
+    }
   }
   for (const { startRow, endRow } of branchMerges) {
-    try { ws.mergeCells(startRow, 13, endRow, 13); } catch { /* skip */ }
+    try {
+      ws.mergeCells(startRow, 13, endRow, 13);
+      console.log(`[CalGas Export] Merged branch M${startRow}:M${endRow} OK`);
+    } catch (e) {
+      console.error(`[CalGas Export] Failed to merge branch M${startRow}:M${endRow}`, e);
+    }
   }
 
   for (const { startRow, endRow } of contractMerges) {
