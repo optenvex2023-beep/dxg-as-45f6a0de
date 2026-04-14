@@ -264,6 +264,11 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     while (i < items.length) {
       const gid = (items[i] as any)[groupKey] ?? 0;
       const siteName = items[i].site_name;
+      // gid 0 means "no group assigned" — skip merging for these rows
+      if (gid === 0) {
+        i++;
+        continue;
+      }
       let j = i + 1;
       while (j < items.length
         && ((items[j] as any)[groupKey] ?? 0) === gid
