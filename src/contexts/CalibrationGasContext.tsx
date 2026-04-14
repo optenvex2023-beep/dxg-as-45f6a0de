@@ -28,6 +28,9 @@ interface CalGasState {
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
   addInventoryItem: (item: CalibrationGasInventoryItem) => void;
 
+  /* History */
+  addHistoryItems: (items: CalibrationGasHistory[]) => void;
+
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;
   addExtraction: (extraction: CalibrationGasExtraction) => void;
