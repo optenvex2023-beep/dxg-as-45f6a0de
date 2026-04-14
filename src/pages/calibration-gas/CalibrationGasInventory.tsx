@@ -90,6 +90,7 @@ export default function CalibrationGasInventory() {
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [newRow, setNewRow] = useState<CalibrationGasInventoryItem>(createEmptyItem);
   const [deleteTarget, setDeleteTarget] = useState<CalibrationGasInventoryItem | null>(null);
+  const [isAddMode, setIsAddMode] = useState(false);
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
   const sites = useMemo(() => {
