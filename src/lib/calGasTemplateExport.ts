@@ -169,7 +169,8 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
           const cedParts = item.contract_end_date.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
           if (cedParts) {
             const cedDate = new Date(Number(cedParts[1]), Number(cedParts[2]) - 1, Number(cedParts[3]));
-            const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
+            const nowDate = new Date();
+            const twoMonthsLater = new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, nowDate.getDate());
             if (cedDate <= twoMonthsLater) {
               row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE5CD" } } as any;
             }
