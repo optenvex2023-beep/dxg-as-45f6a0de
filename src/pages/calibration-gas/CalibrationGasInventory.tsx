@@ -495,7 +495,7 @@ export default function CalibrationGasInventory() {
                     )}
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
-                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap bg-background overflow-hidden text-ellipsis`}>
+                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap group-hover:!bg-accent/40 overflow-hidden text-ellipsis`}>
                       <span className="truncate block">{item.analyzer_range}</span>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
