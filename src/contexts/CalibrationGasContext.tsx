@@ -215,7 +215,6 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     setHistory((prev) => [...items, ...prev]);
     insertCalGasHistoryItems(items);
   }, []);
-  }, []);
 
   const addUploadFile = useCallback((file: CalibrationGasUploadFile) => {
     setUploads((prev) => [...prev, file]);
