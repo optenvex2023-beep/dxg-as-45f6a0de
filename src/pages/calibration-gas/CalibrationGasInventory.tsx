@@ -480,7 +480,7 @@ export default function CalibrationGasInventory() {
 
                     {/* ── TMS-level merged (C) ── */}
                     {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center bg-background`}>
+                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background`}>
                         <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
                           {item.tms_status}
                         </Badge>
