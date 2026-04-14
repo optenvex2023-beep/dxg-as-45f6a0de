@@ -156,6 +156,7 @@ export default function StatusTable() {
   const [editOpen, setEditOpen] = useState(false);
   const [csModalOpen, setCsModalOpen] = useState(false);
   const [mfgModalOpen, setMfgModalOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const syncHorizontalScroll = (source: "header" | "body") => (event: UIEvent<HTMLDivElement>) => {
     const scrollLeft = event.currentTarget.scrollLeft;
@@ -255,7 +256,7 @@ export default function StatusTable() {
     });
   }, [filtered, searchKeyword]);
 
-  const selectedRecord = useMemo(() => searchFiltered.find((r) => r.id === selectedId) ?? null, [searchFiltered, selectedId]);
+  const selectedRecord = useMemo(() => inspections.find((r) => r.id === selectedId) ?? null, [inspections, selectedId]);
 
   const canClose = (rec: OutboundInspection) => {
     return !rec.is_closed && rec.reinstall_date && rec.reinstall_confirm_status === "확정";
@@ -275,7 +276,8 @@ export default function StatusTable() {
   };
 
   const handleRowClick = (id: string) => {
-    setSelectedId((prev) => (prev === id ? null : id));
+    setSelectedId(id);
+    setDetailOpen(true);
   };
 
   const hasActiveFilter = localStatusFilter !== "전체" || dueToggle || extraFilter !== "없음" || needOutbound || needReinstall || dashboardFilter != null || searchKeyword.trim() !== "";
@@ -577,6 +579,18 @@ export default function StatusTable() {
           </Button>
         )}
       </div>
+
+      {/* Detail view modal */}
+      {selectedRecord && (
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>상세 조회</DialogTitle>
+            </DialogHeader>
+            <DetailView record={selectedRecord} />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Registration modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -1117,6 +1131,84 @@ function EditForm({
       )}
 
       <Button onClick={handleSave} className="w-full">저장</Button>
+    </div>
+  );
+}
+
+/* ─── Detail View (read-only popup) ─── */
+function DetailView({ record }: { record: OutboundInspection }) {
+  const val = (v: string | null | undefined) => v || "—";
+  const outboundReqDate = record.outbound_request_date_mode === "단일"
+    ? val(record.outbound_request_date_single)
+    : `${val(record.outbound_request_date_start)} ~ ${val(record.outbound_request_date_end)}`;
+  const reinstallReqDate = record.reinstall_request_date_mode === "단일"
+    ? val(record.reinstall_request_date_single)
+    : `${val(record.reinstall_request_date_start)} ~ ${val(record.reinstall_request_date_end)}`;
+
+  const fieldRow = (label: string, value: string, highlight?: boolean) => (
+    <div className={cn("flex items-center border-b border-border/40 py-2", highlight && "bg-primary/5")}>
+      <span className="w-[140px] shrink-0 text-xs font-medium text-muted-foreground pl-1">{label}</span>
+      <span className="text-xs text-foreground flex-1">{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      {/* 기본 정보 */}
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-0">
+        <div className="flex items-center gap-2 mb-2">
+          <StatusBadge status={record.status} />
+          {record.due_warning && <Badge variant="destructive" className="text-[10px]">납기유의</Badge>}
+        </div>
+        {fieldRow("관리번호", val(record.manage_no))}
+        {fieldRow("건명", val(record.project_name))}
+        {fieldRow("요청 유형", record.request_type)}
+        {fieldRow("등록일자", record.created_at ? new Date(record.created_at).toLocaleDateString('ko-KR') : "—")}
+        <div className="border-b border-border/40 py-2">
+          <span className="w-[140px] shrink-0 text-xs font-medium text-muted-foreground pl-1 block mb-1">반출장비</span>
+          {record.equipment_items.length > 0 ? (
+            <div className="pl-1 space-y-0.5">
+              {record.equipment_items.map((item) => (
+                <div key={item.id} className="text-xs text-foreground">
+                  {item.equipment_name} ({item.qty_set} set)
+                  {item.serial_no && <span className="ml-1 text-muted-foreground">/ S/N: {item.serial_no}</span>}
+                </div>
+              ))}
+            </div>
+          ) : <span className="text-xs text-muted-foreground pl-1">—</span>}
+        </div>
+        {fieldRow("발주처 담당자", val(record.client_pic_name))}
+        {fieldRow("발주처 연락처", val(record.client_pic_phone))}
+        {fieldRow("계약납기", val(record.contract_due_date))}
+      </div>
+
+      {/* 일자 영역 */}
+      <div className="rounded-lg border p-3 space-y-0">
+        <p className="text-xs font-semibold text-foreground mb-2">일자 정보</p>
+        <div className="grid grid-cols-3 gap-x-4">
+          {fieldRow("반출요청일자", outboundReqDate)}
+          {fieldRow("반출예정일자", val(record.planned_outbound_date))}
+          {fieldRow("반출일자", val(record.outbound_date))}
+        </div>
+        <div className="grid grid-cols-3 gap-x-4">
+          {fieldRow("입고일자", val(record.inbound_date))}
+          {fieldRow("1차 점검완료", val(record.first_inspection_done_date))}
+          {fieldRow("최종 점검완료", val(record.final_inspection_done_date))}
+        </div>
+        <div className="grid grid-cols-3 gap-x-4">
+          {fieldRow("재설치 요청일자", reinstallReqDate)}
+          {fieldRow("재설치 일자", val(record.reinstall_date))}
+          {fieldRow("설치 예정/확정", record.reinstall_confirm_status, record.reinstall_confirm_status === "확정")}
+        </div>
+      </div>
+
+      {/* 특이사항 / 메모 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">교체부품 확정사항 / 특이사항</p>
+        <div className="min-h-[80px] rounded-md border bg-muted/30 p-3 text-xs text-foreground whitespace-pre-wrap">
+          {record.special_note || "내용 없음"}
+        </div>
+      </div>
     </div>
   );
 }
