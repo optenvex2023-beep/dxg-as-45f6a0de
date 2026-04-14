@@ -206,6 +206,30 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       row.getCell(30).value = item.contract_consumables || null;
       row.getCell(31).value = item.notes || null;
 
+      // N(14)~Z(26) 데이터 셀: 템플릿 노란색 fill 제거 → 흰색 배경
+      // 단, 예정일(P=16, V=22)이 60일 이내이면 연두색 유지
+      const WHITE_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+      const LIME_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9F2B0" } };
+      const now = new Date();
+      const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+
+      for (let c = 14; c <= 26; c++) {
+        const cell = row.getCell(c);
+        // 예정일 열(P=16: gas_inspection_next, V=22: velocity_inspection_next)
+        if (c === 16 || c === 22) {
+          const dateVal = c === 16 ? item.gas_inspection_next : item.velocity_inspection_next;
+          const isoMatch = dateVal?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (isoMatch) {
+            const d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
+            if (d.getTime() - now.getTime() <= sixtyDaysMs) {
+              cell.fill = LIME_FILL;
+              continue;
+            }
+          }
+        }
+        cell.fill = WHITE_FILL;
+      }
+
       row.commit();
       currentRow++;
     }
