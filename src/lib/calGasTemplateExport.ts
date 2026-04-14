@@ -297,17 +297,34 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       console.log(`  dataIdx=${idx}, excelRow=${excelRow}, site="${item.site_name}", gid=${gid}, purchase_entity="${item.purchase_entity}"`);
     }
 
-    // 2. 그룹 계산
-    const seen = new Map<string, { startRow: number; endRow: number }>();
+    // 2. 그룹 계산 — gid>0 행 기준으로 범위 산출
+    const seen = new Map<string, { startRow: number; endRow: number; lastDataIdx: number }>();
     for (let idx = 0; idx < allItems.length; idx++) {
       const gid = (allItems[idx] as any).purchase_entity_merge_group ?? 0;
       if (gid === 0) continue;
       const key = `${allItems[idx].site_name}::${gid}`;
       const entry = seen.get(key);
       if (!entry) {
-        seen.set(key, { startRow: DATA_START + idx, endRow: DATA_START + idx });
+        seen.set(key, { startRow: DATA_START + idx, endRow: DATA_START + idx, lastDataIdx: idx });
       } else {
         entry.endRow = DATA_START + idx;
+        entry.lastDataIdx = idx;
+      }
+    }
+
+    // 2-1. 종료 row 보정: 각 그룹의 마지막 gid행 이후,
+    //      같은 site_name이면서 gid=0인 연속 행을 병합 범위에 포함
+    for (const [key, range] of seen.entries()) {
+      const siteName = key.split("::")[0];
+      let ext = range.lastDataIdx + 1;
+      while (ext < allItems.length
+        && allItems[ext].site_name === siteName
+        && ((allItems[ext] as any).purchase_entity_merge_group ?? 0) === 0) {
+        ext++;
+      }
+      if (ext - 1 > range.lastDataIdx) {
+        range.endRow = DATA_START + (ext - 1);
+        console.log(`  [보정] key="${key}", endRow 확장 → ${range.endRow} (gid=0 trailing ${ext - 1 - range.lastDataIdx}행 포함)`);
       }
     }
 
