@@ -63,6 +63,7 @@ export interface OutboundInspection {
   install_completed: boolean;
   contract_due_date: string | null;
   special_note: string;
+  replacement_parts_note: string;
 
   client_pic_name: string;
   client_pic_phone: string;

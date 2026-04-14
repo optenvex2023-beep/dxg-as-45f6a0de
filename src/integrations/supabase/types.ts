@@ -413,6 +413,7 @@ export type Database = {
           reinstall_request_date_mode: string
           reinstall_request_date_single: string | null
           reinstall_request_date_start: string | null
+          replacement_parts_note: string
           request_type: string
           special_note: string
           status: string
@@ -454,6 +455,7 @@ export type Database = {
           reinstall_request_date_mode?: string
           reinstall_request_date_single?: string | null
           reinstall_request_date_start?: string | null
+          replacement_parts_note?: string
           request_type?: string
           special_note?: string
           status?: string
@@ -495,6 +497,7 @@ export type Database = {
           reinstall_request_date_mode?: string
           reinstall_request_date_single?: string | null
           reinstall_request_date_start?: string | null
+          replacement_parts_note?: string
           request_type?: string
           special_note?: string
           status?: string
