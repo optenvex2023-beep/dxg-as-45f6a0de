@@ -881,6 +881,40 @@ export default function CalibrationGasInventory() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Inline Add (Range or Unit) Dialog */}
+      <Dialog open={!!inlineAddTarget} onOpenChange={(open) => { if (!open) { setInlineAddTarget(null); setInlineAddRange(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {inlineAddTarget?.mode === "unit" ? "새 호기 추가" : "같은 호기에 Range 추가"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>사업장: <span className="font-medium text-foreground">{inlineAddTarget?.site_name}</span></p>
+              {inlineAddTarget?.mode === "range" && (
+                <p>호기: <span className="font-medium text-foreground">{inlineAddTarget?.unit_no}</span></p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">
+                {inlineAddTarget?.mode === "unit" ? "호기" : "분석기 Range"} <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                className="h-8 text-sm"
+                value={inlineAddRange}
+                onChange={(e) => setInlineAddRange(e.target.value)}
+                placeholder={inlineAddTarget?.mode === "unit" ? "예: 2" : "예: SO2 Span"}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setInlineAddTarget(null); setInlineAddRange(""); }}>취소</Button>
+            <Button onClick={handleInlineAdd}>추가</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
