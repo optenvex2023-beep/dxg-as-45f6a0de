@@ -556,6 +556,14 @@ export default function CalibrationGasInventory() {
         <ChevronRight className="h-3 w-3" />
         <span>테이블을 좌우로 스크롤하여 모든 컬럼을 확인하세요</span>
         {editMode && <Badge variant="secondary" className="ml-2 text-[10px]">편집 모드</Badge>}
+        {isAddMode && (
+          <>
+            <Badge variant="default" className="ml-2 text-[10px]">추가 모드</Badge>
+            <Button size="sm" variant="outline" onClick={() => setAddRowOpen(true)} className="ml-2 gap-1 h-6 text-[10px] px-2">
+              <Plus className="h-3 w-3" /> 신규 사업장 추가
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Table */}
