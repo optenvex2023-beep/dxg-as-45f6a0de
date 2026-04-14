@@ -107,8 +107,11 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
   const totalExistingRows = ws.rowCount;
   const mergesToRemove: string[] = [];
   ws.model.merges?.forEach((m: string) => {
-    const match = m.match(/[A-Z]+(\d+)/);
-    if (match && parseInt(match[1]) >= DATA_START) {
+    // Remove any merge that overlaps with data area (rows >= DATA_START)
+    // Check both start and end row of the merge range
+    const rowNums = [...m.matchAll(/[A-Z]+(\d+)/g)].map(match => parseInt(match[1]));
+    const maxRow = Math.max(...rowNums);
+    if (maxRow >= DATA_START) {
       mergesToRemove.push(m);
     }
   });
