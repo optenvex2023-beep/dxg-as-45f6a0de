@@ -256,13 +256,13 @@ export default function CalibrationGasInventory() {
 
   /* ── Shared styles ── */
   const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
-  const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle";
+  const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
   const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
   /* ── Sticky column styles (left-pinned) ── */
   const stickyTh = "sticky z-30 bg-table-header border-r border-border";
-  const stickyTd = "sticky z-10 bg-background border-r border-border";
+  const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
   // Cumulative left offsets: 계약종료일(80) + 사업장명(90) + TMS(60) + 호기(70) + Range(100)
   const stickyCol = [
     { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // 계약종료일
@@ -457,7 +457,7 @@ export default function CalibrationGasInventory() {
                   const isSiteStart = s.site > 0 && idx > 0;
 
                 return (
-                  <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>
+                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "border-t-2 border-t-[rgb(128,128,128)]" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
                       <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center font-medium whitespace-nowrap ${
@@ -480,7 +480,7 @@ export default function CalibrationGasInventory() {
 
                     {/* ── TMS-level merged (C) ── */}
                     {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center bg-background`}>
+                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background`}>
                         <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
                           {item.tms_status}
                         </Badge>
@@ -489,13 +489,13 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium bg-background`}>
+                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
                         {item.unit_no}
                       </td>
                     )}
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
-                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap bg-background overflow-hidden text-ellipsis`}>
+                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap group-hover:!bg-accent/40 overflow-hidden text-ellipsis`}>
                       <span className="truncate block">{item.analyzer_range}</span>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
