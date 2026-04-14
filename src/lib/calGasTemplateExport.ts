@@ -166,6 +166,22 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
         setCellValue(row.getCell(1), item.contract_end_date);
       }
 
+      // 계약종료일(A열) 2개월 이내 or 이미 지남 → 연한 주황색
+      {
+        const cedVal = item.contract_end_date;
+        if (cedVal) {
+          const cedMatch = cedVal.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (cedMatch) {
+            const ced = new Date(+cedMatch[1], +cedMatch[2] - 1, +cedMatch[3]);
+            const now2 = new Date();
+            const twoMonths = new Date(now2.getFullYear(), now2.getMonth() + 2, now2.getDate());
+            if (ced <= twoMonths) {
+              row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDE8D0" } } as ExcelJS.Fill;
+            }
+          }
+        }
+      }
+
       if (i === 0) {
         row.getCell(2).value = item.site_name;
       }
