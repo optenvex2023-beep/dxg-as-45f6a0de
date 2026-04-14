@@ -12,7 +12,7 @@ import { seedCalibrationGasInventory, siteAliases } from "@/data/calibrationGasD
 import { parseGasLabel, matchGasToInventory } from "@/lib/gasMatchingUtils";
 import {
   fetchCalGasInventory, insertCalGasInventoryItems, insertCalGasInventoryItem as insertCalGasItemDb,
-  updateCalGasInventoryItem as updateCalGasItemDb,
+  updateCalGasInventoryItem as updateCalGasItemDb, deleteCalGasInventoryItem as deleteCalGasItemDb,
   fetchCalGasHistory, insertCalGasHistoryItems,
 } from "@/lib/supabaseDb";
 
@@ -27,6 +27,7 @@ interface CalGasState {
   /* Inventory */
   updateInventoryItem: (id: string, updates: Partial<CalibrationGasInventoryItem>) => void;
   addInventoryItem: (item: CalibrationGasInventoryItem) => void;
+  deleteInventoryItem: (id: string) => void;
 
   /* History */
   addHistoryItems: (items: CalibrationGasHistory[]) => void;
@@ -208,6 +209,11 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
   const addInventoryItem = useCallback((item: CalibrationGasInventoryItem) => {
     setInventory((prev) => [...prev, item]);
     insertCalGasItemDb(item);
+  }, []);
+
+  const deleteInventoryItem = useCallback((id: string) => {
+    setInventory((prev) => prev.filter((item) => item.id !== id));
+    deleteCalGasItemDb(id);
   }, []);
 
   const addHistoryItems = useCallback((items: CalibrationGasHistory[]) => {
