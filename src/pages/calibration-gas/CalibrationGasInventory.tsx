@@ -27,6 +27,7 @@ const FIELD_LABELS: Record<string, string> = {
   analyzer_range: "분석기 Range", gas_name: "가스명",
 };
 
+const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
   "concentration", "volume_L", "expiry_date", "remaining_percent",
   "purchase_entity", "so_issue", "arrival_status", "branch",
   "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
