@@ -164,6 +164,17 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
       if (i === 0 || item.contract_end_date !== group.items[i - 1]?.contract_end_date) {
         setCellValue(row.getCell(1), item.contract_end_date);
+        // Highlight contract_end_date if within 2 months or already past
+        if (item.contract_end_date) {
+          const cedParts = item.contract_end_date.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+          if (cedParts) {
+            const cedDate = new Date(Number(cedParts[1]), Number(cedParts[2]) - 1, Number(cedParts[3]));
+            const twoMonthsLater = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
+            if (cedDate <= twoMonthsLater) {
+              row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE5CD" } } as any;
+            }
+          }
+        }
       }
 
       if (i === 0) {
