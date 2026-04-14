@@ -40,6 +40,7 @@ const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
 ];
 
 type CompletionTarget = { itemId: string; type: "gas" | "velocity" } | null;
+type InlineAddTarget = { site_name: string; tms_status: string; unit_no: string; contract_end_date: string | null; mode: "range" | "unit" } | null;
 type AlertFilterType = "all" | "expiry" | "low" | "gas_insp" | "vel_insp";
 
 const NEW_ROW_FIELDS: { key: keyof CalibrationGasInventoryItem; label: string; required?: boolean }[] = [
