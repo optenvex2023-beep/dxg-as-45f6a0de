@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState, type UIEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import type { AppUser } from "@/types";
 import type {
   OutboundInspection,
   OutboundEquipmentItem,
@@ -124,6 +125,7 @@ function emptyFormData(): CreateFormData {
     install_completed: false,
     contract_due_date: null,
     special_note: "",
+    replacement_parts_note: "",
     client_pic_name: "",
     client_pic_phone: "",
     request_type: "세일즈오더",
@@ -587,7 +589,22 @@ export default function StatusTable() {
             <DialogHeader>
               <DialogTitle>상세 조회</DialogTitle>
             </DialogHeader>
-            <DetailView record={selectedRecord} />
+            <DetailView
+              record={selectedRecord}
+              currentUser={currentUser}
+              onSaveMemo={async (id, field, value) => {
+                const oldVal = field === "replacement_parts_note"
+                  ? (selectedRecord.replacement_parts_note || "")
+                  : (selectedRecord.special_note || "");
+                if (oldVal === value) return;
+                try {
+                  updateInspection(id, { [field]: value });
+                  toast.success("저장되었습니다.");
+                } catch {
+                  toast.error("저장에 실패했습니다.");
+                }
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}
