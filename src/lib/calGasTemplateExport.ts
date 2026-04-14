@@ -263,8 +263,11 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     let i = 0;
     while (i < items.length) {
       const gid = (items[i] as any)[groupKey] ?? 0;
+      const siteName = items[i].site_name;
       let j = i + 1;
-      while (j < items.length && ((items[j] as any)[groupKey] ?? 0) === gid) j++;
+      while (j < items.length
+        && ((items[j] as any)[groupKey] ?? 0) === gid
+        && items[j].site_name === siteName) j++;
       if (j - i > 1) {
         ranges.push({ startRow: DATA_START + i, endRow: DATA_START + j - 1 });
       }
