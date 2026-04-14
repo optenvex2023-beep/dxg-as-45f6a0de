@@ -580,6 +580,18 @@ export default function StatusTable() {
         )}
       </div>
 
+      {/* Detail view modal */}
+      {selectedRecord && (
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>상세 조회</DialogTitle>
+            </DialogHeader>
+            <DetailView record={selectedRecord} />
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Registration modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
