@@ -460,7 +460,14 @@ export default function CalibrationGasInventory() {
                   <tr key={item.id} className={`${rowBg} hover:bg-accent/40 transition-colors ${isSiteStart ? "border-t-[1.5px] border-t-muted-foreground/60" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (A, B) ── */}
                     {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center !bg-muted font-medium whitespace-nowrap`}>
+                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center font-medium whitespace-nowrap ${
+                        (() => {
+                          if (!item.contract_end_date) return "!bg-muted";
+                          const d = new Date(item.contract_end_date);
+                          if (isNaN(d.getTime())) return "!bg-muted";
+                          return d <= sixtyDaysLater ? "!bg-orange-100 dark:!bg-orange-950" : "!bg-muted";
+                        })()
+                      }`}>
                         {item.contract_end_date || "-"}
                       </td>
                     )}
