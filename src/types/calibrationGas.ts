@@ -46,6 +46,7 @@ export interface CalibrationGasInventoryItem {
   velocity_inspection_merge_group?: number;
   purchase_entity_merge_group?: number;
   branch_merge_group?: number;
+  sort_order?: number;
 }
 
 /** Site name alias map for normalization */
