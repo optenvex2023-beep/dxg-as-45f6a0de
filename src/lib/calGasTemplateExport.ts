@@ -278,27 +278,7 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
 
   const gasMerges = computeMergeRanges(allItems, "gas_inspection_merge_group");
   const velMerges = computeMergeRanges(allItems, "velocity_inspection_merge_group");
-  // Purchase entity: merge by group_id using min~max row range (not consecutive)
-  const purchaseMerges: { startRow: number; endRow: number }[] = [];
-  {
-    const groupMap = new Map<string, { minIdx: number; maxIdx: number }>();
-    for (let idx = 0; idx < allItems.length; idx++) {
-      const item = allItems[idx];
-      const gid = (item as any).purchase_entity_merge_group ?? 0;
-      const key = `${item.site_name}::${gid}`;
-      const existing = groupMap.get(key);
-      if (!existing) {
-        groupMap.set(key, { minIdx: idx, maxIdx: idx });
-      } else {
-        existing.maxIdx = idx;
-      }
-    }
-    for (const { minIdx, maxIdx } of groupMap.values()) {
-      if (maxIdx > minIdx) {
-        purchaseMerges.push({ startRow: DATA_START + minIdx, endRow: DATA_START + maxIdx });
-      }
-    }
-  }
+  const purchaseMerges = computeMergeRanges(allItems, "purchase_entity_merge_group");
   const branchMerges = computeMergeRanges(allItems, "branch_merge_group");
 
   for (const { startRow, endRow } of gasMerges) {
