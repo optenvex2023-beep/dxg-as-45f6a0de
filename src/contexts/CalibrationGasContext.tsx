@@ -441,7 +441,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     <CalGasContext.Provider
       value={{
         inventory, uploads, extractions, history, notifications, isLoading,
-        updateInventoryItem, addInventoryItem, addHistoryItems,
+        updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems,
         addUploadFile, addExtraction, updateExtractionField, updateExtractionItem,
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,
