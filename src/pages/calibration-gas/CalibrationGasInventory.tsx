@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback } from "react";
 import { useCalGas } from "@/contexts/CalibrationGasContext";
+import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap } from "lucide-react";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
+import type { CalibrationGasHistory } from "@/types/calibrationGas";
 import { toast } from "sonner";
 import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/lib/inspectionCycleLogic";
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
@@ -63,7 +65,8 @@ function createEmptyItem(): CalibrationGasInventoryItem {
 
 export default function CalibrationGasInventory() {
 
-  const { inventory, updateInventoryItem, addInventoryItem } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem, addHistoryItems } = useCalGas();
+  const { currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
   const [alertFilter, setAlertFilter] = useState<AlertFilterType>("all");
