@@ -537,7 +537,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>월 금액</th>
                 <th rowSpan={2} className={`${thBase} min-w-[90px]`}>소모품포함</th>
                 <th rowSpan={2} className={`${thBase} min-w-[120px] border-r-0`}>비고</th>
-              </tr>
+                <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[80px]`}>농도</th>
                 <th className={`${thBase} min-w-[60px]`}>용량(L)</th>
@@ -742,7 +742,16 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "md", s.unit, "text-center")}
                     {renderMergedCell(item, "monthly_amount", s.unit, "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "contract_consumables", s.unit, "text-center")}
-                    {renderMergedCell(item, "notes", s.unit, "border-r-0 max-w-[160px] truncate")}
+                    {renderMergedCell(item, "notes", s.unit, "max-w-[160px] truncate")}
+                    <td className={`${td} text-center border-r-0`}>
+                      <button
+                        onClick={() => setDeleteTarget(item)}
+                        className="inline-flex items-center justify-center p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
