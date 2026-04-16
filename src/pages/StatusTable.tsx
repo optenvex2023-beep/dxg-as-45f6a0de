@@ -279,6 +279,10 @@ export default function StatusTable() {
 
   const handleRowClick = (id: string) => {
     setSelectedId(id);
+  };
+
+  const handleRowDoubleClick = (id: string) => {
+    setSelectedId(id);
     setDetailOpen(true);
   };
 
@@ -431,6 +435,7 @@ export default function StatusTable() {
                     selectedId === rec.id && "bg-primary/10 ring-1 ring-primary/30"
                   )}
                   onClick={() => handleRowClick(rec.id)}
+                  onDoubleClick={() => handleRowDoubleClick(rec.id)}
                 >
                   <td className="p-4 align-middle">
                     <div className="flex flex-col gap-0.5">
