@@ -279,6 +279,10 @@ export default function StatusTable() {
 
   const handleRowClick = (id: string) => {
     setSelectedId(id);
+  };
+
+  const handleRowDoubleClick = (id: string) => {
+    setSelectedId(id);
     setDetailOpen(true);
   };
 
