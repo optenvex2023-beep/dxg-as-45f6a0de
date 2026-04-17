@@ -60,6 +60,7 @@ const statusTableColumns = [
   { key: "manage_no", label: "관리번호", width: 100 },
   { key: "project_name", label: "건명", width: 160 },
   { key: "equipment", label: "반출장비", width: 180 },
+  { key: "parts_approval", label: "교체부품 승인", width: 90 },
   { key: "outbound_request", label: "반출요청일자", width: 120 },
   { key: "planned_outbound", label: "반출예정일자", width: 100 },
   { key: "outbound_date", label: "반출일자", width: 100 },
@@ -464,6 +465,17 @@ export default function StatusTable() {
                       </div>
                     ) : "—"}
                   </td>
+                  <td className="p-4 align-middle text-xs text-center">
+                    {(rec.replacement_parts_note || "").trim() !== "" ? (
+                      <div className="inline-flex h-4 w-4 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground">
+                        <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 8 7 12 13 4" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="inline-block h-4 w-4 rounded-sm border border-muted-foreground/40" />
+                    )}
+                  </td>
                   <td className="p-4 align-middle text-xs">
                     {rec.outbound_request_date_mode === "단일"
                       ? rec.outbound_request_date_single || "—"
@@ -489,7 +501,7 @@ export default function StatusTable() {
               ))}
               {searchFiltered.length === 0 && (
                 <tr className="border-b">
-                  <td colSpan={18} className="p-4 py-8 text-center align-middle text-muted-foreground">
+                  <td colSpan={19} className="p-4 py-8 text-center align-middle text-muted-foreground">
                     {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
                   </td>
                 </tr>
