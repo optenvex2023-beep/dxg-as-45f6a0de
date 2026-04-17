@@ -16,6 +16,9 @@ import {
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useApp } from "@/contexts/AppContext";
+import { isSuperAdmin } from "@/lib/permissions";
+import { ShieldCheck } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -55,6 +58,8 @@ const navItems: NavItem[] = [
 
 export default function AppSidebar() {
   const location = useLocation();
+  const { currentUser } = useApp();
+  const superAdmin = isSuperAdmin(currentUser);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "반출점검": true, "교정가스": true });
   const [collapsed, setCollapsed] = useState(false);
 
@@ -103,6 +108,26 @@ export default function AppSidebar() {
           </button>
         </div>
       </div>
+
+      {/* 관리자모드 배지 (super admin 전용) */}
+      {superAdmin && (
+        <div className="px-3 pt-2 pb-1">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 rounded-md bg-sidebar-accent/40 border border-sidebar-border px-2 py-1",
+              collapsed && "justify-center px-1"
+            )}
+            title="관리자모드 - 전체 권한"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-sidebar-primary-foreground shrink-0" />
+            {!collapsed && (
+              <span className="text-[11px] font-semibold text-sidebar-primary-foreground tracking-tight">
+                관리자모드
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 py-2">
