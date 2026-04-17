@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  RefreshCw,
   Database,
   Upload,
   History,
@@ -79,12 +80,28 @@ export default function AppSidebar() {
             반출점검·교정가스 관리
           </span>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
-        >
-          {collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
+            title={collapsed ? "메뉴 열기" : "메뉴 닫기"}
+          >
+            {collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => {
+              // 강력 새로고침: 캐시 무시 후 현재 페이지 재요청
+              const url = new URL(window.location.href);
+              url.searchParams.set("_r", Date.now().toString());
+              window.location.replace(url.toString());
+            }}
+            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
+            title="새로고침"
+            aria-label="새로고침"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Nav */}
