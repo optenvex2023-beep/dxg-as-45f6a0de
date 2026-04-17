@@ -38,6 +38,7 @@ interface AppState {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   logout: () => void;
+  refetchAll: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
