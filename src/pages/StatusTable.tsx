@@ -476,6 +476,8 @@ export default function StatusTable() {
                       <div className="inline-block h-4 w-4 rounded-sm border border-muted-foreground/40" />
                     )}
                   </td>
+                  <td className="p-4 align-middle text-xs">
+                    {rec.outbound_request_date_mode === "단일"
                       ? rec.outbound_request_date_single || "—"
                       : `${rec.outbound_request_date_start || ""} ~ ${rec.outbound_request_date_end || ""}`}
                   </td>
