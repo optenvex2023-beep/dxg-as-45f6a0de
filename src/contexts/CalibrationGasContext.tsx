@@ -48,6 +48,9 @@ interface CalGasState {
   /* Helpers */
   normalizeSiteName: (raw: string) => string;
   findMatchingInventory: (site: string, unit: string, gasName: string) => CalibrationGasInventoryItem[];
+
+  /* Refetch (additive) */
+  refetchAll: () => Promise<void>;
 }
 
 const CalGasContext = createContext<CalGasState | null>(null);
@@ -437,6 +440,20 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
+  /* Refetch all calibration gas data (additive) */
+  const refetchAll = useCallback(async () => {
+    try {
+      const [dbInventory, dbHistory] = await Promise.all([
+        fetchCalGasInventory(),
+        fetchCalGasHistory(),
+      ]);
+      setInventory(dbInventory);
+      setHistory(dbHistory);
+    } catch (err) {
+      console.error("CalGas refetchAll error:", err);
+    }
+  }, []);
+
   return (
     <CalGasContext.Provider
       value={{
@@ -445,7 +462,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         addUploadFile, addExtraction, updateExtractionField, updateExtractionItem,
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,
-        normalizeSiteName, findMatchingInventory,
+        normalizeSiteName, findMatchingInventory, refetchAll,
       }}
     >
       {children}

@@ -38,6 +38,7 @@ interface AppState {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   logout: () => void;
+  refetchAll: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -594,6 +595,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [isLoading, users, currentUser]);
 
+  /* ─── Refetch all data (additive: used by sidebar refresh button) ─── */
+  const refetchAll = useCallback(async () => {
+    try {
+      const [dbUsers, dbInspections, dbReports, dbVersions, dbNotis] = await Promise.all([
+        fetchUsers(),
+        fetchInspections(),
+        fetchReports(),
+        fetchReportVersions(),
+        fetchInAppNotifications(),
+      ]);
+      setUsers(dbUsers);
+      setInspections(dbInspections);
+      setReports(dbReports);
+      setReportVersions(dbVersions);
+      setInAppNotifications(dbNotis);
+    } catch (err) {
+      console.error("refetchAll error:", err);
+    }
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -601,7 +622,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions,
-        markNotificationRead, markAllNotificationsRead, logout,
+        markNotificationRead, markAllNotificationsRead, logout, refetchAll,
       }}
     >
       {children}

@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
+import { useCalGas } from "@/contexts/CalibrationGasContext";
 import { isSuperAdmin } from "@/lib/permissions";
+import { toast } from "sonner";
 
 
 interface NavItem {
@@ -58,10 +60,12 @@ const navItems: NavItem[] = [
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { currentUser } = useApp();
+  const { currentUser, refetchAll } = useApp();
+  const { refetchAll: refetchCalGas } = useCalGas();
   const superAdmin = isSuperAdmin(currentUser);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "반출점검": true, "교정가스": true });
   const [collapsed, setCollapsed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -87,15 +91,25 @@ export default function AppSidebar() {
         )}
         <div className="flex items-center gap-1">
           <button
-            onClick={() => {
-              // 로그인 상태 유지 새로고침: 스토리지/세션/토큰은 건드리지 않고 현재 페이지만 reload
-              window.location.reload();
+            onClick={async () => {
+              if (refreshing) return;
+              setRefreshing(true);
+              try {
+                // 데이터 재조회: 브라우저 reload/세션 초기화 없이 컨텍스트의 fetch 함수만 재호출
+                await Promise.all([refetchAll(), refetchCalGas()]);
+                toast.success("데이터를 새로고침했습니다.");
+              } catch {
+                toast.error("새로고침에 실패했습니다.");
+              } finally {
+                setRefreshing(false);
+              }
             }}
-            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
+            disabled={refreshing}
+            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground disabled:opacity-50"
             title="새로고침"
             aria-label="새로고침"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </button>
           <button
             onClick={() => setCollapsed(!collapsed)}
