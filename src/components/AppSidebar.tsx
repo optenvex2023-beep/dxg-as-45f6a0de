@@ -197,7 +197,7 @@ export default function AppSidebar() {
       </nav>
 
       {/* Build version footer */}
-      <div className="border-t border-sidebar-border px-3 py-2">
+      <div className="border-t border-sidebar-border px-3 py-2 shrink-0">
         {(() => {
           const d = new Date(__BUILD_TIME__);
           const pad = (n: number) => n.toString().padStart(2, "0");
