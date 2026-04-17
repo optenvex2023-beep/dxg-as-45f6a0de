@@ -132,7 +132,7 @@ export default function AppSidebar() {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 py-2">
+      <nav className="flex-1 py-2 overflow-y-auto min-h-0">
         {navItems.map((item) => {
           if (item.children) {
             const expanded = expandedGroups[item.label] ?? false;
