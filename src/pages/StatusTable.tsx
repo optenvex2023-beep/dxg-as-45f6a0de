@@ -312,7 +312,7 @@ export default function StatusTable() {
   };
 
   return (
-    <div className="pb-20">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">현황표</h1>
       </div>
