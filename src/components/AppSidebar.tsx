@@ -82,13 +82,6 @@ export default function AppSidebar() {
         )}
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
-            title={collapsed ? "메뉴 열기" : "메뉴 닫기"}
-          >
-            {collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
-          </button>
-          <button
             onClick={() => {
               // 강력 새로고침: 캐시 무시 후 현재 페이지 재요청
               const url = new URL(window.location.href);
@@ -100,6 +93,13 @@ export default function AppSidebar() {
             aria-label="새로고침"
           >
             <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
+            title={collapsed ? "메뉴 열기" : "메뉴 닫기"}
+          >
+            {collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
           </button>
         </div>
       </div>
