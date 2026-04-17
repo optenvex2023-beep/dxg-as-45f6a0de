@@ -48,6 +48,9 @@ interface CalGasState {
   /* Helpers */
   normalizeSiteName: (raw: string) => string;
   findMatchingInventory: (site: string, unit: string, gasName: string) => CalibrationGasInventoryItem[];
+
+  /* Refetch (additive) */
+  refetchAll: () => Promise<void>;
 }
 
 const CalGasContext = createContext<CalGasState | null>(null);
