@@ -78,7 +78,7 @@ export default function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-200 min-h-screen",
+        "sticky top-0 h-screen flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-200 shrink-0",
         collapsed ? "w-14" : "w-60"
       )}
     >
@@ -132,7 +132,7 @@ export default function AppSidebar() {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 py-2">
+      <nav className="flex-1 py-2 overflow-y-auto min-h-0">
         {navItems.map((item) => {
           if (item.children) {
             const expanded = expandedGroups[item.label] ?? false;
@@ -197,7 +197,7 @@ export default function AppSidebar() {
       </nav>
 
       {/* Build version footer */}
-      <div className="border-t border-sidebar-border px-3 py-2">
+      <div className="border-t border-sidebar-border px-3 py-2 shrink-0">
         {(() => {
           const d = new Date(__BUILD_TIME__);
           const pad = (n: number) => n.toString().padStart(2, "0");
