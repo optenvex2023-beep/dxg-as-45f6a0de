@@ -60,10 +60,12 @@ const navItems: NavItem[] = [
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { currentUser } = useApp();
+  const { currentUser, refetchAll } = useApp();
+  const { refetchAll: refetchCalGas } = useCalGas();
   const superAdmin = isSuperAdmin(currentUser);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "반출점검": true, "교정가스": true });
   const [collapsed, setCollapsed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
