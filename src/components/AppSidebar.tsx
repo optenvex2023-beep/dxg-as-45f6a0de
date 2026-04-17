@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import { isSuperAdmin } from "@/lib/permissions";
-import { ShieldCheck } from "lucide-react";
+
 
 interface NavItem {
   label: string;
