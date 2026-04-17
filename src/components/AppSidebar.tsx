@@ -168,6 +168,23 @@ export default function AppSidebar() {
           );
         })}
       </nav>
+
+      {/* Build version footer */}
+      <div className="border-t border-sidebar-border px-3 py-2">
+        {(() => {
+          const d = new Date(__BUILD_TIME__);
+          const pad = (n: number) => n.toString().padStart(2, "0");
+          const label = `v${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          return (
+            <span
+              className="text-[10px] text-sidebar-foreground/60 font-mono truncate block"
+              title={`Build ${label}`}
+            >
+              {collapsed ? label.slice(1, 11) : label}
+            </span>
+          );
+        })()}
+      </div>
     </aside>
   );
 }
