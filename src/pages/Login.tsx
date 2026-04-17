@@ -47,7 +47,7 @@ export default function Login() {
               className="h-16 w-auto"
             />
           </div>
-          <CardTitle className="text-2xl font-bold">DXG 통합관리</CardTitle>
+          <CardTitle className="text-2xl font-bold">DXG 반출점검·교정가스 관리</CardTitle>
           <CardDescription>사번과 이름으로 로그인하세요</CardDescription>
         </CardHeader>
         <CardContent>
