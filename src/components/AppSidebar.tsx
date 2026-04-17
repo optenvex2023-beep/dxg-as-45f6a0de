@@ -32,6 +32,7 @@ const navItems: NavItem[] = [
       { label: "현황표", path: "/status-table" },
       { label: "1차 점검보고서", path: "/first-report" },
       { label: "완료 점검보고서", path: "/final-report" },
+      { label: "알림센터", path: "/notifications" },
     ],
   },
   {
@@ -43,11 +44,6 @@ const navItems: NavItem[] = [
       { label: "알림센터", path: "/calibration-gas/notifications" },
       { label: "엑셀 다운로드", path: "/calibration-gas/export" },
     ],
-  },
-  {
-    label: "알림센터",
-    path: "/notifications",
-    icon: <Bell className="h-4 w-4" />,
   },
   {
     label: "담당자관리",
