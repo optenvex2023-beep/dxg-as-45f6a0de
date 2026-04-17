@@ -501,7 +501,7 @@ export default function StatusTable() {
               ))}
               {searchFiltered.length === 0 && (
                 <tr className="border-b">
-                  <td colSpan={18} className="p-4 py-8 text-center align-middle text-muted-foreground">
+                  <td colSpan={19} className="p-4 py-8 text-center align-middle text-muted-foreground">
                     {searchKeyword.trim() ? "검색 결과가 없습니다." : "데이터가 없습니다."}
                   </td>
                 </tr>
