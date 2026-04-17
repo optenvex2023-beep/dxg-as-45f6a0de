@@ -60,6 +60,7 @@ const statusTableColumns = [
   { key: "manage_no", label: "관리번호", width: 100 },
   { key: "project_name", label: "건명", width: 160 },
   { key: "equipment", label: "반출장비", width: 180 },
+  { key: "parts_approval", label: "교체부품 승인", width: 90 },
   { key: "outbound_request", label: "반출요청일자", width: 120 },
   { key: "planned_outbound", label: "반출예정일자", width: 100 },
   { key: "outbound_date", label: "반출일자", width: 100 },
