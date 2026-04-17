@@ -561,6 +561,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
   }, []);
 
+  /* ─── Auth restore (additive only): keep login across page reloads ─── */
+  const AUTH_RESTORE_KEY = "auth_current_emp_no";
+
+  // Persist current user emp_no on change (do not touch existing logout/login flows)
+  useEffect(() => {
+    try {
+      if (currentUser?.emp_no) {
+        localStorage.setItem(AUTH_RESTORE_KEY, currentUser.emp_no);
+      } else if (currentUser === null) {
+        // Only clear when explicit logout occurred AFTER initial restore attempt
+        if ((window as any).__authRestoreAttempted) {
+          localStorage.removeItem(AUTH_RESTORE_KEY);
+        }
+      }
+    } catch {}
+  }, [currentUser]);
+
+  // Restore session after users load (reload-safe)
+  useEffect(() => {
+    if ((window as any).__authRestoreAttempted) return;
+    if (isLoading) return;
+    if (users.length === 0) return;
+    (window as any).__authRestoreAttempted = true;
+    if (currentUser) return;
+    try {
+      const savedEmpNo = localStorage.getItem(AUTH_RESTORE_KEY);
+      if (savedEmpNo) {
+        const found = users.find((u) => u.emp_no === savedEmpNo && u.is_active);
+        if (found) setCurrentUser(found);
+      }
+    } catch {}
+  }, [isLoading, users, currentUser]);
+
   return (
     <AppContext.Provider
       value={{
