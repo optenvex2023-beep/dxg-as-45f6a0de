@@ -109,23 +109,13 @@ export default function AppSidebar() {
         </div>
       </div>
 
-      {/* 관리자모드 배지 (super admin 전용) */}
-      {superAdmin && (
-        <div className="px-3 pt-2 pb-1">
-          <div
-            className={cn(
-              "flex items-center gap-1.5 rounded-md bg-sidebar-accent/40 border border-sidebar-border px-2 py-1",
-              collapsed && "justify-center px-1"
-            )}
-            title="관리자모드 - 전체 권한"
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-sidebar-primary-foreground shrink-0" />
-            {!collapsed && (
-              <span className="text-[11px] font-semibold text-sidebar-primary-foreground tracking-tight">
-                관리자모드
-              </span>
-            )}
-          </div>
+      {/* 관리자 패널 / 관리자 모드 라벨 (super admin 전용 — 표시용) */}
+      {superAdmin && !collapsed && (
+        <div className="px-3 pt-2 pb-2 space-y-1.5">
+          <div className="text-[11px] text-sidebar-foreground/70">관리자 패널</div>
+          <span className="inline-flex items-center rounded-md border border-yellow-400 px-2 py-0.5 text-[11px] font-medium text-yellow-300 bg-transparent">
+            관리자 모드
+          </span>
         </div>
       )}
 
