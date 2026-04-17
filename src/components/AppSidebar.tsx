@@ -88,10 +88,8 @@ export default function AppSidebar() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
-              // 강력 새로고침: 캐시 무시 후 현재 페이지 재요청
-              const url = new URL(window.location.href);
-              url.searchParams.set("_r", Date.now().toString());
-              window.location.replace(url.toString());
+              // 로그인 상태 유지 새로고침: 스토리지/세션/토큰은 건드리지 않고 현재 페이지만 reload
+              window.location.reload();
             }}
             className="p-1 rounded hover:bg-sidebar-accent/30 text-sidebar-foreground"
             title="새로고침"
