@@ -312,7 +312,7 @@ export default function StatusTable() {
   };
 
   return (
-    <div className="pb-20">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">현황표</h1>
       </div>
@@ -575,7 +575,7 @@ export default function StatusTable() {
       </div>
 
       {/* Bottom fixed action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
+      <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
         {isAdmin && (
           <>
             {selectedId && selectedRecord && (
