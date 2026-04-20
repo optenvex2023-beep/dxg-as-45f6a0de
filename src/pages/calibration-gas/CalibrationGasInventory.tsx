@@ -880,7 +880,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
-                    {renderMergedCell(item, "inspection_notes", s.unit, "max-w-[200px] truncate")}
+                    {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
                     <td className={`${td} text-center border-r-0`}>
                       <button
                         onClick={() => setDeleteTarget(item)}
