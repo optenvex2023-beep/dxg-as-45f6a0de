@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useCalGas } from "@/contexts/CalibrationGasContext";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,20 @@ import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/l
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useCellMemos } from "@/hooks/useCellMemos";
+import { CellMemoWrapper } from "@/components/calibration-gas/CellMemoWrapper";
+import { CellMemoDialog } from "@/components/calibration-gas/CellMemoDialog";
+
+/** Columns that support cell memos: 분석기 Range ~ 유속계 S/O 발행 */
+const MEMO_ENABLED_COLUMNS: ReadonlySet<string> = new Set([
+  "analyzer_range",
+  "concentration", "volume_L", "expiry_date", "remaining_percent",
+  "purchase_entity", "so_issue", "arrival_status",
+  "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
+  "gas_inspection_round", "gas_inspection_so", "gas_inspection_so_arrival",
+  "velocity_inspection_first", "velocity_inspection_last", "velocity_inspection_next",
+  "velocity_inspection_round", "velocity_inspection_so",
+]);
 
 const FIELD_LABELS: Record<string, string> = {
   concentration: "농도", volume_L: "용량(L)", expiry_date: "유효기간", remaining_percent: "잔량(%)",
@@ -93,6 +107,30 @@ export default function CalibrationGasInventory() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
+
+  /* ── Cell memo state ── */
+  const { getMemo, saveMemo } = useCellMemos();
+  const [memoTarget, setMemoTarget] = useState<{ rowId: string; colKey: string; label: string } | null>(null);
+  const memoTargetMemo = memoTarget ? getMemo(memoTarget.rowId, memoTarget.colKey) : undefined;
+
+  const handleSaveMemo = useCallback(async (text: string) => {
+    if (!memoTarget) return;
+    try {
+      await saveMemo(memoTarget.rowId, memoTarget.colKey, text, currentUser?.name || "시스템");
+      toast.success(text.trim() ? "메모가 저장되었습니다." : "메모가 삭제되었습니다.");
+    } catch (e) {
+      console.error(e);
+      toast.error("메모 저장에 실패했습니다.");
+    }
+  }, [memoTarget, saveMemo, currentUser]);
+
+  const openMemoFor = useCallback((item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem) => {
+    const colKey = field as string;
+    if (!MEMO_ENABLED_COLUMNS.has(colKey)) return;
+    const label = `${item.site_name} / ${item.unit_no}호기 / ${item.analyzer_range || "-"} · ${FIELD_LABELS[colKey] || colKey}`;
+    setMemoTarget({ rowId: item.id, colKey, label });
+  }, []);
+
   const sites = useMemo(() => {
     const s = new Set(inventory.map((i) => i.site_name));
     return Array.from(s).sort();
@@ -455,6 +493,18 @@ export default function CalibrationGasInventory() {
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
+  /** Helper: wrap a cell's inner content with memo trigger + indicator if applicable */
+  const wrapMemo = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, content: React.ReactNode) => {
+    const colKey = field as string;
+    if (!MEMO_ENABLED_COLUMNS.has(colKey)) return content;
+    const memo = getMemo(item.id, colKey);
+    return (
+      <CellMemoWrapper hasMemo={!!memo} onOpenMemo={() => openMemoFor(item, field)}>
+        {content}
+      </CellMemoWrapper>
+    );
+  };
+
   /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
@@ -462,15 +512,17 @@ export default function CalibrationGasInventory() {
     if (isEditable) {
       return (
         <td className={`${td} ${extraClass} p-0.5`}>
-          <input
-            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-            value={val}
-            onChange={(e) => handleCellChange(item.id, field, e.target.value)}
-          />
+          {wrapMemo(item, field,
+            <input
+              className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              value={val}
+              onChange={(e) => handleCellChange(item.id, field, e.target.value)}
+            />
+          )}
         </td>
       );
     }
-    return <td className={`${td} ${extraClass}`}>{val || ""}</td>;
+    return <td className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   /** Render a merged (rowspan) editable/read-only cell */
@@ -486,15 +538,17 @@ export default function CalibrationGasInventory() {
     if (isEditable) {
       return (
         <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
-          <input
-            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-            value={val}
-            onChange={(e) => handleCellChange(item.id, field, e.target.value)}
-          />
+          {wrapMemo(item, field,
+            <input
+              className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              value={val}
+              onChange={(e) => handleCellChange(item.id, field, e.target.value)}
+            />
+          )}
         </td>
       );
     }
-    return <td rowSpan={span} className={`${td} ${extraClass}`}>{val || ""}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
@@ -679,49 +733,63 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
                     <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere]`}>
-                      <div className="flex items-start gap-0.5">
-                        <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
-                        {isAddMode && (
-                          <button
-                            onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
-                            className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                            title="같은 호기에 Range 추가"
-                          >
-                            <Plus className="h-2.5 w-2.5" />
-                          </button>
-                        )}
-                      </div>
+                      <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
+                        <div className="flex items-start gap-0.5">
+                          <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
+                          {isAddMode && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                              title="같은 호기에 Range 추가"
+                            >
+                              <Plus className="h-2.5 w-2.5" />
+                            </button>
+                          )}
+                        </div>
+                      </CellMemoWrapper>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
                     {renderCell(item, "volume_L", "text-center")}
                     {/* Expiry date */}
                     {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
                       <td className={`${td} text-center whitespace-nowrap p-0.5`}>
-                        <input
-                          className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                          value={getCellValue(item, "expiry_date")}
-                          onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
-                        />
+                        {wrapMemo(item, "expiry_date",
+                          <input
+                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "expiry_date")}
+                            onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
+                          />
+                        )}
                       </td>
                     ) : (
                       <td className={`${td} text-center whitespace-nowrap`}>
-                        <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
-                        {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                        {wrapMemo(item, "expiry_date",
+                          <>
+                            <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
+                            {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                          </>
+                        )}
                       </td>
                     )}
                     {/* Remaining percent */}
                     {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
                       <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
-                        <input
-                          className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                          value={getCellValue(item, "remaining_percent")}
-                          onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
-                        />
+                        {wrapMemo(item, "remaining_percent",
+                          <input
+                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "remaining_percent")}
+                            onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
+                          />
+                        )}
                       </td>
                     ) : (
                       <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
-                        <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
-                        {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
+                        {wrapMemo(item, "remaining_percent",
+                          <>
+                            <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
+                            {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
+                          </>
+                        )}
                       </td>
                     )}
 
@@ -738,17 +806,19 @@ export default function CalibrationGasInventory() {
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
                       <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "gas_inspection_next")}
-                            onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
-                          />
-                        ) : (
-                          <>
-                            {item.gas_inspection_next || ""}
-                            {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
+                        {wrapMemo(item, "gas_inspection_next",
+                          editMode ? (
+                            <input
+                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              value={getCellValue(item, "gas_inspection_next")}
+                              onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
+                            />
+                          ) : (
+                            <>
+                              {item.gas_inspection_next || ""}
+                              {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )
                         )}
                       </td>
                     )}
@@ -776,17 +846,19 @@ export default function CalibrationGasInventory() {
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
                       <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "velocity_inspection_next")}
-                            onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
-                          />
-                        ) : (
-                          <>
-                            {item.velocity_inspection_next || ""}
-                            {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
+                        {wrapMemo(item, "velocity_inspection_next",
+                          editMode ? (
+                            <input
+                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              value={getCellValue(item, "velocity_inspection_next")}
+                              onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
+                            />
+                          ) : (
+                            <>
+                              {item.velocity_inspection_next || ""}
+                              {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )
                         )}
                       </td>
                     )}
@@ -832,6 +904,15 @@ export default function CalibrationGasInventory() {
         onConfirm={handleInspectionComplete}
         title={completionTarget?.type === "gas" ? "가스상 정도검사 완료" : "유속계 정도검사 완료"}
         description="검사 완료일을 입력하세요. 다음 예정일과 차수가 자동 계산됩니다."
+      />
+
+      {/* Cell Memo Dialog */}
+      <CellMemoDialog
+        open={!!memoTarget}
+        onClose={() => setMemoTarget(null)}
+        onSave={handleSaveMemo}
+        initialMemo={memoTargetMemo?.memo ?? ""}
+        cellLabel={memoTarget?.label ?? ""}
       />
 
       {/* Add Row Dialog */}

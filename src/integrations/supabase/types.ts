@@ -47,6 +47,44 @@ export type Database = {
         }
         Relationships: []
       }
+      calibration_gas_cell_memos: {
+        Row: {
+          column_key: string
+          created_at: string
+          id: string
+          inventory_item_id: string
+          memo: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          column_key: string
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          memo?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          column_key?: string
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          memo?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_gas_cell_memos_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "calibration_gas_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calibration_gas_history: {
         Row: {
           after_value: string
