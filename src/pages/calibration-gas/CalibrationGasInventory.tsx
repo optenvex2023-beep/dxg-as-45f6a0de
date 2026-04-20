@@ -486,10 +486,10 @@ export default function CalibrationGasInventory() {
   // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
     { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // (사용 안 함)
-    { left: "left-0", w: "w-[78px] min-w-[78px] max-w-[78px]" },         // 사업장명
-    { left: "left-[78px]", w: "w-[44px] min-w-[44px] max-w-[44px]" },    // TMS
-    { left: "left-[122px]", w: "w-[44px] min-w-[44px] max-w-[44px]" },   // 호기
-    { left: "left-[166px]", w: "w-[136px] min-w-[136px] max-w-[136px]" }, // 분석기 Range
+    { left: "left-0", w: "w-[90px] min-w-[90px] max-w-[90px]" },         // 사업장명
+    { left: "left-[90px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },    // TMS
+    { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
+    { left: "left-[220px]", w: "w-[140px] min-w-[140px] max-w-[140px]" }, // 분석기 Range
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
@@ -656,8 +656,8 @@ export default function CalibrationGasInventory() {
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
                 <th className={`${thBase} min-w-[32px] w-[32px]`}>용량(L)</th>
-                <th className={`${thBase} min-w-[110px] w-[110px] max-w-[110px]`}>유효기간</th>
-                <th className={`${thBase} min-w-[80px] w-[80px] max-w-[80px]`}>잔량</th>
+                <th className={`${thBase} min-w-[82px] w-[82px]`}>유효기간</th>
+                <th className={`${thBase} min-w-[76px] w-[76px] max-w-[76px]`}>잔량</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
@@ -752,7 +752,7 @@ export default function CalibrationGasInventory() {
                     {renderCell(item, "volume_L", "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* Expiry date */}
                     {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
-                      <td className={`${td} text-center whitespace-nowrap p-0.5 min-w-[110px] w-[110px] max-w-[110px]`}>
+                      <td className={`${td} text-center whitespace-nowrap p-0.5`}>
                         {wrapMemo(item, "expiry_date",
                           <input
                             className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -762,7 +762,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     ) : (
-                      <td className={`${td} text-center whitespace-nowrap min-w-[110px] w-[110px] max-w-[110px]`}>
+                      <td className={`${td} text-center whitespace-nowrap`}>
                         {wrapMemo(item, "expiry_date",
                           <>
                             <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
@@ -773,7 +773,7 @@ export default function CalibrationGasInventory() {
                     )}
                     {/* Remaining percent */}
                     {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
-                      <td className={`${td} text-center p-0.5 min-w-[80px] w-[80px] max-w-[80px]`}>
+                      <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
                         {wrapMemo(item, "remaining_percent",
                           <input
                             className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -783,7 +783,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     ) : (
-                      <td className={`${td} text-center min-w-[80px] w-[80px] max-w-[80px] whitespace-nowrap`}>
+                      <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
                         {wrapMemo(item, "remaining_percent",
                           <>
                             <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
