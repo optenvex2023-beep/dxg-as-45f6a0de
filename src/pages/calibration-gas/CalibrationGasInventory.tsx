@@ -651,7 +651,7 @@ export default function CalibrationGasInventory() {
                 <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
                 <th rowSpan={2} className={`${thBase} min-w-[110px] w-[110px] max-w-[110px] border-r-0`}>비고사항</th>
-                <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
+                <th rowSpan={2} className={`${thBase} min-w-[24px] w-[24px] max-w-[24px] border-r-0 p-0`}></th>
               </tr>
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
@@ -881,13 +881,13 @@ export default function CalibrationGasInventory() {
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
                     {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
-                    <td className={`${td} text-center border-r-0`}>
+                    <td className={`${td} text-center border-r-0 min-w-[24px] w-[24px] max-w-[24px] p-0`}>
                       <button
                         onClick={() => setDeleteTarget(item)}
-                        className="inline-flex items-center justify-center p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        className="inline-flex items-center justify-center p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="삭제"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     </td>
                   </tr>
