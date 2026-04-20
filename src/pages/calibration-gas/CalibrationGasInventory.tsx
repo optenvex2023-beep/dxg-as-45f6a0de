@@ -493,6 +493,18 @@ export default function CalibrationGasInventory() {
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
+  /** Helper: wrap a cell's inner content with memo trigger + indicator if applicable */
+  const wrapMemo = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, content: React.ReactNode) => {
+    const colKey = field as string;
+    if (!MEMO_ENABLED_COLUMNS.has(colKey)) return content;
+    const memo = getMemo(item.id, colKey);
+    return (
+      <CellMemoWrapper hasMemo={!!memo} onOpenMemo={() => openMemoFor(item, field)}>
+        {content}
+      </CellMemoWrapper>
+    );
+  };
+
   /** Render a plain or editable cell (no rowspan) */
   const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
@@ -500,15 +512,17 @@ export default function CalibrationGasInventory() {
     if (isEditable) {
       return (
         <td className={`${td} ${extraClass} p-0.5`}>
-          <input
-            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-            value={val}
-            onChange={(e) => handleCellChange(item.id, field, e.target.value)}
-          />
+          {wrapMemo(item, field,
+            <input
+              className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              value={val}
+              onChange={(e) => handleCellChange(item.id, field, e.target.value)}
+            />
+          )}
         </td>
       );
     }
-    return <td className={`${td} ${extraClass}`}>{val || ""}</td>;
+    return <td className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   /** Render a merged (rowspan) editable/read-only cell */
@@ -524,15 +538,17 @@ export default function CalibrationGasInventory() {
     if (isEditable) {
       return (
         <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
-          <input
-            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-            value={val}
-            onChange={(e) => handleCellChange(item.id, field, e.target.value)}
-          />
+          {wrapMemo(item, field,
+            <input
+              className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              value={val}
+              onChange={(e) => handleCellChange(item.id, field, e.target.value)}
+            />
+          )}
         </td>
       );
     }
-    return <td rowSpan={span} className={`${td} ${extraClass}`}>{val || ""}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
