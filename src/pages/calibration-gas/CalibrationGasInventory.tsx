@@ -629,19 +629,8 @@ export default function CalibrationGasInventory() {
 
                 return (
                   <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "border-t border-t-[rgb(123,123,123)]" : "border-b border-border/20"}`}>
-                    {/* ── Site-level merged (A, B) ── */}
-                    {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center font-medium whitespace-nowrap ${
-                        (() => {
-                          if (!item.contract_end_date) return "!bg-muted";
-                          const d = new Date(item.contract_end_date);
-                          if (isNaN(d.getTime())) return "!bg-muted";
-                          return d <= sixtyDaysLater ? "!bg-orange-100 dark:!bg-orange-950" : "!bg-muted";
-                        })()
-                      }`}>
-                        {item.contract_end_date || "-"}
-                      </td>
-                    )}
+                    {/* ── Site-level merged (B 사업장명) ── */}
+                    {/* (계약종료일 컬럼 제거됨) */}
                     {s.site > 0 && (
                       <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
                         <span className="block leading-tight">{item.site_name}</span>
