@@ -188,6 +188,17 @@ export default function CalibrationGasInventory() {
       for (let j = i + 1; j < filtered.length && groupKey(filtered[j]) === g; j++) span++;
       return span;
     };
+    // 사업장(site_name) 경계를 절대 넘지 않는 병합 계산 — 가스/유속 정도검사용
+    const calcGroupSpanWithinSite = (i: number, groupKey: (item: CalibrationGasInventoryItem) => number) => {
+      const cur = filtered[i];
+      const g = groupKey(cur);
+      if (i > 0 && filtered[i - 1].site_name === cur.site_name && groupKey(filtered[i - 1]) === g) return 0;
+      let span = 1;
+      for (let j = i + 1; j < filtered.length
+        && filtered[j].site_name === cur.site_name
+        && groupKey(filtered[j]) === g; j++) span++;
+      return span;
+    };
 
     const spans: { site: number; tms: number; unit: number; gas: number; vel: number; purchase: number; branch: number }[] = [];
     for (let i = 0; i < filtered.length; i++) {
@@ -207,8 +218,8 @@ export default function CalibrationGasInventory() {
         for (let j = i + 1; j < filtered.length && filtered[j].site_name === cur.site_name && filtered[j].tms_status === cur.tms_status && filtered[j].unit_no === cur.unit_no; j++) unitSpan++;
       } else { unitSpan = 0; }
 
-      const gasSpan = calcGroupSpan(i, (it) => it.gas_inspection_merge_group ?? 0);
-      const velSpan = calcGroupSpan(i, (it) => it.velocity_inspection_merge_group ?? 0);
+      const gasSpan = calcGroupSpanWithinSite(i, (it) => it.gas_inspection_merge_group ?? 0);
+      const velSpan = calcGroupSpanWithinSite(i, (it) => it.velocity_inspection_merge_group ?? 0);
       // 구매주체: 같은 사업장(site_name) 내에서만 병합 — 사업장 경계를 절대 넘지 않도록 제한
       let purchase = 1;
       const curPurchaseGid = cur.purchase_entity_merge_group ?? 0;
