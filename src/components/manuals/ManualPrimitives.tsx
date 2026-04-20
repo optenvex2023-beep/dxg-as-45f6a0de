@@ -1,0 +1,194 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+
+/** 둥근 프레임으로 실제 화면을 시뮬레이션 */
+export function MockScreen({
+  title,
+  children,
+  className,
+}: {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border bg-card shadow-sm overflow-hidden",
+        className
+      )}
+    >
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b bg-muted/40">
+        <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+        <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
+        {title && (
+          <span className="ml-2 text-xs text-muted-foreground truncate">
+            {title}
+          </span>
+        )}
+      </div>
+      <div className="p-3 bg-background">{children}</div>
+    </div>
+  );
+}
+
+/** 빨간 원형 클릭 포인트 표시기 */
+export function ClickPoint({
+  label,
+  className,
+}: {
+  label?: string | number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center h-6 w-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold ring-2 ring-destructive/30 shadow",
+        className
+      )}
+    >
+      {label ?? ""}
+    </span>
+  );
+}
+
+/** 화살표로 연결된 단계별 흐름 */
+export function StepFlow({ steps }: { steps: string[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {steps.map((s, i) => (
+        <React.Fragment key={i}>
+          <div className="inline-flex items-center gap-2 rounded-md border bg-muted/30 px-2.5 py-1 text-xs">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+              {i + 1}
+            </span>
+            <span>{s}</span>
+          </div>
+          {i < steps.length - 1 && (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** 앱 버튼 미니 스타일 */
+export function MockButton({
+  children,
+  variant = "default",
+  className,
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "outline" | "ghost" | "destructive";
+  className?: string;
+}) {
+  const styles: Record<string, string> = {
+    default: "bg-primary text-primary-foreground",
+    outline: "border bg-background text-foreground",
+    ghost: "bg-transparent text-foreground hover:bg-muted",
+    destructive: "bg-destructive text-destructive-foreground",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
+        styles[variant],
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** 빨간 테두리 필독 안내 박스 */
+export function NoticeBox({
+  title = "필독 안내",
+  items,
+}: {
+  title?: string;
+  items: React.ReactNode[];
+}) {
+  return (
+    <div className="rounded-lg border-2 border-destructive bg-destructive/5 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <h3 className="text-sm font-bold text-destructive">{title}</h3>
+      </div>
+      <ul className="list-disc pl-6 space-y-1 text-sm text-foreground">
+        {items.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** 섹션 카드 — 인쇄 시 분리 방지 */
+export function SectionCard({
+  num,
+  title,
+  children,
+}: {
+  num: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="manual-section rounded-lg border bg-card p-5 shadow-sm">
+      <header className="mb-4 flex items-center gap-3 border-b pb-3">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
+          {num}
+        </span>
+        <h2 className="text-lg font-semibold">{title}</h2>
+      </header>
+      <div className="space-y-3 text-sm leading-relaxed">{children}</div>
+    </section>
+  );
+}
+
+/** 일반 강조 박스 */
+export function Callout({
+  tone = "info",
+  children,
+}: {
+  tone?: "info" | "warning";
+  children: React.ReactNode;
+}) {
+  const styles =
+    tone === "warning"
+      ? "border-yellow-500/40 bg-yellow-500/10"
+      : "border-primary/30 bg-primary/5";
+  return (
+    <div className={cn("rounded-md border-l-4 px-3 py-2 text-sm", styles)}>
+      {children}
+    </div>
+  );
+}
+
+/** "확인 필요" 인라인 배지 */
+export function NeedsConfirm({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 px-1.5 py-0.5 text-[11px] font-medium text-yellow-700 dark:text-yellow-300 align-middle">
+      🔍 확인 필요{children ? <>: {children}</> : null}
+    </span>
+  );
+}
+
+/** 인쇄용 글로벌 스타일 — 한 번만 렌더 */
+export function ManualPrintStyles() {
+  return (
+    <style>{`
+      @media print {
+        aside, header, nav, .no-print { display: none !important; }
+        body { background: white !important; }
+        .manual-section { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+        .manual-page { padding: 0 !important; }
+        @page { size: A4 portrait; margin: 12mm; }
+      }
+    `}</style>
+  );
+}
