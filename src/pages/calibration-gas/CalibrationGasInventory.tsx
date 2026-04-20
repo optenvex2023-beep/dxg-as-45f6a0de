@@ -597,7 +597,8 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[70px] bg-table-header-gas`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-table-header-gas`}>차수</th>
                 <th className={`${thBase} min-w-[60px] bg-table-header-gas`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-table-header-gas`}>S/O발행</th>
+                <th className={`${thBase} min-w-[110px] bg-table-header-gas`}>정도검사 진행비(수수료외)</th>
+                <th className={`${thBase} min-w-[90px] bg-table-header-gas`}>정도검사 가스</th>
                 <th className={`${thBase} min-w-[90px] bg-table-header-gas`}>S/O도착</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최종</th>
