@@ -590,8 +590,8 @@ export default function CalibrationGasInventory() {
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
                 <th className={`${thBase} min-w-[32px] w-[32px]`}>용량(L)</th>
-                <th className={`${thBase} min-w-[68px] w-[68px]`}>유효기간</th>
-                <th className={`${thBase} min-w-[40px] w-[40px]`}>잔량</th>
+                <th className={`${thBase} min-w-[82px] w-[82px]`}>유효기간</th>
+                <th className={`${thBase} min-w-[48px] w-[48px]`}>잔량</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
