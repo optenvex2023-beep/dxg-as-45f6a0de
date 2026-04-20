@@ -628,7 +628,7 @@ export default function CalibrationGasInventory() {
                   const isSiteStart = s.site > 0 && idx > 0;
 
                 return (
-                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "border-t-2 border-t-[rgb(117,113,113)]" : "border-b border-border/20"}`}>
+                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_2px_0_0_rgb(117,113,113)]" : "border-b border-border/20"}`}>
                     {/* ── Site-level merged (B 사업장명) ── */}
                     {/* (계약종료일 컬럼 제거됨) */}
                     {s.site > 0 && (
