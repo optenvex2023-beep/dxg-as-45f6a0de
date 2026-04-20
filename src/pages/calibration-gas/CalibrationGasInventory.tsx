@@ -841,11 +841,11 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
-                    {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
+                    {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
+                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px] ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {wrapMemo(item, "velocity_inspection_next",
                           editMode ? (
                             <input
@@ -862,7 +862,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center")}
+                    {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.vel > 0 && (
                       <td rowSpan={s.vel} className={`${td} text-center`}>
