@@ -748,8 +748,8 @@ export default function CalibrationGasInventory() {
                         </div>
                       </CellMemoWrapper>
                     </td>
-                    {renderCell(item, "concentration", "text-center")}
-                    {renderCell(item, "volume_L", "text-center")}
+                    {renderCell(item, "concentration", "text-center min-w-[40px] w-[40px] max-w-[40px]")}
+                    {renderCell(item, "volume_L", "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* Expiry date */}
                     {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
                       <td className={`${td} text-center whitespace-nowrap p-0.5`}>
