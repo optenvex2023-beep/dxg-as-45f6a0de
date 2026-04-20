@@ -636,7 +636,7 @@ export default function CalibrationGasInventory() {
       {/* Table */}
       <div className="border rounded-lg bg-background shadow-sm">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)]" style={{ scrollbarGutter: "stable" }}>
-          <table className="min-w-[3600px] border-collapse text-sm" style={{ width: "fit-content" }}>
+          <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
               <tr className="bg-table-header">
                 <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[1].left} ${stickyCol[1].w} overflow-hidden text-ellipsis`}>사업장명</th>
