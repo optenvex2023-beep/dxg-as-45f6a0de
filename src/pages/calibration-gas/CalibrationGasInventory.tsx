@@ -756,7 +756,12 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
+                    {/* 정도검사 진행비(수수료외) — 기존 gas_inspection_so 값 매핑 */}
                     {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
+                    {/* 정도검사 가스 — 신규 표시 열 (현재 데이터 없음, 빈 셀) */}
+                    {s.gas > 0 && (
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap`}></td>
+                    )}
                     {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
