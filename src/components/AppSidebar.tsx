@@ -14,6 +14,7 @@ import {
   Upload,
   History,
   Download,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -55,6 +56,11 @@ const navItems: NavItem[] = [
     label: "담당자관리",
     path: "/user-management",
     icon: <Users className="h-4 w-4" />,
+  },
+  {
+    label: "매뉴얼",
+    path: "/manuals",
+    icon: <FileText className="h-4 w-4" />,
   },
 ];
 

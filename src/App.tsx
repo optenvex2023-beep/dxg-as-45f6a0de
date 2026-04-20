@@ -22,6 +22,9 @@ import Login from "@/pages/Login";
 import NotificationCenter from "@/pages/NotificationCenter";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
+import ManualIndex from "@/pages/manuals/ManualIndex";
+import OutboundManual from "@/pages/manuals/OutboundManual";
+import CalGasManual from "@/pages/manuals/CalGasManual";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +61,9 @@ const AppRoutes = () => (
       <Route path="/first-report" element={<FirstReport />} />
       <Route path="/final-report" element={<FinalReport />} />
       <Route path="/notifications" element={<NotificationCenter />} />
+      <Route path="/manuals" element={<ManualIndex />} />
+      <Route path="/manuals/outbound" element={<OutboundManual />} />
+      <Route path="/manuals/calibration-gas" element={<CalGasManual />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
