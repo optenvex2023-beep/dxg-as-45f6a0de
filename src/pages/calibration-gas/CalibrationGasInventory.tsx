@@ -432,13 +432,14 @@ export default function CalibrationGasInventory() {
   /* ── Sticky column styles (left-pinned) ── */
   const stickyTh = "sticky z-30 bg-table-header border-r border-border";
   const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
-  // Cumulative left offsets: 계약종료일(80) + 사업장명(90) + TMS(60) + 호기(70) + Range(100)
+  // Cumulative left offsets: 사업장명(90) + TMS(60) + 호기(70) + Range(100)
+  // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
-    { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // 계약종료일
-    { left: "left-[80px]", w: "w-[90px] min-w-[90px] max-w-[90px]" },    // 사업장명 (1.5× of 60)
-    { left: "left-[170px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },   // TMS
-    { left: "left-[230px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
-    { left: "left-[300px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
+    { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // (사용 안 함)
+    { left: "left-0", w: "w-[90px] min-w-[90px] max-w-[90px]" },         // 사업장명
+    { left: "left-[90px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },    // TMS
+    { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
+    { left: "left-[220px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
