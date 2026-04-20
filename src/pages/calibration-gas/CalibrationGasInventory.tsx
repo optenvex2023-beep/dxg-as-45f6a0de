@@ -666,9 +666,9 @@ export default function CalibrationGasInventory() {
                     )}
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
-                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} whitespace-nowrap group-hover:!bg-accent/40 overflow-hidden text-ellipsis`}>
-                      <div className="flex items-center gap-0.5">
-                        <span className="truncate flex-1">{item.analyzer_range}</span>
+                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere]`}>
+                      <div className="flex items-start gap-0.5">
+                        <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
                         {isAddMode && (
                           <button
                             onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
