@@ -801,11 +801,11 @@ export default function CalibrationGasInventory() {
                     {/* (지점 컬럼 제거됨) */}
 
                     {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
-                    {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
+                    {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px] ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
                         {wrapMemo(item, "gas_inspection_next",
                           editMode ? (
                             <input
@@ -822,7 +822,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center")}
+                    {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.gas > 0 && (
                       <td rowSpan={s.gas} className={`${td} text-center`}>
