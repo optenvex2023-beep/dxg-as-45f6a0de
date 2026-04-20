@@ -752,7 +752,7 @@ export default function CalibrationGasInventory() {
                     {renderCell(item, "volume_L", "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* Expiry date */}
                     {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
-                      <td className={`${td} text-center whitespace-nowrap p-0.5`}>
+                      <td className={`${td} text-center whitespace-nowrap p-0.5 min-w-[110px] w-[110px] max-w-[110px]`}>
                         {wrapMemo(item, "expiry_date",
                           <input
                             className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -762,7 +762,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     ) : (
-                      <td className={`${td} text-center whitespace-nowrap`}>
+                      <td className={`${td} text-center whitespace-nowrap min-w-[110px] w-[110px] max-w-[110px]`}>
                         {wrapMemo(item, "expiry_date",
                           <>
                             <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
@@ -773,7 +773,7 @@ export default function CalibrationGasInventory() {
                     )}
                     {/* Remaining percent */}
                     {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
-                      <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
+                      <td className={`${td} text-center p-0.5 min-w-[80px] w-[80px] max-w-[80px]`}>
                         {wrapMemo(item, "remaining_percent",
                           <input
                             className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -783,7 +783,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     ) : (
-                      <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
+                      <td className={`${td} text-center min-w-[80px] w-[80px] max-w-[80px] whitespace-nowrap`}>
                         {wrapMemo(item, "remaining_percent",
                           <>
                             <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
