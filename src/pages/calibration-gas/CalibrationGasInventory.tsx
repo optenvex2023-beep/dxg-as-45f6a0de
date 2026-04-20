@@ -603,7 +603,7 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>예정</th>
                 <th className={`${thBase} min-w-[32px] w-[32px] bg-table-header-velocity`}>차수</th>
-                <th className={`${thBase} min-w-[44px] w-[44px] bg-table-header-velocity`}>예정/완료</th>
+                <th className={`${thBase} min-w-[72px] w-[72px] bg-table-header-velocity`}>예정/완료</th>
                 <th className={`${thBase} min-w-[24px] w-[24px] bg-table-header-velocity`}>S/O발행</th>
               </tr>
             </thead>
