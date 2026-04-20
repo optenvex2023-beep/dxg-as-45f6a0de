@@ -596,7 +596,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[35px] w-[35px]`}>도착예정</th>
                 <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
-                <th rowSpan={2} className={`${thBase} min-w-[35px] w-[35px] max-w-[35px] border-r-0`}>비고사항</th>
+                <th rowSpan={2} className={`${thBase} min-w-[140px] border-r-0`}>비고사항</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               </tr>
               <tr className="bg-table-header">
@@ -808,7 +808,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
-                    {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[35px] w-[35px] max-w-[35px] whitespace-normal break-words")}
+                    {renderMergedCell(item, "inspection_notes", s.unit, "max-w-[200px] truncate")}
                     <td className={`${td} text-center border-r-0`}>
                       <button
                         onClick={() => setDeleteTarget(item)}
