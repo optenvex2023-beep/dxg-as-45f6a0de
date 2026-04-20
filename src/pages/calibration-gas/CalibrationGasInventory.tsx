@@ -713,12 +713,12 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Unit-level merged: J구매주체, M 지점 ── */}
+                    {/* ── Unit-level merged: J구매주체 ── */}
                     {renderMergedCell(item, "purchase_entity", s.purchase, "text-center")}
                     {/* ── K S/O, L 도착: 개별 셀 (병합 안 함) ── */}
                     {renderCell(item, "so_issue", "text-center whitespace-nowrap")}
                     {renderCell(item, "arrival_status", "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "branch", s.branch, "text-center")}
+                    {/* (지점 컬럼 제거됨) */}
 
                     {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
                     {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}
