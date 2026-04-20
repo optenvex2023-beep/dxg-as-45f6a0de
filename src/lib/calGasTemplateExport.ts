@@ -184,7 +184,7 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       row.getCell(10).value = item.purchase_entity || null;
       row.getCell(11).value = item.so_issue || null;
       row.getCell(12).value = item.arrival_status || null;
-      row.getCell(13).value = item.branch || null;
+      row.getCell(13).value = null; // 지점 매핑 제거 — 셀은 비워둠 (서식/병합/색상 유지)
 
       setCellValue(row.getCell(14), item.gas_inspection_first);
       setCellValue(row.getCell(15), item.gas_inspection_last);
