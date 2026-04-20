@@ -171,7 +171,19 @@ export default function CalibrationGasInventory() {
 
       const gasSpan = calcGroupSpan(i, (it) => it.gas_inspection_merge_group ?? 0);
       const velSpan = calcGroupSpan(i, (it) => it.velocity_inspection_merge_group ?? 0);
-      const purchase = calcGroupSpan(i, (it) => it.purchase_entity_merge_group ?? 0);
+      // 구매주체: 같은 사업장(site_name) 내에서만 병합 — 사업장 경계를 절대 넘지 않도록 제한
+      let purchase = 1;
+      const curPurchaseGid = cur.purchase_entity_merge_group ?? 0;
+      const prevPurchaseGid = i > 0 ? (filtered[i - 1].purchase_entity_merge_group ?? 0) : -1;
+      if (i > 0 && filtered[i - 1].site_name === cur.site_name && prevPurchaseGid === curPurchaseGid) {
+        purchase = 0;
+      } else {
+        for (let j = i + 1; j < filtered.length
+          && filtered[j].site_name === cur.site_name
+          && (filtered[j].purchase_entity_merge_group ?? 0) === curPurchaseGid; j++) {
+          purchase++;
+        }
+      }
       const branch = calcGroupSpan(i, (it) => it.branch_merge_group ?? 0);
 
       spans.push({ site: siteSpan, tms: tmsSpan, unit: unitSpan, gas: gasSpan, vel: velSpan, purchase, branch });
