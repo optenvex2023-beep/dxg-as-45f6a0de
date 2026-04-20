@@ -906,6 +906,15 @@ export default function CalibrationGasInventory() {
         description="검사 완료일을 입력하세요. 다음 예정일과 차수가 자동 계산됩니다."
       />
 
+      {/* Cell Memo Dialog */}
+      <CellMemoDialog
+        open={!!memoTarget}
+        onClose={() => setMemoTarget(null)}
+        onSave={handleSaveMemo}
+        initialMemo={memoTargetMemo?.memo ?? ""}
+        cellLabel={memoTarget?.label ?? ""}
+      />
+
       {/* Add Row Dialog */}
       <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
