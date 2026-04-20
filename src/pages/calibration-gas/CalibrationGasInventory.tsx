@@ -439,7 +439,7 @@ export default function CalibrationGasInventory() {
     { left: "left-0", w: "w-[90px] min-w-[90px] max-w-[90px]" },         // 사업장명
     { left: "left-[90px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },    // TMS
     { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
-    { left: "left-[220px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
+    { left: "left-[220px]", w: "w-[140px] min-w-[140px] max-w-[140px]" }, // 분석기 Range
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
@@ -579,7 +579,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight}`}>분석기 Range</th>
                 <th colSpan={2} className={`${thBase}`}>교정가스</th>
                 <th colSpan={2} className={`${thBase}`}>사업장 보유 가스</th>
-                <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
+                <th rowSpan={2} className={`${thBase} min-w-[52px] w-[52px]`}>구매주체</th>
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>S/O 발행</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>도착예정</th>
                 <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
@@ -588,8 +588,8 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               </tr>
               <tr className="bg-table-header">
-                <th className={`${thBase} min-w-[80px]`}>농도</th>
-                <th className={`${thBase} min-w-[60px]`}>용량(L)</th>
+                <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
+                <th className={`${thBase} min-w-[32px] w-[32px]`}>용량(L)</th>
                 <th className={`${thBase} min-w-[80px]`}>유효기간</th>
                 <th className={`${thBase} min-w-[60px]`}>잔량</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-gas`}>최초</th>
@@ -597,14 +597,14 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[70px] bg-table-header-gas`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-table-header-gas`}>차수</th>
                 <th className={`${thBase} min-w-[60px] bg-table-header-gas`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-table-header-gas`}>S/O발행</th>
-                <th className={`${thBase} min-w-[90px] bg-table-header-gas`}>S/O도착</th>
+                <th className={`${thBase} min-w-[28px] w-[28px] bg-table-header-gas`}>S/O발행</th>
+                <th className={`${thBase} min-w-[30px] w-[30px] bg-table-header-gas`}>S/O도착</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최종</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-table-header-velocity`}>차수</th>
                 <th className={`${thBase} min-w-[60px] bg-table-header-velocity`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-table-header-velocity`}>S/O발행</th>
+                <th className={`${thBase} min-w-[28px] w-[28px] bg-table-header-velocity`}>S/O발행</th>
               </tr>
             </thead>
             <tbody>
