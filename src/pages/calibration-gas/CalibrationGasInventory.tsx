@@ -806,17 +806,19 @@ export default function CalibrationGasInventory() {
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
                       <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "gas_inspection_next")}
-                            onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
-                          />
-                        ) : (
-                          <>
-                            {item.gas_inspection_next || ""}
-                            {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
+                        {wrapMemo(item, "gas_inspection_next",
+                          editMode ? (
+                            <input
+                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              value={getCellValue(item, "gas_inspection_next")}
+                              onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
+                            />
+                          ) : (
+                            <>
+                              {item.gas_inspection_next || ""}
+                              {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )
                         )}
                       </td>
                     )}
@@ -844,17 +846,19 @@ export default function CalibrationGasInventory() {
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
                       <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "velocity_inspection_next")}
-                            onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
-                          />
-                        ) : (
-                          <>
-                            {item.velocity_inspection_next || ""}
-                            {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
+                        {wrapMemo(item, "velocity_inspection_next",
+                          editMode ? (
+                            <input
+                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              value={getCellValue(item, "velocity_inspection_next")}
+                              onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
+                            />
+                          ) : (
+                            <>
+                              {item.velocity_inspection_next || ""}
+                              {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )
                         )}
                       </td>
                     )}
