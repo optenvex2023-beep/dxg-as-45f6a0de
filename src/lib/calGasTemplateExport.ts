@@ -211,12 +211,13 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       row.getCell(24).value = item.velocity_inspection_so || null;
 
       row.getCell(25).value = item.inspection_notes || null;
-      setCellValue(row.getCell(26), item.inspection_date);
-      row.getCell(27).value = item.inspection_cycle || null;
-      row.getCell(28).value = item.md || null;
-      setCellValue(row.getCell(29), item.monthly_amount);
-      row.getCell(30).value = item.contract_consumables || null;
-      row.getCell(31).value = item.notes || null;
+      // 점검일/점검주기/M/D/월금액/소모품포함/비고(Z~AE) 매핑 제거 — 셀은 비워둠
+      row.getCell(26).value = null;
+      row.getCell(27).value = null;
+      row.getCell(28).value = null;
+      row.getCell(29).value = null;
+      row.getCell(30).value = null;
+      row.getCell(31).value = null;
 
       // N(14)~Z(26) 데이터 셀: 템플릿 노란색 fill 제거 → 흰색 배경
       // 단, 예정일(P=16, V=22)이 60일 이내이면 연두색 유지

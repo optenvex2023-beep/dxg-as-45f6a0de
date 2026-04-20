@@ -585,13 +585,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[60px]`}>지점</th>
                 <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
-                <th rowSpan={2} className={`${thBase} min-w-[140px]`}>비고사항</th>
-                <th rowSpan={2} className={`${thBase} min-w-[60px]`}>점검일</th>
-                <th rowSpan={2} className={`${thBase} min-w-[70px]`}>점검주기</th>
-                <th rowSpan={2} className={`${thBase} min-w-[60px]`}>M/D</th>
-                <th rowSpan={2} className={`${thBase} min-w-[80px]`}>월 금액</th>
-                <th rowSpan={2} className={`${thBase} min-w-[90px]`}>소모품포함</th>
-                <th rowSpan={2} className={`${thBase} min-w-[120px] border-r-0`}>비고</th>
+                <th rowSpan={2} className={`${thBase} min-w-[140px] border-r-0`}>비고사항</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               </tr>
               <tr className="bg-table-header">
@@ -813,14 +807,8 @@ export default function CalibrationGasInventory() {
                     )}
                     {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
 
-                    {/* ── Unit-level merged: Y~AE ── */}
+                    {/* ── Unit-level merged: Y 비고사항 ── */}
                     {renderMergedCell(item, "inspection_notes", s.unit, "max-w-[200px] truncate")}
-                    {renderMergedCell(item, "inspection_date", s.unit, "text-center")}
-                    {renderMergedCell(item, "inspection_cycle", s.unit, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "md", s.unit, "text-center")}
-                    {renderMergedCell(item, "monthly_amount", s.unit, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "contract_consumables", s.unit, "text-center")}
-                    {renderMergedCell(item, "notes", s.unit, "max-w-[160px] truncate")}
                     <td className={`${td} text-center border-r-0`}>
                       <button
                         onClick={() => setDeleteTarget(item)}
