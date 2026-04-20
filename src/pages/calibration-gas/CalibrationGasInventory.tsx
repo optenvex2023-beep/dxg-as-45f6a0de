@@ -825,7 +825,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center`}>
+                      <td rowSpan={s.gas} className={`${td} text-center min-w-[70px] w-[70px] max-w-[70px]`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
@@ -837,8 +837,8 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
+                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
                     {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
