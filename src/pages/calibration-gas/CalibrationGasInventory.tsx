@@ -432,13 +432,14 @@ export default function CalibrationGasInventory() {
   /* ── Sticky column styles (left-pinned) ── */
   const stickyTh = "sticky z-30 bg-table-header border-r border-border";
   const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
-  // Cumulative left offsets: 계약종료일(80) + 사업장명(90) + TMS(60) + 호기(70) + Range(100)
+  // Cumulative left offsets: 사업장명(90) + TMS(60) + 호기(70) + Range(100)
+  // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
-    { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // 계약종료일
-    { left: "left-[80px]", w: "w-[90px] min-w-[90px] max-w-[90px]" },    // 사업장명 (1.5× of 60)
-    { left: "left-[170px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },   // TMS
-    { left: "left-[230px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
-    { left: "left-[300px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
+    { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // (사용 안 함)
+    { left: "left-0", w: "w-[90px] min-w-[90px] max-w-[90px]" },         // 사업장명
+    { left: "left-[90px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },    // TMS
+    { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
+    { left: "left-[220px]", w: "w-[100px] min-w-[100px] max-w-[100px]" }, // 분석기 Range
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
@@ -572,7 +573,6 @@ export default function CalibrationGasInventory() {
           <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
               <tr className="bg-table-header">
-                <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[0].left} ${stickyCol[0].w}`}>계약종료일</th>
                 <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[1].left} ${stickyCol[1].w} overflow-hidden text-ellipsis`}>사업장명</th>
                 <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[2].left} ${stickyCol[2].w}`}>TMS</th>
                 <th rowSpan={2} className={`${thBase} ${stickyTh} ${stickyCol[3].left} ${stickyCol[3].w}`}>호기</th>
@@ -582,7 +582,6 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>S/O 발행</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>도착예정</th>
-                <th rowSpan={2} className={`${thBase} min-w-[60px]`}>지점</th>
                 <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
                 <th rowSpan={2} className={`${thBase} min-w-[140px] border-r-0`}>비고사항</th>
@@ -630,19 +629,8 @@ export default function CalibrationGasInventory() {
 
                 return (
                   <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "border-t border-t-[rgb(123,123,123)]" : "border-b border-border/20"}`}>
-                    {/* ── Site-level merged (A, B) ── */}
-                    {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[0].left} ${stickyCol[0].w} text-center font-medium whitespace-nowrap ${
-                        (() => {
-                          if (!item.contract_end_date) return "!bg-muted";
-                          const d = new Date(item.contract_end_date);
-                          if (isNaN(d.getTime())) return "!bg-muted";
-                          return d <= sixtyDaysLater ? "!bg-orange-100 dark:!bg-orange-950" : "!bg-muted";
-                        })()
-                      }`}>
-                        {item.contract_end_date || "-"}
-                      </td>
-                    )}
+                    {/* ── Site-level merged (B 사업장명) ── */}
+                    {/* (계약종료일 컬럼 제거됨) */}
                     {s.site > 0 && (
                       <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
                         <span className="block leading-tight">{item.site_name}</span>
@@ -725,12 +713,12 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Unit-level merged: J구매주체, M 지점 ── */}
+                    {/* ── Unit-level merged: J구매주체 ── */}
                     {renderMergedCell(item, "purchase_entity", s.purchase, "text-center")}
                     {/* ── K S/O, L 도착: 개별 셀 (병합 안 함) ── */}
                     {renderCell(item, "so_issue", "text-center whitespace-nowrap")}
                     {renderCell(item, "arrival_status", "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "branch", s.branch, "text-center")}
+                    {/* (지점 컬럼 제거됨) */}
 
                     {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
                     {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}

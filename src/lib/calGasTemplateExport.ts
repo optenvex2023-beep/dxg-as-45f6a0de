@@ -162,20 +162,9 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
         prevContract = item.contract_end_date;
       }
 
+      // 계약종료일(A=1) 매핑 제거 — 셀은 비워둠 (서식/병합/색상 유지)
       if (i === 0 || item.contract_end_date !== group.items[i - 1]?.contract_end_date) {
-        setCellValue(row.getCell(1), item.contract_end_date);
-        // Highlight contract_end_date if within 2 months or already past
-        if (item.contract_end_date) {
-          const cedParts = item.contract_end_date.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
-          if (cedParts) {
-            const cedDate = new Date(Number(cedParts[1]), Number(cedParts[2]) - 1, Number(cedParts[3]));
-            const nowDate = new Date();
-            const twoMonthsLater = new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, nowDate.getDate());
-            if (cedDate <= twoMonthsLater) {
-              row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE5CD" } } as any;
-            }
-          }
-        }
+        row.getCell(1).value = null;
       }
 
       if (i === 0) {
@@ -195,7 +184,7 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
       row.getCell(10).value = item.purchase_entity || null;
       row.getCell(11).value = item.so_issue || null;
       row.getCell(12).value = item.arrival_status || null;
-      row.getCell(13).value = item.branch || null;
+      row.getCell(13).value = null; // 지점 매핑 제거 — 셀은 비워둠 (서식/병합/색상 유지)
 
       setCellValue(row.getCell(14), item.gas_inspection_first);
       setCellValue(row.getCell(15), item.gas_inspection_last);
