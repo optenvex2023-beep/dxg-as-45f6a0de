@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useCalGas } from "@/contexts/CalibrationGasContext";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
