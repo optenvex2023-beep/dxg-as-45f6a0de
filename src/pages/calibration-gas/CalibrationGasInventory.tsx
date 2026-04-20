@@ -582,7 +582,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>S/O 발행</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>도착예정</th>
-                <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
+                <th colSpan={8} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
                 <th rowSpan={2} className={`${thBase} min-w-[140px] border-r-0`}>비고사항</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
@@ -597,7 +597,8 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[70px] bg-table-header-gas`}>예정</th>
                 <th className={`${thBase} min-w-[50px] bg-table-header-gas`}>차수</th>
                 <th className={`${thBase} min-w-[60px] bg-table-header-gas`}>예정/완료</th>
-                <th className={`${thBase} min-w-[80px] bg-table-header-gas`}>S/O발행</th>
+                <th className={`${thBase} min-w-[110px] bg-table-header-gas`}>정도검사 진행비(수수료외)</th>
+                <th className={`${thBase} min-w-[90px] bg-table-header-gas`}>정도검사 가스</th>
                 <th className={`${thBase} min-w-[90px] bg-table-header-gas`}>S/O도착</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최초</th>
                 <th className={`${thBase} min-w-[70px] bg-table-header-velocity`}>최종</th>
@@ -755,7 +756,12 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
+                    {/* 정도검사 진행비(수수료외) — 기존 gas_inspection_so 값 매핑 */}
                     {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
+                    {/* 정도검사 가스 — 신규 표시 열 (현재 데이터 없음, 빈 셀) */}
+                    {s.gas > 0 && (
+                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap`}></td>
+                    )}
                     {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
