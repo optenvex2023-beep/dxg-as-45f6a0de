@@ -591,7 +591,7 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
                 <th className={`${thBase} min-w-[32px] w-[32px]`}>용량(L)</th>
                 <th className={`${thBase} min-w-[82px] w-[82px]`}>유효기간</th>
-                <th className={`${thBase} min-w-[48px] w-[48px]`}>잔량</th>
+                <th className={`${thBase} min-w-[76px] w-[76px] max-w-[76px]`}>잔량</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
@@ -699,7 +699,7 @@ export default function CalibrationGasInventory() {
                     )}
                     {/* Remaining percent */}
                     {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
-                      <td className={`${td} text-center p-0.5`}>
+                      <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
                         <input
                           className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                           value={getCellValue(item, "remaining_percent")}
@@ -707,7 +707,7 @@ export default function CalibrationGasInventory() {
                         />
                       </td>
                     ) : (
-                      <td className={`${td} text-center`}>
+                      <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
                         <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
                         {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
                       </td>
