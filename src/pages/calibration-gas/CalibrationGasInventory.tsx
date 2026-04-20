@@ -107,6 +107,30 @@ export default function CalibrationGasInventory() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
+
+  /* ── Cell memo state ── */
+  const { getMemo, saveMemo } = useCellMemos();
+  const [memoTarget, setMemoTarget] = useState<{ rowId: string; colKey: string; label: string } | null>(null);
+  const memoTargetMemo = memoTarget ? getMemo(memoTarget.rowId, memoTarget.colKey) : undefined;
+
+  const handleSaveMemo = useCallback(async (text: string) => {
+    if (!memoTarget) return;
+    try {
+      await saveMemo(memoTarget.rowId, memoTarget.colKey, text, currentUser?.name || "시스템");
+      toast.success(text.trim() ? "메모가 저장되었습니다." : "메모가 삭제되었습니다.");
+    } catch (e) {
+      console.error(e);
+      toast.error("메모 저장에 실패했습니다.");
+    }
+  }, [memoTarget, saveMemo, currentUser]);
+
+  const openMemoFor = useCallback((item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem) => {
+    const colKey = field as string;
+    if (!MEMO_ENABLED_COLUMNS.has(colKey)) return;
+    const label = `${item.site_name} / ${item.unit_no}호기 / ${item.analyzer_range || "-"} · ${FIELD_LABELS[colKey] || colKey}`;
+    setMemoTarget({ rowId: item.id, colKey, label });
+  }, []);
+
   const sites = useMemo(() => {
     const s = new Set(inventory.map((i) => i.site_name));
     return Array.from(s).sort();
