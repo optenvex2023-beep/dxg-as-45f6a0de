@@ -14,6 +14,20 @@ import { calcFirstEntry, calcCompletion, isWithin60Days, isDueOrPast } from "@/l
 import InspectionCompleteDialog from "@/components/InspectionCompleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useCellMemos } from "@/hooks/useCellMemos";
+import { CellMemoWrapper } from "@/components/calibration-gas/CellMemoWrapper";
+import { CellMemoDialog } from "@/components/calibration-gas/CellMemoDialog";
+
+/** Columns that support cell memos: 분석기 Range ~ 유속계 S/O 발행 */
+const MEMO_ENABLED_COLUMNS: ReadonlySet<string> = new Set([
+  "analyzer_range",
+  "concentration", "volume_L", "expiry_date", "remaining_percent",
+  "purchase_entity", "so_issue", "arrival_status",
+  "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
+  "gas_inspection_round", "gas_inspection_so", "gas_inspection_so_arrival",
+  "velocity_inspection_first", "velocity_inspection_last", "velocity_inspection_next",
+  "velocity_inspection_round", "velocity_inspection_so",
+]);
 
 const FIELD_LABELS: Record<string, string> = {
   concentration: "농도", volume_L: "용량(L)", expiry_date: "유효기간", remaining_percent: "잔량(%)",
