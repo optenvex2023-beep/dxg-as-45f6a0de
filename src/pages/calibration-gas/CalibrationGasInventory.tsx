@@ -486,10 +486,10 @@ export default function CalibrationGasInventory() {
   // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
     { left: "left-0", w: "w-[80px] min-w-[80px] max-w-[80px]" },        // (사용 안 함)
-    { left: "left-0", w: "w-[90px] min-w-[90px] max-w-[90px]" },         // 사업장명
-    { left: "left-[90px]", w: "w-[60px] min-w-[60px] max-w-[60px]" },    // TMS
-    { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
-    { left: "left-[220px]", w: "w-[140px] min-w-[140px] max-w-[140px]" }, // 분석기 Range
+    { left: "left-0", w: "w-[78px] min-w-[78px] max-w-[78px]" },         // 사업장명
+    { left: "left-[78px]", w: "w-[44px] min-w-[44px] max-w-[44px]" },    // TMS
+    { left: "left-[122px]", w: "w-[44px] min-w-[44px] max-w-[44px]" },   // 호기
+    { left: "left-[166px]", w: "w-[136px] min-w-[136px] max-w-[136px]" }, // 분석기 Range
   ] as const;
   const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
