@@ -825,20 +825,20 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center`}>
+                      <td rowSpan={s.gas} className={`${td} text-center min-w-[72px] w-[72px] max-w-[72px]`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
                             onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20 whitespace-nowrap"
+                            className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20 whitespace-nowrap"
                           >
                             <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
                           </button>
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
+                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
                     {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap min-w-[58px] w-[58px] max-w-[58px]")}
@@ -865,19 +865,19 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center`}>
+                      <td rowSpan={s.vel} className={`${td} text-center min-w-[72px] w-[72px] max-w-[72px]`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
                             onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20 whitespace-nowrap"
+                            className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20 whitespace-nowrap"
                           >
                             <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
                           </button>
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
                     {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
