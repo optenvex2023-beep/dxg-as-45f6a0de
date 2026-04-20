@@ -865,7 +865,7 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center min-w-[32px] w-[32px] max-w-[32px]")}
                     {/* 예정/완료 column */}
                     {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center`}>
+                      <td rowSpan={s.vel} className={`${td} text-center min-w-[70px] w-[70px] max-w-[70px]`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
                           <button
@@ -877,7 +877,7 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap min-w-[40px] w-[40px] max-w-[40px]")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
                     {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
