@@ -427,13 +427,6 @@ export async function exportCalGasWithTemplate(inventory: CalibrationGasInventor
     }
   }
 
-  // ── 컬럼 자체 제거: 지점(M=13) → 계약종료일(A=1) 순서로 삭제
-  //    (큰 인덱스부터 지워야 A열 인덱스가 변하지 않음)
-  //    spliceColumns는 헤더/데이터 모든 행에 적용되어 나머지 열이 자동으로 좌측으로 당겨짐.
-  //    템플릿의 다른 열 서식/병합/색상/테두리/너비는 그대로 유지됨.
-  try { ws.spliceColumns(13, 1); } catch (err) { console.error("[CalGasExport] M열(지점) 제거 실패", err); }
-  try { ws.spliceColumns(1, 1); } catch (err) { console.error("[CalGasExport] A열(계약종료일) 제거 실패", err); }
-
   const outBuf = await workbook.xlsx.writeBuffer();
   const blob = new Blob([outBuf], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
