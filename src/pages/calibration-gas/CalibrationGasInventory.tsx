@@ -582,7 +582,7 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>구매주체</th>
                 <th rowSpan={2} className={`${thBase} min-w-[80px]`}>S/O 발행</th>
                 <th rowSpan={2} className={`${thBase} min-w-[70px]`}>도착예정</th>
-                <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
+                <th colSpan={8} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
                 <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
                 <th rowSpan={2} className={`${thBase} min-w-[140px] border-r-0`}>비고사항</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
