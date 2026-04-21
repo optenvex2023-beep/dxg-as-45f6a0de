@@ -383,7 +383,7 @@ export default function OutboundManual() {
 
           <li>
             <p>
-              제조 검토가 완료되면 품질팀으로 알림이 전송되며, 품질에서는 하기 버튼으로 보고서 검토 역할을 수행합니다.
+              제조기술팀 검토가 완료되면 품질팀으로 알림이 전송되며, 품질에서는 하기 버튼으로 보고서 검토 역할을 수행합니다.
             </p>
             <ul className="list-disc pl-5 mt-1 space-y-1">
               <li><b>품질검토</b> : 검토 내용 저장</li>
