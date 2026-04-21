@@ -187,7 +187,7 @@ export default function OutboundManual() {
             </li>
             <li>
               검색은 우상단의 검색 기능을 통해 가능합니다.
-              <figure className="mt-2 rounded-md border bg-muted/30 p-2 inline-block max-w-full">
+              <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
                 <img
                   src={statusSearchImg}
                   alt="현황표 우상단 검색창 (건명 / 관리번호 / Serial No 검색)"
