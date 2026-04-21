@@ -47,30 +47,50 @@ export default function OutboundManual() {
       </div>
 
       {/* 표지 */}
-      <section className="manual-cover bg-card rounded-lg border px-8 py-16 md:py-20">
+      <section className="manual-cover bg-card rounded-lg border px-8 py-16 md:py-24">
         <div className="flex flex-col items-center text-center">
-          <BookOpen className="h-10 w-10 text-primary" strokeWidth={1.75} />
-          <h1 className="mt-6 text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10">
+            <BookOpen className="h-10 w-10 text-primary" strokeWidth={1.5} />
+          </div>
+          <h1 className="mt-8 text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             DXG 반출점검 사용자 매뉴얼
           </h1>
-          <p className="mt-3 text-sm md:text-base text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             반출점검 담당자용
           </p>
         </div>
 
-        <div className="mt-12 max-w-md mx-auto md:mx-0 md:ml-4 text-left">
-          <h2 className="text-base font-bold text-foreground">목차</h2>
-          <ol className="mt-4 space-y-2 text-sm text-primary">
-            <li>1. 로그인</li>
-            <li>2. 대시보드</li>
-            <li>3. 현황표</li>
-            <li>4. 1차 점검보고서</li>
-            <li>5. 완료 점검보고서</li>
-            <li>6. 알림센터</li>
+        <div className="mt-16 max-w-xs">
+          <h2 className="text-sm font-bold text-foreground border-b border-border pb-2 mb-4">목차</h2>
+          <ol className="space-y-3 text-sm">
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">1</span>
+              <span>로그인</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">2</span>
+              <span>대시보드</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">3</span>
+              <span>현황표</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">4</span>
+              <span>1차 점검보고서</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">5</span>
+              <span>완료 점검보고서</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">6</span>
+              <span>알림센터</span>
+            </li>
           </ol>
         </div>
 
-        <p className="mt-12 text-center text-[11px] text-muted-foreground">
+        <p className="mt-16 text-center text-[11px] text-muted-foreground">
           본 매뉴얼은 화면에 보이는 메뉴/버튼/필터/컬럼/팝업만을 기준으로 작성되었습니다.
         </p>
       </section>
@@ -78,9 +98,8 @@ export default function OutboundManual() {
       {/* 필독 안내 */}
       <NoticeBox
         items={[
-          <><b>점검 결과는 발생 즉시</b> 시스템에 입력해야 합니다.</>,
           <><b>1차/완료 점검보고서</b>는 화면 안내 절차에 따라 작성·저장하세요.</>,
-          <>사진/서명 등 화면에서 요구하는 항목이 누락되면 저장이 제한될 수 있습니다. <NeedsConfirm /></>,
+          <>사진/서명 등 화면에서 요구하는 항목이 누락되면 저장이 제한될 수 있습니다.</>,
         ]}
       />
 
