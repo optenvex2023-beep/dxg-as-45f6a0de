@@ -183,10 +183,61 @@ export function ManualPrintStyles() {
   return (
     <style>{`
       @media print {
+        /* 화면 전용 영역 숨김 */
         aside, header, nav, .no-print { display: none !important; }
-        body { background: white !important; }
-        .manual-section { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
-        .manual-page { padding: 0 !important; }
+
+        /* 페이지/배경 초기화 */
+        html, body { background: white !important; height: auto !important; overflow: visible !important; }
+
+        /* 모든 부모 스크롤 컨테이너를 풀어 전체 본문이 출력되도록 */
+        body * { overflow: visible !important; }
+        html, body, #root, #root > div, main, .manual-page,
+        .manual-page * {
+          max-height: none !important;
+          height: auto !important;
+        }
+        main { padding: 0 !important; display: block !important; }
+
+        /* 스크롤바 숨김 (WebKit) */
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+        /* 매뉴얼 페이지 컨테이너 */
+        .manual-page { padding: 0 !important; max-width: none !important; margin: 0 !important; }
+
+        /* 섹션 카드: 중간 분리 방지 */
+        .manual-section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+          box-shadow: none !important;
+        }
+        /* 섹션 헤더(번호 + 제목)는 본문과 함께 유지 */
+        .manual-section > header {
+          break-after: avoid-page;
+          page-break-after: avoid;
+        }
+        /* 표지는 단독 페이지 */
+        .manual-cover { break-after: page; page-break-after: always; }
+
+        /* 제목 직후 고아 줄 방지 */
+        h1, h2, h3, h4 {
+          break-after: avoid-page;
+          page-break-after: avoid;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        /* 카드/박스/안내영역도 가능한 한 분리 방지 */
+        .rounded-lg, .rounded-xl, .rounded-md {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        /* 이미지는 페이지 폭을 넘지 않도록 */
+        img { max-width: 100% !important; height: auto !important; break-inside: avoid; page-break-inside: avoid; }
+
+        /* 색상/배경 충실 출력 */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
         @page { size: A4 portrait; margin: 12mm; }
       }
     `}</style>
