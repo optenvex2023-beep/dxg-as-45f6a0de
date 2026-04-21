@@ -199,7 +199,10 @@ export default function OutboundManual() {
 
         {/* 등록 */}
         <div className="space-y-2 pt-2">
-          <h3 className="font-semibold text-sm">- 등록</h3>
+          <h3 className="flex items-center gap-2 font-semibold text-sm">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            <span>등록</span>
+          </h3>
 
           <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
             <li>
