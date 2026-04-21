@@ -127,6 +127,8 @@ function emptyFormData(): CreateFormData {
     contract_due_date: null,
     special_note: "",
     replacement_parts_note: "",
+    outbound_date_note: "",
+    reinstall_date_note: "",
     client_pic_name: "",
     client_pic_phone: "",
     request_type: "세일즈오더",
