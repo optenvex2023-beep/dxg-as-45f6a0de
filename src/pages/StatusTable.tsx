@@ -317,6 +317,14 @@ export default function StatusTable() {
         <h1 className="text-xl font-semibold">현황표</h1>
       </div>
 
+      {/* Usage guide */}
+      <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-foreground/80">
+        <ul className="space-y-1.5 list-disc pl-5 marker:text-primary">
+          <li>해당 건을 <span className="font-medium text-foreground">클릭</span>하면 하단에 내용 기입 가능한 버튼이 활성화됩니다.</li>
+          <li><span className="font-medium text-foreground">더블클릭</span> 시 현재 기입된 내용을 상세 조회 가능합니다. <span className="text-muted-foreground">(승인된 교체부품 내역 기재 및 확인 가능)</span></li>
+        </ul>
+      </div>
+
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-4 rounded-lg border bg-card p-3 shadow-sm">
         <div className="flex items-center gap-2">
