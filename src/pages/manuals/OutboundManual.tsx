@@ -272,7 +272,10 @@ export default function OutboundManual() {
               </ul>
             </li>
             <li>
-              <b>[+등록]</b>
+              <span className="inline-flex items-center gap-1 align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                등록
+              </span>
               <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>고객사로부터 요청받은 반출일자, 재설치 요청일자, 세일즈오더 등 기본 정보를 입력하는 화면입니다. (환경영업팀 또는 QC팀에서 입력합니다)</li>
                 <li>요청유형에서 세일즈오더 또는 고객지원요청서 선택이 가능하며, 고객지원요청서는 해당 파일을 첨부 가능합니다.</li>
@@ -280,14 +283,18 @@ export default function OutboundManual() {
               </ul>
             </li>
             <li>
-              <b>[반출예정/반출일 입력]</b>
+              <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                반출예정/반출일 입력
+              </span>
               <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>고객사의 요청일자를 확인 후 FE팀에서 반출예정일자를 입력합니다.</li>
                 <li>일정이 확정된 경우 FE팀에서 반출일자를 입력합니다.</li>
               </ul>
             </li>
             <li>
-              <b>[입고/점검 입력]</b>
+              <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                입고/점검 입력
+              </span>
               <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>QC팀에서 입고일자를 입력합니다.</li>
                 <li>제조기술팀에서는 입고된 장비에 대해 1차 점검이 완료되면 '1차 점검 완료일자'를 기입합니다. 이후 [1차 점검보고서] 메뉴에서 점검보고서 작성이 가능합니다.</li>
@@ -295,7 +302,10 @@ export default function OutboundManual() {
               </ul>
             </li>
             <li>
-              <b>[종결]</b>
+              <span className="inline-flex items-center gap-1 align-middle px-2 py-0.5 rounded-md border border-accent text-accent bg-background text-xs font-medium shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                종결
+              </span>
               <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>재설치일자가 확정으로 표시된 건에 한해 종결처리가 가능합니다.</li>
                 <li>업무가 완료된 경우 [종결] 버튼 클릭 시 하단의 완료된 건으로 이동됩니다.</li>
