@@ -22,6 +22,8 @@ import firstReportQaReviewImg from "@/assets/manual-first-report-qa-review.png";
 import firstReportQaDoneImg from "@/assets/manual-first-report-qa-done.png";
 import firstReportDocMgmtImg from "@/assets/manual-first-report-doc-mgmt.png";
 import firstReportCompletedListImg from "@/assets/manual-first-report-completed-list.png";
+import notificationPopoverImg from "@/assets/manual-notification-popover.png";
+import notificationMenuImg from "@/assets/manual-notification-menu.png";
 
 export default function OutboundManual() {
   return (
