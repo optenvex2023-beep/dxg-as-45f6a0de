@@ -439,6 +439,7 @@ export type Database = {
           noti_first_check_done_sent_at: string | null
           noti_install_done_sent_at: string | null
           outbound_date: string | null
+          outbound_date_note: string
           outbound_request_date_end: string | null
           outbound_request_date_mode: string
           outbound_request_date_single: string | null
@@ -447,6 +448,7 @@ export type Database = {
           project_name: string
           reinstall_confirm_status: string
           reinstall_date: string | null
+          reinstall_date_note: string
           reinstall_request_date_end: string | null
           reinstall_request_date_mode: string
           reinstall_request_date_single: string | null
@@ -481,6 +483,7 @@ export type Database = {
           noti_first_check_done_sent_at?: string | null
           noti_install_done_sent_at?: string | null
           outbound_date?: string | null
+          outbound_date_note?: string
           outbound_request_date_end?: string | null
           outbound_request_date_mode?: string
           outbound_request_date_single?: string | null
@@ -489,6 +492,7 @@ export type Database = {
           project_name?: string
           reinstall_confirm_status?: string
           reinstall_date?: string | null
+          reinstall_date_note?: string
           reinstall_request_date_end?: string | null
           reinstall_request_date_mode?: string
           reinstall_request_date_single?: string | null
@@ -523,6 +527,7 @@ export type Database = {
           noti_first_check_done_sent_at?: string | null
           noti_install_done_sent_at?: string | null
           outbound_date?: string | null
+          outbound_date_note?: string
           outbound_request_date_end?: string | null
           outbound_request_date_mode?: string
           outbound_request_date_single?: string | null
@@ -531,6 +536,7 @@ export type Database = {
           project_name?: string
           reinstall_confirm_status?: string
           reinstall_date?: string | null
+          reinstall_date_note?: string
           reinstall_request_date_end?: string | null
           reinstall_request_date_mode?: string
           reinstall_request_date_single?: string | null
