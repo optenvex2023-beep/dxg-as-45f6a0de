@@ -12,6 +12,7 @@ import {
   ManualPrintStyles,
   Callout,
 } from "@/components/manuals/ManualPrimitives";
+import completeCheckBtn from "@/assets/manual-complete-check-button.png";
 
 export default function CalGasManual() {
   return (
