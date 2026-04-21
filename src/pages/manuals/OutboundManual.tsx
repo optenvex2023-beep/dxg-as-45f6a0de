@@ -46,12 +46,34 @@ export default function OutboundManual() {
         </Button>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold">반출점검 사용자 매뉴얼</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      {/* 표지 */}
+      <section className="manual-cover bg-card rounded-lg border px-8 py-16 md:py-20">
+        <div className="flex flex-col items-center text-center">
+          <BookOpen className="h-10 w-10 text-primary" strokeWidth={1.75} />
+          <h1 className="mt-6 text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+            DXG 반출점검 사용자 매뉴얼
+          </h1>
+          <p className="mt-3 text-sm md:text-base text-muted-foreground">
+            반출점검 담당자용
+          </p>
+        </div>
+
+        <div className="mt-12 max-w-md mx-auto md:mx-0 md:ml-4 text-left">
+          <h2 className="text-base font-bold text-foreground">목차</h2>
+          <ol className="mt-4 space-y-2 text-sm text-primary">
+            <li>1. 로그인</li>
+            <li>2. 대시보드</li>
+            <li>3. 현황표</li>
+            <li>4. 1차 점검보고서</li>
+            <li>5. 완료 점검보고서</li>
+            <li>6. 알림센터</li>
+          </ol>
+        </div>
+
+        <p className="mt-12 text-center text-[11px] text-muted-foreground">
           본 매뉴얼은 화면에 보이는 메뉴/버튼/필터/컬럼/팝업만을 기준으로 작성되었습니다.
         </p>
-      </div>
+      </section>
 
       {/* 필독 안내 */}
       <NoticeBox
