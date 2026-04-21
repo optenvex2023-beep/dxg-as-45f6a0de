@@ -398,7 +398,7 @@ export default function OutboundManual() {
             </p>
             <ul className="list-disc pl-5 mt-1 space-y-1">
               <li><b>품질검토</b> : 검토 내용 저장</li>
-              <li><b>품질본부 검토 완료</b> : 검토 승인, 보고서 표지에 품질팀 서명 삽입</li>
+              <li><b>품질본부 검토 완료</b> : 검토 승인, 보고서 표지에 제품혁신팀 서명 삽입</li>
             </ul>
             <div className="mt-2 flex flex-wrap gap-3">
               <figure className="rounded-md border bg-muted/30 p-2 block">
