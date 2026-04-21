@@ -217,7 +217,7 @@ export default function OutboundManual() {
         {/* 조회 */}
         <div className="space-y-2">
           <h3 className="flex items-center gap-2 font-semibold text-sm">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(142 71% 45%)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
             <span>조회</span>
           </h3>
           <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
@@ -268,7 +268,7 @@ export default function OutboundManual() {
         {/* 등록 */}
         <div className="space-y-2 pt-2">
           <h3 className="flex items-center gap-2 font-semibold text-sm">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="hsl(142 71% 45%)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
             <span>등록</span>
           </h3>
 
