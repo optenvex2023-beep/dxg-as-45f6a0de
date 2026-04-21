@@ -574,8 +574,11 @@ export default function StatusTable() {
         )}
       </div>
 
-      {/* Bottom fixed action bar */}
-      <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 z-40 border-t bg-background/95 backdrop-blur px-6 py-3 flex items-center justify-end gap-2">
+      {/* Spacer to prevent the fixed action bar from covering the last row */}
+      <div aria-hidden="true" className="h-20" />
+
+      {/* Bottom fixed action bar - pinned to viewport bottom */}
+      <div className="fixed bottom-0 left-0 right-0 md:left-[var(--sidebar-width,16rem)] z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-end gap-2 shadow-[0_-2px_8px_-4px_hsl(var(--foreground)/0.08)]">
         {isAdmin && (
           <>
             {selectedId && selectedRecord && (
