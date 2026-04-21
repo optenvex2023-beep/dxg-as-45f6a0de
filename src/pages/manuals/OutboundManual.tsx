@@ -328,14 +328,6 @@ export default function OutboundManual() {
         <p>
           좌측 메뉴 <b>1차 점검보고서</b>에서 점검 항목을 입력하고 사진을 첨부한 뒤 저장합니다.
         </p>
-        <StepFlow
-          steps={[
-            "보고서 진입",
-            "점검 항목 입력",
-            "사진 첨부",
-            "저장",
-          ]}
-        />
 
         <ol className="list-decimal pl-5 space-y-4 text-sm leading-relaxed">
           <li>
