@@ -1246,7 +1246,7 @@ const REPLACEMENT_NOTE_EMP_NOS = new Set([
 function DetailView({ record, currentUser, onSaveMemo }: {
   record: OutboundInspection;
   currentUser: AppUser | null;
-  onSaveMemo: (id: string, field: "replacement_parts_note" | "special_note", value: string) => Promise<void>;
+  onSaveMemo: (id: string, field: "replacement_parts_note" | "special_note" | "outbound_date_note" | "reinstall_date_note", value: string) => Promise<void>;
 }) {
   const val = (v: string | null | undefined) => v || "—";
   const outboundReqDate = record.outbound_request_date_mode === "단일"
@@ -1258,16 +1258,21 @@ function DetailView({ record, currentUser, onSaveMemo }: {
 
   const canEditReplacement = currentUser ? REPLACEMENT_NOTE_EMP_NOS.has(currentUser.emp_no) : false;
   const canEditSpecial = currentUser ? currentUser.role_category !== "미배정" : false;
+  const canEditNotes = currentUser ? currentUser.role_category !== "미배정" : false;
 
   const [replacementNote, setReplacementNote] = useState(record.replacement_parts_note || "");
   const [specialNote, setSpecialNote] = useState(record.special_note || "");
+  const [outboundDateNote, setOutboundDateNote] = useState(record.outbound_date_note || "");
+  const [reinstallDateNote, setReinstallDateNote] = useState(record.reinstall_date_note || "");
   const [savingField, setSavingField] = useState<string | null>(null);
 
   // Sync when record changes
   useEffect(() => {
     setReplacementNote(record.replacement_parts_note || "");
     setSpecialNote(record.special_note || "");
-  }, [record.id, record.replacement_parts_note, record.special_note]);
+    setOutboundDateNote(record.outbound_date_note || "");
+    setReinstallDateNote(record.reinstall_date_note || "");
+  }, [record.id, record.replacement_parts_note, record.special_note, record.outbound_date_note, record.reinstall_date_note]);
 
   const handleSave = async (field: "replacement_parts_note" | "special_note") => {
     const value = field === "replacement_parts_note" ? replacementNote : specialNote;
