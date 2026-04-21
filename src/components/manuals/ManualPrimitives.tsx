@@ -183,8 +183,19 @@ export function ManualPrintStyles() {
   return (
     <style>{`
       @media print {
-        /* 화면 전용 영역 숨김 */
-        aside, header, nav, .no-print { display: none !important; }
+        /* 화면 전용 영역 숨김
+           ⚠️ 전역 'header' 셀렉터를 사용하면 SectionCard 내부의 <header>(번호+제목)까지
+           숨겨지므로, Layout 상단 바와 사이드바/네비게이션만 정확히 타겟팅한다. */
+        aside, nav, .no-print { display: none !important; }
+        body > div > div > header,
+        #root > div > div > header { display: none !important; }
+
+        /* 매뉴얼 카드 내부 헤더(번호 + 제목)는 반드시 출력되도록 강제 */
+        .manual-section > header,
+        .manual-section header {
+          display: flex !important;
+          visibility: visible !important;
+        }
 
         /* 페이지/배경 초기화 */
         html, body { background: white !important; height: auto !important; overflow: visible !important; }
