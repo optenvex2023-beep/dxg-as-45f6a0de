@@ -16,6 +16,7 @@ import completeCheckBtn from "@/assets/manual-complete-check-button.png";
 import gasAddModeImg from "@/assets/manual-gas-add-mode.png";
 import gasCycleUpdateImg from "@/assets/manual-gas-cycle-update.png";
 import gasCompleteDialogImg from "@/assets/manual-gas-complete-dialog.png";
+import historySearchImg from "@/assets/manual-history-search.png";
 
 export default function CalGasManual() {
   return (
