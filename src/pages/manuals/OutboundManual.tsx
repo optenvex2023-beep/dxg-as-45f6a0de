@@ -393,21 +393,9 @@ export default function OutboundManual() {
 
       {/* 5. 완료 보고서 */}
       <SectionCard num={5} title="완료 점검보고서">
-        <p>
-          좌측 메뉴 <b>완료 점검보고서</b>에서 작성·검토를 진행하고, 화면의 다운로드 버튼으로
-          파일을 받습니다. 저장되는 파일 형식은 다운로드 버튼 옆 라벨을 따릅니다.
+        <p className="text-sm leading-relaxed">
+          <b>1차 점검보고서</b> 메뉴와 사용방법 동일
         </p>
-        <MockScreen title="/final-report">
-          <div className="flex items-center gap-2 mb-2">
-            <MockButton variant="outline">미리보기</MockButton>
-            <MockButton>다운로드</MockButton>
-            <ClickPoint label="1" />
-          </div>
-          <div className="h-24 rounded border bg-muted/30" />
-        </MockScreen>
-        <Callout tone="warning">
-          버전 관리·승인 권한 등 내부 규칙은 본 매뉴얼에서 다루지 않습니다. <NeedsConfirm />
-        </Callout>
       </SectionCard>
 
       {/* 6. 알림센터 */}
