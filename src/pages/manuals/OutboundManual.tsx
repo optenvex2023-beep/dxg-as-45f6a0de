@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileDown, ChevronLeft, LogIn, Bell } from "lucide-react";
+import { FileDown, ChevronLeft, LogIn, Bell, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   MockScreen,
