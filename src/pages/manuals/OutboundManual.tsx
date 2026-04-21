@@ -426,7 +426,12 @@ export default function OutboundManual() {
             </p>
             <ul className="list-disc pl-5 mt-1">
               <li>
-                보고서 내 이미지를 삽입한 경우 <b>[Word 다운로드]</b> 시 아래 팝업창이 생성될 수 있으나, ‘확인’ → ‘예’를 클릭하면 정상 다운로드 됩니다.
+                보고서 내 이미지를 삽입한 경우{" "}
+                <span className="inline-flex items-center gap-1 align-middle px-2 py-0.5 rounded-md border border-input bg-background text-xs font-medium shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  Word 다운로드
+                </span>{" "}
+                시 팝업창이 생성될 수 있으나, ‘확인’ → ‘예’를 클릭하면 정상 다운로드 됩니다.
               </li>
             </ul>
             <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
