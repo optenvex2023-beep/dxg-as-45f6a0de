@@ -278,8 +278,8 @@ export default function CalGasManual() {
         </ol>
       </SectionCard>
 
-      {/* 2. 이력관리 */}
-      <SectionCard num={2} title="이력관리">
+      {/* 3. 이력관리 */}
+      <SectionCard num={3} title="이력관리">
         <ul className="list-disc pl-5 space-y-2">
           <li>해당 메뉴에서는 현황표 메뉴에서 수행한 모든 변경사항이 기입됩니다.</li>
           <li>
@@ -295,8 +295,8 @@ export default function CalGasManual() {
         </ul>
       </SectionCard>
 
-      {/* 3. 알림센터 */}
-      <SectionCard num={3} title="알림센터">
+      {/* 4. 알림센터 */}
+      <SectionCard num={4} title="알림센터">
         <p>아래 항목에 해당하는 경우 알림이 발생하며, 현황표에 해당 칸에도 표기됩니다.</p>
         <ol className="list-decimal pl-5 space-y-1.5 mt-2">
           <li>교정가스 유효기간이 60일 전으로 도래한 경우</li>
@@ -305,8 +305,8 @@ export default function CalGasManual() {
         </ol>
       </SectionCard>
 
-      {/* 4. 엑셀 다운로드 */}
-      <SectionCard num={4} title="엑셀 다운로드">
+      {/* 5. 엑셀 다운로드 */}
+      <SectionCard num={5} title="엑셀 다운로드">
         <ul className="list-disc pl-5 space-y-2">
           <li>현황표에 기입된 자료를 엑셀 다운로드 가능합니다.</li>
           <li>
