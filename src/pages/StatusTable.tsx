@@ -1246,7 +1246,7 @@ const REPLACEMENT_NOTE_EMP_NOS = new Set([
 function DetailView({ record, currentUser, onSaveMemo }: {
   record: OutboundInspection;
   currentUser: AppUser | null;
-  onSaveMemo: (id: string, field: "replacement_parts_note" | "special_note", value: string) => Promise<void>;
+  onSaveMemo: (id: string, field: "replacement_parts_note" | "special_note" | "outbound_date_note" | "reinstall_date_note", value: string) => Promise<void>;
 }) {
   const val = (v: string | null | undefined) => v || "—";
   const outboundReqDate = record.outbound_request_date_mode === "단일"
@@ -1258,19 +1258,26 @@ function DetailView({ record, currentUser, onSaveMemo }: {
 
   const canEditReplacement = currentUser ? REPLACEMENT_NOTE_EMP_NOS.has(currentUser.emp_no) : false;
   const canEditSpecial = currentUser ? currentUser.role_category !== "미배정" : false;
+  const canEditNotes = currentUser ? currentUser.role_category !== "미배정" : false;
 
   const [replacementNote, setReplacementNote] = useState(record.replacement_parts_note || "");
   const [specialNote, setSpecialNote] = useState(record.special_note || "");
+  const [outboundDateNote, setOutboundDateNote] = useState(record.outbound_date_note || "");
+  const [reinstallDateNote, setReinstallDateNote] = useState(record.reinstall_date_note || "");
   const [savingField, setSavingField] = useState<string | null>(null);
 
   // Sync when record changes
   useEffect(() => {
     setReplacementNote(record.replacement_parts_note || "");
     setSpecialNote(record.special_note || "");
-  }, [record.id, record.replacement_parts_note, record.special_note]);
+    setOutboundDateNote(record.outbound_date_note || "");
+    setReinstallDateNote(record.reinstall_date_note || "");
+  }, [record.id, record.replacement_parts_note, record.special_note, record.outbound_date_note, record.reinstall_date_note]);
 
-  const handleSave = async (field: "replacement_parts_note" | "special_note") => {
-    const value = field === "replacement_parts_note" ? replacementNote : specialNote;
+  const handleSave = async (field: "replacement_parts_note" | "special_note" | "outbound_date_note" | "reinstall_date_note") => {
+    const value = field === "replacement_parts_note" ? replacementNote : 
+                  field === "special_note" ? specialNote :
+                  field === "outbound_date_note" ? outboundDateNote : reinstallDateNote;
     setSavingField(field);
     try {
       await onSaveMemo(record.id, field, value);
@@ -1354,6 +1361,50 @@ function DetailView({ record, currentUser, onSaveMemo }: {
             onClick={() => handleSave("replacement_parts_note")}
           >
             {savingField === "replacement_parts_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
+      </div>
+
+      {/* 반출일자 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">반출일자 특이사항</p>
+        <Textarea
+          className="text-xs min-h-[70px]"
+          value={outboundDateNote}
+          onChange={(e) => setOutboundDateNote(e.target.value)}
+          disabled={!canEditNotes}
+          placeholder={canEditNotes ? "반출일자 관련 특이사항을 입력하세요" : ""}
+        />
+        {canEditNotes && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "outbound_date_note" || outboundDateNote === (record.outbound_date_note || "")}
+            onClick={() => handleSave("outbound_date_note")}
+          >
+            {savingField === "outbound_date_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
+      </div>
+
+      {/* 설치일자 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">설치일자 특이사항</p>
+        <Textarea
+          className="text-xs min-h-[70px]"
+          value={reinstallDateNote}
+          onChange={(e) => setReinstallDateNote(e.target.value)}
+          disabled={!canEditNotes}
+          placeholder={canEditNotes ? "설치일자 관련 특이사항을 입력하세요" : ""}
+        />
+        {canEditNotes && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "reinstall_date_note" || reinstallDateNote === (record.reinstall_date_note || "")}
+            onClick={() => handleSave("reinstall_date_note")}
+          >
+            {savingField === "reinstall_date_note" ? "저장 중..." : "저장"}
           </Button>
         )}
       </div>
