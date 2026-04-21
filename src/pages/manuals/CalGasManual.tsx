@@ -162,95 +162,42 @@ export default function CalGasManual() {
         </ol>
       </SectionCard>
 
-      {/* 2. 인라인 편집 */}
-      <SectionCard num={2} title="인라인 편집">
-        <p>
-          현황표의 셀을 클릭하면 입력 모드로 전환됩니다. 값을 입력하고 Enter 또는 셀 외부를 클릭하면 저장됩니다.
-        </p>
-        <StepFlow steps={["셀 클릭", "값 입력", "Enter / 외부 클릭", "저장"]} />
-        <Callout>편집 권한 범위는 <NeedsConfirm />.</Callout>
-      </SectionCard>
-
-      {/* 3. 셀 메모 */}
-      <SectionCard num={3} title="셀 메모">
-        <p>
-          셀에서 <b>마우스 우클릭 → 메모삽입</b>을 선택해 메모를 입력합니다.
-          저장된 셀은 우상단에 빨간 모서리 마커가 표시됩니다.
-        </p>
-        <MockScreen title="우클릭 컨텍스트 메뉴">
-          <div className="inline-flex flex-col rounded-md border bg-popover text-xs shadow">
-            <span className="px-3 py-1.5 hover:bg-muted">메모삽입</span>
-            <span className="px-3 py-1.5 hover:bg-muted">메모편집</span>
-            <span className="px-3 py-1.5 hover:bg-muted">메모삭제</span>
-          </div>
-          <div className="mt-2 inline-block relative h-10 w-20 border rounded">
-            <span className="absolute top-0 right-0 h-0 w-0 border-t-[10px] border-l-[10px] border-t-destructive border-l-transparent" />
-          </div>
-        </MockScreen>
-      </SectionCard>
-
-      {/* 4. 업로드 */}
-      <SectionCard num={4} title="업로드">
-        <p>
-          좌측 메뉴 <b>교정가스 → 업로드</b>(<code>/calibration-gas/upload</code>)에서 PDF/Excel 파일을 선택해 업로드합니다.
-          업로드 후 검토 화면으로 이동합니다.
-        </p>
-        <MockScreen title="/calibration-gas/upload">
-          <div className="flex items-center gap-2">
-            <MockButton variant="outline">파일 선택</MockButton>
-            <MockButton>업로드</MockButton>
-            <ClickPoint label="1" />
-          </div>
-        </MockScreen>
-      </SectionCard>
-
-      {/* 5. 검토 */}
-      <SectionCard num={5} title="검토 (매칭)">
-        <p>
-          업로드된 파일에서 추출된 항목을 인벤토리와 매칭합니다. 화면에 표시되는 버튼을 통해
-          개별 행을 확정/제외하고, 모두 검토되면 등록을 진행합니다.
-        </p>
-        <StepFlow steps={["추출 결과 확인", "행별 매칭/확정", "등록"]} />
-        <MockScreen title="/calibration-gas/review">
-          <div className="space-y-2">
-            {[1, 2].map((i) => (
-              <div key={i} className="flex items-center justify-between rounded border px-2 py-1.5 text-xs">
-                <span>매칭 후보 #{i}</span>
-                <div className="flex gap-1">
-                  <MockButton variant="outline">제외</MockButton>
-                  <MockButton>확정</MockButton>
-                </div>
-              </div>
-            ))}
-          </div>
-        </MockScreen>
-        <p>매칭 알고리즘의 세부 우선순위는 본 매뉴얼에서 다루지 않습니다. <NeedsConfirm /></p>
-      </SectionCard>
-
-      {/* 6. 이력 / 알림 / 엑셀 */}
-      <SectionCard num={6} title="이력 · 알림 · 엑셀 다운로드">
-        <ul className="list-disc pl-5 space-y-1">
+      {/* 2. 이력관리 */}
+      <SectionCard num={2} title="이력관리">
+        <ul className="list-disc pl-5 space-y-2">
+          <li>해당 메뉴에서는 현황표 메뉴에서 수행한 모든 변경사항이 기입됩니다.</li>
           <li>
-            <b>이력관리</b> (<code>/calibration-gas/history</code>): 변경 이력이 표 형태로 표시됩니다.
-          </li>
-          <li>
-            <b>알림센터</b> (<code>/calibration-gas/notifications</code>): 교정가스 관련 알림 목록을 확인합니다.
-          </li>
-          <li>
-            <b>엑셀 다운로드</b> (<code>/calibration-gas/export</code>): 화면의 다운로드 버튼을 클릭하면
-            엑셀 파일이 저장됩니다. 병합/색상은 화면 표시와 동일하게 출력됩니다.
+            상단의 검색창을 통해 검색 기능을 활용할 수 있습니다.
+            <div className="mt-3">
+              <img
+                src={historySearchImg}
+                alt="이력관리 검색창 - 사업장, 호기, 작업자, 작업유형 검색"
+                className="rounded-lg border shadow-sm max-w-full sm:max-w-md"
+              />
+            </div>
           </li>
         </ul>
-        <MockScreen title="/calibration-gas/export">
-          <div className="flex items-center gap-2">
-            <MockButton variant="outline">옵션 선택</MockButton>
-            <MockButton>엑셀 다운로드</MockButton>
-            <ClickPoint label="1" />
-          </div>
-        </MockScreen>
-        <Callout tone="warning">
-          정도검사 자동 주기 계산, 알림 발송 조건 등 내부 자동화 규칙은 본 매뉴얼에서 다루지 않습니다. <NeedsConfirm />
-        </Callout>
+      </SectionCard>
+
+      {/* 3. 알림센터 */}
+      <SectionCard num={3} title="알림센터">
+        <p>아래 항목에 해당하는 경우 알림이 발생하며, 현황표에 해당 칸에도 표기됩니다.</p>
+        <ol className="list-decimal pl-5 space-y-1.5 mt-2">
+          <li>교정가스 유효기간이 60일 전으로 도래한 경우</li>
+          <li>교정가스 잔량이 30% 이하인 경우</li>
+          <li>정도검사 예정일이 60일 전으로 도래한 경우</li>
+        </ol>
+      </SectionCard>
+
+      {/* 4. 엑셀 다운로드 */}
+      <SectionCard num={4} title="엑셀 다운로드">
+        <ul className="list-disc pl-5 space-y-2">
+          <li>현황표에 기입된 자료를 엑셀 다운로드 가능합니다.</li>
+          <li>
+            다만, 기능상의 사유로 현황표에 기입된 대로 추출되지 않을 수 있으니
+            이점 유의하여 사용하여 주시기 바랍니다.
+          </li>
+        </ul>
       </SectionCard>
     </div>
   );
