@@ -186,7 +186,7 @@ export default function OutboundManual() {
               </figure>
             </li>
             <li>
-              검색은 우상단의 검색 기능을 통해 가능합니다.
+              <p>검색은 우상단의 검색 기능을 통해 가능합니다.</p>
               <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
                 <img
                   src={statusSearchImg}
