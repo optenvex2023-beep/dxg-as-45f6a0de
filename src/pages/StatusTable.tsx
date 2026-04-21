@@ -127,6 +127,8 @@ function emptyFormData(): CreateFormData {
     contract_due_date: null,
     special_note: "",
     replacement_parts_note: "",
+    outbound_date_note: "",
+    reinstall_date_note: "",
     client_pic_name: "",
     client_pic_phone: "",
     request_type: "세일즈오더",
@@ -723,6 +725,10 @@ function CSForm({ record, onSave }: { record: OutboundInspection; onSave: (updat
   const [reinstall, setReinstall] = useState(record.reinstall_date);
   const [confirmStatus, setConfirmStatus] = useState(record.reinstall_confirm_status);
   const [installCompleted, setInstallCompleted] = useState(record.install_completed ?? false);
+  // 보조 메모 필드 (날짜/상태 로직과 분리됨)
+  const [outboundNote, setOutboundNote] = useState(record.outbound_date_note ?? "");
+  const [reinstallNote, setReinstallNote] = useState(record.reinstall_date_note ?? "");
+  const [notesEditable, setNotesEditable] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -751,7 +757,56 @@ function CSForm({ record, onSave }: { record: OutboundInspection; onSave: (updat
           </label>
         </div>
       </div>
-      <Button className="w-full" onClick={() => onSave({ planned_outbound_date: planned, outbound_date: outbound, reinstall_date: reinstall, reinstall_confirm_status: confirmStatus, install_completed: installCompleted })}>
+
+      {/* 보조 메모 영역: 반출일자 / 설치일자 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-foreground">특이사항 메모</p>
+          {!notesEditable ? (
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setNotesEditable(true)}>
+              수정
+            </Button>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">수정 모드</span>
+          )}
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">반출일자 특이사항</label>
+          <Textarea
+            className="text-xs min-h-[70px]"
+            value={outboundNote}
+            onChange={(e) => setOutboundNote(e.target.value)}
+            disabled={!notesEditable}
+            placeholder="반출일자 관련 특이사항을 입력하세요"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">설치일자 특이사항</label>
+          <Textarea
+            className="text-xs min-h-[70px]"
+            value={reinstallNote}
+            onChange={(e) => setReinstallNote(e.target.value)}
+            disabled={!notesEditable}
+            placeholder="설치일자 관련 특이사항을 입력하세요"
+          />
+        </div>
+      </div>
+
+      <Button
+        className="w-full"
+        onClick={() => {
+          onSave({
+            planned_outbound_date: planned,
+            outbound_date: outbound,
+            reinstall_date: reinstall,
+            reinstall_confirm_status: confirmStatus,
+            install_completed: installCompleted,
+            outbound_date_note: outboundNote,
+            reinstall_date_note: reinstallNote,
+          });
+          setNotesEditable(false);
+        }}
+      >
         저장
       </Button>
     </div>

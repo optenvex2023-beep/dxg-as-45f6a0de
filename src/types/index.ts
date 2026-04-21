@@ -64,6 +64,10 @@ export interface OutboundInspection {
   contract_due_date: string | null;
   special_note: string;
   replacement_parts_note: string;
+  /** 보조 메모: 반출일자 특이사항 (날짜 처리 로직과 무관) */
+  outbound_date_note: string;
+  /** 보조 메모: 설치일자 특이사항 (날짜 처리 로직과 무관) */
+  reinstall_date_note: string;
 
   client_pic_name: string;
   client_pic_phone: string;
