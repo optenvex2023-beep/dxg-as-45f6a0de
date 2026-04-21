@@ -13,6 +13,8 @@ import {
   Callout,
 } from "@/components/manuals/ManualPrimitives";
 import dashboardImg from "@/assets/manual-dashboard.png";
+import statusTable1Img from "@/assets/manual-status-table-1.png";
+import statusTable2Img from "@/assets/manual-status-table-2.png";
 
 export default function OutboundManual() {
   return (
@@ -163,31 +165,78 @@ export default function OutboundManual() {
 
       {/* 3. 현황표 */}
       <SectionCard num={3} title="현황표">
-        <p>
-          좌측 메뉴 <b>현황표</b>를 클릭하면 반출점검 목록이 표시됩니다.
-          상단의 검색·필터·정렬 버튼을 사용해 목록을 좁힐 수 있으며, 행을 클릭하면 상세가 열립니다.
-        </p>
-        <MockScreen title="/status-table">
-          <div className="flex items-center gap-2 mb-2">
-            <MockButton variant="outline">검색</MockButton>
-            <MockButton variant="outline">필터</MockButton>
-            <MockButton variant="outline">정렬</MockButton>
-            <ClickPoint label="1" className="ml-1" />
+        <p>좌측 메뉴 <b>현황표</b>를 클릭하면 반출점검 목록이 표시됩니다.</p>
+
+        {/* 조회 */}
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm">- 조회</h3>
+          <ol className="list-decimal pl-5 space-y-2 text-sm leading-relaxed">
+            <li>
+              상단의 필터 기능을 통해 상태별로 조회가 가능합니다. 또한, 세일즈오더 또는 고객지원요청서 구분별로도 조회 가능합니다.
+            </li>
+          </ol>
+          <div className="rounded-md border bg-card p-3">
+            <img src={statusTable1Img} alt="현황표 조회 / 필터 / 등록 화면 예시" className="w-full h-auto rounded" />
           </div>
-          <div className="rounded border">
-            <div className="grid grid-cols-6 text-[11px] bg-muted/40 px-2 py-1 font-medium">
-              <span>관리번호</span><span>프로젝트</span><span>고객사담당</span><span>상태</span><span>예정일</span><span>비고</span>
-            </div>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="grid grid-cols-6 text-[11px] px-2 py-1 border-t">
-                <span>--</span><span>--</span><span>--</span><span>--</span><span>--</span><span>--</span>
-              </div>
-            ))}
+          <ol className="list-decimal pl-5 space-y-2 text-sm leading-relaxed" start={2}>
+            <li>검색은 우상단의 검색 기능을 통해 가능합니다.</li>
+            <li>
+              해당 행을 클릭 시 등록 / 반출일 &amp; 재설치일자 입력 / 입고일 &amp; 1차 점검완료일 &amp; 최종 점검완료일자를 기입할 수 있습니다.
+              <ul className="list-disc pl-5 mt-1">
+                <li>위 액션은 각 부서별로 권한이 부여되어 있으므로 권한 수정이 필요한 경우 관리자에게 연락바랍니다.</li>
+              </ul>
+            </li>
+            <li>해당 행을 더블클릭 시 상세조회가 가능합니다.</li>
+            <li>상세조회 화면에서는 발주처에서 승인한 교체부품 리스트 조회가 가능합니다. (환경영업팀 입력)</li>
+          </ol>
+        </div>
+
+        {/* 등록 */}
+        <div className="space-y-2 pt-2">
+          <h3 className="font-semibold text-sm">- 등록</h3>
+          <div className="rounded-md border bg-card p-3">
+            <img src={statusTable2Img} alt="현황표 등록 / 단계별 입력 액션 예시" className="w-full h-auto rounded" />
           </div>
-        </MockScreen>
-        <Callout>
-          행 클릭 → 상세 패널/팝업 진입. 자동 상태 전환 규칙은 <NeedsConfirm />.
-        </Callout>
+
+          <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
+            <li>
+              <b>공통사항</b>
+              <ul className="list-disc pl-5 mt-1">
+                <li>각 단계별로 일자가 기입되면 이후 담당 부서에 알림이 전송됩니다.</li>
+              </ul>
+            </li>
+            <li>
+              <b>[+등록]</b>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>고객사로부터 요청받은 반출일자, 재설치 요청일자, 세일즈오더 등 기본 정보를 입력하는 화면입니다. (환경영업팀 또는 QC팀에서 입력합니다)</li>
+                <li>요청유형에서 세일즈오더 또는 고객지원요청서 선택이 가능하며, 고객지원요청서는 해당 파일을 첨부 가능합니다.</li>
+                <li>등록 단계에서 반출장비 모델명을 입력 후 1차 점검이 완료되면 해당 장비의 S/N가 현황표에서 매칭됩니다.</li>
+              </ul>
+            </li>
+            <li>
+              <b>[반출예정/반출일 입력]</b>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>고객사의 요청일자를 확인 후 FE팀에서 반출예정일자를 입력합니다.</li>
+                <li>일정이 확정된 경우 FE팀에서 반출일자를 입력합니다.</li>
+              </ul>
+            </li>
+            <li>
+              <b>[입고/점검 입력]</b>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>QC팀에서 입고일자를 입력합니다.</li>
+                <li>제조기술팀에서는 입고된 장비에 대해 1차 점검이 완료되면 '1차 점검 완료일자'를 기입합니다. 이후 [1차 점검보고서] 메뉴에서 점검보고서 작성이 가능합니다.</li>
+                <li>제조기술팀에서 최종 점검이 완료되면 '최종 점검 완료일자'를 기입합니다. 이후 [최종 점검보고서] 메뉴에서 점검보고서 작성이 가능합니다.</li>
+              </ul>
+            </li>
+            <li>
+              <b>[종결]</b>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>재설치일자가 확정으로 표시된 건에 한해 종결처리가 가능합니다.</li>
+                <li>업무가 완료된 경우 [종결] 버튼 클릭 시 하단의 완료된 건으로 이동됩니다.</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
       </SectionCard>
 
       {/* 4. 1차 보고서 */}
