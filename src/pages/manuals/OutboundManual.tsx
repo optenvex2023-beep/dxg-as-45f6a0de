@@ -12,6 +12,7 @@ import {
   ManualPrintStyles,
   Callout,
 } from "@/components/manuals/ManualPrimitives";
+import dashboardImg from "@/assets/manual-dashboard.png";
 
 export default function OutboundManual() {
   return (
@@ -139,19 +140,25 @@ export default function OutboundManual() {
       {/* 2. 대시보드 */}
       <SectionCard num={2} title="대시보드">
         <p>
-          상단에 KPI 카드가 표시됩니다. 각 카드의 정확한 산정 기준은 화면 라벨로만 표기되어 있어
-          본 매뉴얼에서는 명칭만 안내합니다. 의미·집계 규칙은 <NeedsConfirm />.
+          건별 상태에 따라 현황이 집계되어 표시됩니다. 카드의 숫자를 클릭하면 현황표의 해당 PJT로 이동합니다.
         </p>
-        <MockScreen title="/dashboard">
-          <div className="grid grid-cols-3 gap-2">
-            {["미점검", "점검중", "완료", "예정", "지연", "기타"].map((k) => (
-              <div key={k} className="rounded-md border p-3">
-                <div className="text-[11px] text-muted-foreground">{k}</div>
-                <div className="text-lg font-bold">--</div>
-              </div>
-            ))}
-          </div>
-        </MockScreen>
+
+        <div className="rounded-md border bg-card p-3">
+          <img
+            src={dashboardImg}
+            alt="대시보드 KPI 카드 예시"
+            className="w-full h-auto rounded"
+          />
+        </div>
+
+        <ul className="list-disc pl-5 space-y-1.5 text-sm leading-relaxed">
+          <li><b>확인필요</b> : 환경영업팀에서 신규 건 등록한 상태</li>
+          <li><b>반출예정</b> : FE팀에서 반출 예정일자를 기입한 상태</li>
+          <li><b>반출완료</b> : 반출일자가 현재 일자보다 이전인 경우</li>
+          <li><b>점검중</b> : 입고일자가 기입된 경우 또는 1차 점검완료일자가 기입된 경우</li>
+          <li><b>재설치 대기</b> : 최종 점검 완료된 경우</li>
+          <li><b>계약납기 7일전</b> : 계약납기를 입력한 항목에 한해 납기일로부터 7일 이내인 경우</li>
+        </ul>
       </SectionCard>
 
       {/* 3. 현황표 */}
