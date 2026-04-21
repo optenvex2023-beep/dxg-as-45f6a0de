@@ -13,8 +13,8 @@ import {
   Callout,
 } from "@/components/manuals/ManualPrimitives";
 import dashboardImg from "@/assets/manual-dashboard.png";
-import statusTable1Img from "@/assets/manual-status-table-1.png";
-import statusTable2Img from "@/assets/manual-status-table-2.png";
+import statusFilterImg from "@/assets/manual-status-filter.png";
+import statusSearchImg from "@/assets/manual-status-search.png";
 
 export default function OutboundManual() {
   return (
@@ -170,16 +170,19 @@ export default function OutboundManual() {
         {/* 조회 */}
         <div className="space-y-2">
           <h3 className="font-semibold text-sm">- 조회</h3>
-          <ol className="list-decimal pl-5 space-y-2 text-sm leading-relaxed">
+          <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
             <li>
               상단의 필터 기능을 통해 상태별로 조회가 가능합니다. 또한, 세일즈오더 또는 고객지원요청서 구분별로도 조회 가능합니다.
+              <div className="rounded-md border bg-card p-3 mt-2">
+                <img src={statusFilterImg} alt="현황표 상단 필터 (상태/구분/계약납기 7일전/반출 필요/재설치 필요)" className="w-full h-auto rounded" />
+              </div>
             </li>
-          </ol>
-          <div className="rounded-md border bg-card p-3">
-            <img src={statusTable1Img} alt="현황표 조회 / 필터 / 등록 화면 예시" className="w-full h-auto rounded" />
-          </div>
-          <ol className="list-decimal pl-5 space-y-2 text-sm leading-relaxed" start={2}>
-            <li>검색은 우상단의 검색 기능을 통해 가능합니다.</li>
+            <li>
+              검색은 우상단의 검색 기능을 통해 가능합니다.
+              <div className="rounded-md border bg-card p-3 mt-2">
+                <img src={statusSearchImg} alt="현황표 우상단 검색창 (건명 / 관리번호 / Serial No 검색)" className="w-full h-auto rounded" />
+              </div>
+            </li>
             <li>
               해당 행을 클릭 시 등록 / 반출일 &amp; 재설치일자 입력 / 입고일 &amp; 1차 점검완료일 &amp; 최종 점검완료일자를 기입할 수 있습니다.
               <ul className="list-disc pl-5 mt-1">
@@ -194,9 +197,6 @@ export default function OutboundManual() {
         {/* 등록 */}
         <div className="space-y-2 pt-2">
           <h3 className="font-semibold text-sm">- 등록</h3>
-          <div className="rounded-md border bg-card p-3">
-            <img src={statusTable2Img} alt="현황표 등록 / 단계별 입력 액션 예시" className="w-full h-auto rounded" />
-          </div>
 
           <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
             <li>
