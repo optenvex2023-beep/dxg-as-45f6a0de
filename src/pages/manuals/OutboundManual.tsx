@@ -169,7 +169,10 @@ export default function OutboundManual() {
 
         {/* 조회 */}
         <div className="space-y-2">
-          <h3 className="font-semibold text-sm">- 조회</h3>
+          <h3 className="flex items-center gap-2 font-semibold text-sm">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            <span>조회</span>
+          </h3>
           <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
             <li>
               상단의 필터 기능을 통해 상태별로 조회가 가능합니다. 또한, 세일즈오더 또는 고객지원요청서 구분별로도 조회 가능합니다.
