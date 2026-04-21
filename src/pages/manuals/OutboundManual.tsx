@@ -90,9 +90,6 @@ export default function OutboundManual() {
           </ol>
         </div>
 
-        <p className="mt-16 text-center text-[11px] text-muted-foreground">
-          본 매뉴얼은 화면에 보이는 메뉴/버튼/필터/컬럼/팝업만을 기준으로 작성되었습니다.
-        </p>
       </section>
 
       {/* 필독 안내 */}
