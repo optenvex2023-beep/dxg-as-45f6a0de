@@ -21,6 +21,7 @@ import firstReportMfgReviewImg from "@/assets/manual-first-report-mfg-review.png
 import firstReportQaReviewImg from "@/assets/manual-first-report-qa-review.png";
 import firstReportQaDoneImg from "@/assets/manual-first-report-qa-done.png";
 import firstReportDocMgmtImg from "@/assets/manual-first-report-doc-mgmt.png";
+import firstReportCompletedListImg from "@/assets/manual-first-report-completed-list.png";
 
 export default function OutboundManual() {
   return (
@@ -371,6 +372,20 @@ export default function OutboundManual() {
                 className="block w-full max-w-md h-auto rounded"
               />
               <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 문서 관리 (Word 다운로드 / 수정본 업로드)</figcaption>
+            </figure>
+          </li>
+
+          <li>
+            <p>
+              작성완료된 보고서는 하단의 메뉴에서 건별 검색 및 보고서 조회가 가능합니다.
+            </p>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
+              <img
+                src={firstReportCompletedListImg}
+                alt="작성완료된 보고서 리스트 - 건별 검색 및 상세보기"
+                className="block w-full max-w-3xl h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 작성완료된 보고서 리스트 (검색 / 상세보기)</figcaption>
             </figure>
           </li>
         </ol>
