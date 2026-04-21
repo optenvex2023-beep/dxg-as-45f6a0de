@@ -15,6 +15,12 @@ import {
 import dashboardImg from "@/assets/manual-dashboard.png";
 import statusFilterImg from "@/assets/manual-status-filter.png";
 import statusSearchImg from "@/assets/manual-status-search.png";
+import firstReportSelectCaseImg from "@/assets/manual-first-report-select-case.png";
+import firstReportSelectEquipmentImg from "@/assets/manual-first-report-select-equipment.png";
+import firstReportMfgReviewImg from "@/assets/manual-first-report-mfg-review.png";
+import firstReportQaReviewImg from "@/assets/manual-first-report-qa-review.png";
+import firstReportQaDoneImg from "@/assets/manual-first-report-qa-done.png";
+import firstReportDocMgmtImg from "@/assets/manual-first-report-doc-mgmt.png";
 
 export default function OutboundManual() {
   return (
@@ -268,18 +274,106 @@ export default function OutboundManual() {
             "저장",
           ]}
         />
-        <MockScreen title="/first-report">
-          <div className="space-y-2">
-            <div className="h-6 w-1/2 rounded bg-muted" />
-            <div className="h-20 w-full rounded bg-muted" />
-            <div className="flex items-center gap-2">
-              <MockButton variant="outline">사진 첨부</MockButton>
-              <MockButton>저장</MockButton>
-              <ClickPoint label="1" />
+
+        <ol className="list-decimal pl-5 space-y-4 text-sm leading-relaxed">
+          <li>
+            <p>
+              아래 카드에서 1차 점검보고서를 작성할 건명을 선택 가능합니다. 해당 리스트에는 <b>입고완료 이후의 상태 건</b>만 조회됩니다.
+            </p>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
+              <img
+                src={firstReportSelectCaseImg}
+                alt="대상 건 선택 카드 (입고완료 이후 건만 조회)"
+                className="block w-full max-w-md h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 대상 건 선택</figcaption>
+            </figure>
+          </li>
+
+          <li>
+            <p>
+              건명을 선택하면 보고서를 작성할 장비를 선택 가능합니다. 선택 후 <b>[1차 점검보고서 작성]</b>을 클릭합니다.
+            </p>
+            <ul className="list-disc pl-5 mt-1">
+              <li>1개의 장비에 1개의 보고서 생성 가능</li>
+            </ul>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
+              <img
+                src={firstReportSelectEquipmentImg}
+                alt="장비 선택 후 [1차 점검보고서 작성] 클릭"
+                className="block w-full max-w-md h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 장비 선택 및 보고서 작성</figcaption>
+            </figure>
+          </li>
+
+          <li>
+            <p>
+              1차 점검보고서 팝업창이 생성되면 내용 입력 후 하단 <b>[임시저장]</b> 버튼을 클릭합니다. 내용 검토 후 <b>[완료]</b> 버튼을 누르면 작성이 완료됩니다.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              작성완료된 보고서에 대해 하단의 버튼으로 <b>수정</b> 또는 <b>검토완료</b>를 클릭합니다. <b>[제조 검토 완료]</b> 클릭 시 제조기술팀 서명이 보고서 표지에 삽입됩니다.
+            </p>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
+              <img
+                src={firstReportMfgReviewImg}
+                alt="수정 / 제조 검토 완료 버튼"
+                className="block w-auto max-w-md h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 제조 검토 완료 버튼</figcaption>
+            </figure>
+          </li>
+
+          <li>
+            <p>
+              제조 검토가 완료되면 품질팀으로 알림이 전송되며, 품질에서는 하기 버튼으로 보고서 검토 역할을 수행합니다.
+            </p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li><b>품질검토</b> : 검토 내용 저장</li>
+              <li><b>품질본부 검토 완료</b> : 검토 승인, 보고서 표지에 품질팀 서명 삽입</li>
+            </ul>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <figure className="rounded-md border bg-muted/30 p-2 block">
+                <img
+                  src={firstReportQaReviewImg}
+                  alt="품질 검토 버튼"
+                  className="block w-auto max-w-[220px] h-auto rounded"
+                />
+                <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 품질 검토</figcaption>
+              </figure>
+              <figure className="rounded-md border bg-muted/30 p-2 block">
+                <img
+                  src={firstReportQaDoneImg}
+                  alt="품질본부 검토 완료 버튼"
+                  className="block w-auto max-w-[260px] h-auto rounded"
+                />
+                <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 품질본부 검토 완료</figcaption>
+              </figure>
             </div>
-          </div>
-        </MockScreen>
-        <p>서명 적용·검증 규칙 및 필수 항목 정의는 <NeedsConfirm />.</p>
+          </li>
+
+          <li>
+            <p>
+              모든 보고서는 앱 내에서 작성, 저장 및 다운로드가 가능합니다. 또한, 원활한 버전관리를 위해 다운로드 후 변경한 문서를 업로드 가능합니다.
+            </p>
+            <ul className="list-disc pl-5 mt-1">
+              <li>
+                보고서 내 이미지를 삽입한 경우 <b>[Word 다운로드]</b> 시 아래 팝업창이 생성될 수 있으나, ‘확인’ → ‘예’를 클릭하면 정상 다운로드 됩니다.
+              </li>
+            </ul>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 block max-w-full">
+              <img
+                src={firstReportDocMgmtImg}
+                alt="문서 관리 - Word 다운로드 / 수정본 업로드"
+                className="block w-full max-w-md h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 문서 관리 (Word 다운로드 / 수정본 업로드)</figcaption>
+            </figure>
+          </li>
+        </ol>
       </SectionCard>
 
       {/* 5. 완료 보고서 */}
