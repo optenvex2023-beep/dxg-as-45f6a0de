@@ -92,14 +92,6 @@ export default function OutboundManual() {
 
       </section>
 
-      {/* 필독 안내 */}
-      <NoticeBox
-        items={[
-          <><b>1차/완료 점검보고서</b>는 화면 안내 절차에 따라 작성·저장하세요.</>,
-          <>사진/서명 등 화면에서 요구하는 항목이 누락되면 저장이 제한될 수 있습니다.</>,
-        ]}
-      />
-
       {/* 1. 로그인 */}
       <SectionCard num={1} title="로그인">
         <div className="grid md:grid-cols-2 gap-6 items-start">
