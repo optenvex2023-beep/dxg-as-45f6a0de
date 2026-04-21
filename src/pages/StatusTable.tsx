@@ -1363,26 +1363,56 @@ function DetailView({ record, currentUser, onSaveMemo }: {
         )}
       </div>
 
+      {/* 반출일자 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">반출일자 특이사항</p>
+        <Textarea
+          className="text-xs min-h-[70px]"
+          value={outboundDateNote}
+          onChange={(e) => setOutboundDateNote(e.target.value)}
+          disabled={!canEditNotes}
+          placeholder={canEditNotes ? "반출일자 관련 특이사항을 입력하세요" : ""}
+        />
+        {canEditNotes && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "outbound_date_note" || outboundDateNote === (record.outbound_date_note || "")}
+            onClick={() => handleSave("outbound_date_note")}
+          >
+            {savingField === "outbound_date_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
+      </div>
+
+      {/* 설치일자 특이사항 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">설치일자 특이사항</p>
+        <Textarea
+          className="text-xs min-h-[70px]"
+          value={reinstallDateNote}
+          onChange={(e) => setReinstallDateNote(e.target.value)}
+          disabled={!canEditNotes}
+          placeholder={canEditNotes ? "설치일자 관련 특이사항을 입력하세요" : ""}
+        />
+        {canEditNotes && (
+          <Button
+            size="sm"
+            className="text-xs"
+            disabled={savingField === "reinstall_date_note" || reinstallDateNote === (record.reinstall_date_note || "")}
+            onClick={() => handleSave("reinstall_date_note")}
+          >
+            {savingField === "reinstall_date_note" ? "저장 중..." : "저장"}
+          </Button>
+        )}
+      </div>
+
       {/* 특이사항 */}
       <div className="rounded-lg border p-3 space-y-2">
         <p className="text-xs font-semibold text-foreground">특이사항</p>
         <Textarea
-          className="text-xs min-h-[80px]"
-          value={specialNote}
-          onChange={(e) => setSpecialNote(e.target.value)}
-          disabled={!canEditSpecial}
-          placeholder={canEditSpecial ? "특이사항을 입력하세요" : ""}
+          기존 특이사항 영역 유지
         />
-        {canEditSpecial && (
-          <Button
-            size="sm"
-            className="text-xs"
-            disabled={savingField === "special_note" || specialNote === (record.special_note || "")}
-            onClick={() => handleSave("special_note")}
-          >
-            {savingField === "special_note" ? "저장 중..." : "저장"}
-          </Button>
-        )}
       </div>
     </div>
   );
