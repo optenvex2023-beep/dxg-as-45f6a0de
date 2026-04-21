@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileDown, ChevronLeft } from "lucide-react";
+import { FileDown, ChevronLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   MockScreen,
@@ -37,12 +37,46 @@ export default function CalGasManual() {
         </Button>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold">교정가스 사용자 매뉴얼</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      {/* 표지 */}
+      <section className="manual-cover bg-card rounded-lg border px-8 py-16 md:py-24">
+        <div className="flex flex-col items-center text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10">
+            <BookOpen className="h-10 w-10 text-primary" strokeWidth={1.5} />
+          </div>
+          <h1 className="mt-8 text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            DXG 교정가스 사용자 매뉴얼
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            교정가스 담당자용
+          </p>
+        </div>
+
+        <div className="mt-16 max-w-xs">
+          <h2 className="text-sm font-bold text-foreground border-b border-border pb-2 mb-4">목차</h2>
+          <ol className="space-y-3 text-sm">
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">1</span>
+              <span>현황표</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">2</span>
+              <span>이력관리</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">3</span>
+              <span>알림센터</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium">4</span>
+              <span>엑셀 다운로드</span>
+            </li>
+          </ol>
+        </div>
+
+        <p className="mt-16 text-center text-[11px] text-muted-foreground">
           본 매뉴얼은 화면에 보이는 메뉴/버튼/필터/컬럼/팝업만을 기준으로 작성되었습니다.
         </p>
-      </div>
+      </section>
 
       <NoticeBox
         items={[
