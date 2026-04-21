@@ -1274,8 +1274,10 @@ function DetailView({ record, currentUser, onSaveMemo }: {
     setReinstallDateNote(record.reinstall_date_note || "");
   }, [record.id, record.replacement_parts_note, record.special_note, record.outbound_date_note, record.reinstall_date_note]);
 
-  const handleSave = async (field: "replacement_parts_note" | "special_note") => {
-    const value = field === "replacement_parts_note" ? replacementNote : specialNote;
+  const handleSave = async (field: "replacement_parts_note" | "special_note" | "outbound_date_note" | "reinstall_date_note") => {
+    const value = field === "replacement_parts_note" ? replacementNote : 
+                  field === "special_note" ? specialNote :
+                  field === "outbound_date_note" ? outboundDateNote : reinstallDateNote;
     setSavingField(field);
     try {
       await onSaveMemo(record.id, field, value);
