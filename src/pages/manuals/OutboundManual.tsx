@@ -402,21 +402,35 @@ export default function OutboundManual() {
 
       {/* 6. 알림센터 */}
       <SectionCard num={6} title="알림센터">
-        <p>
-          상단 종 아이콘 또는 좌측 메뉴 <b>알림센터</b>에서 새 알림을 확인합니다.
-          알림 항목을 클릭하면 관련 화면으로 이동합니다.
-        </p>
-        <MockScreen title="/notifications">
-          <ul className="divide-y">
-            {[1, 2, 3].map((i) => (
-              <li key={i} className="flex items-center justify-between py-2 text-xs">
-                <span>알림 제목 #{i}</span>
-                <MockButton variant="ghost">읽음</MockButton>
-              </li>
-            ))}
-          </ul>
-        </MockScreen>
-        <p>알림 발송 트리거의 정확한 조건은 <NeedsConfirm />.</p>
+        <ul className="list-disc pl-5 space-y-4 text-sm leading-relaxed">
+          <li>
+            <p>
+              우상단 종 아이콘 또는 좌측 메뉴 <b>알림센터</b>에서 새 알림을 확인합니다.
+            </p>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 inline-block">
+              <img
+                src={notificationMenuImg}
+                alt="좌측 메뉴 - 알림센터"
+                className="block w-auto max-w-[180px] h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 좌측 메뉴 알림센터</figcaption>
+            </figure>
+          </li>
+
+          <li>
+            <p>
+              담당자 별로 해당 업무에 대해 알림이 발송됩니다. <b>전체보기</b> 클릭 또는 좌측 <b>알림센터</b> 메뉴를 통해 알림에 대해 상세확인이 가능합니다.
+            </p>
+            <figure className="mt-2 rounded-md border bg-muted/30 p-2 inline-block">
+              <img
+                src={notificationPopoverImg}
+                alt="우상단 종 아이콘 알림 팝업 - 전체보기"
+                className="block w-auto max-w-[260px] h-auto rounded"
+              />
+              <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 종 아이콘 알림 팝업 (전체보기)</figcaption>
+            </figure>
+          </li>
+        </ul>
       </SectionCard>
     </div>
   );
