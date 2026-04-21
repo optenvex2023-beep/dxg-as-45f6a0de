@@ -12,6 +12,7 @@ import {
   ManualPrintStyles,
   Callout,
 } from "@/components/manuals/ManualPrimitives";
+import dashboardImg from "@/assets/manual-dashboard.png";
 
 export default function OutboundManual() {
   return (
