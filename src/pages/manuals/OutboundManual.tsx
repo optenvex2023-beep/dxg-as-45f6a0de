@@ -247,7 +247,18 @@ export default function OutboundManual() {
               </figure>
             </li>
             <li>
-              해당 행을 클릭 시 등록 / 반출일 &amp; 재설치일자 입력 / 입고일 &amp; 1차 점검완료일 &amp; 최종 점검완료일자를 기입할 수 있습니다.
+              해당 행을 클릭 시{" "}
+              <span className="inline-flex items-center gap-1 align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                등록
+              </span>,{" "}
+              <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                반출예정/반출일 입력
+              </span>,{" "}
+              <span className="inline-flex items-center align-middle px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-medium shadow-sm">
+                입고/점검 입력
+              </span>{" "}
+              버튼이 활성화됩니다.
               <ul className="list-disc pl-5 mt-1">
                 <li>위 액션은 각 부서별로 권한이 부여되어 있으므로 권한 수정이 필요한 경우 관리자에게 연락바랍니다.</li>
               </ul>
