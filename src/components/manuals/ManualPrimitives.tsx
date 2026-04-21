@@ -243,8 +243,23 @@ export function ManualPrintStyles() {
           page-break-inside: avoid;
         }
 
-        /* 이미지는 페이지 폭을 넘지 않도록 */
-        img { max-width: 100% !important; height: auto !important; break-inside: avoid; page-break-inside: avoid; }
+        /* 이미지는 페이지 폭을 넘지 않도록 + 강제 표시 (lazy/hidden 방지) */
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+          display: inline-block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        /* 블록형 매뉴얼 스크린샷(li 내부 mt-3 div의 img)은 block 처리 */
+        .manual-section li > div > img,
+        .manual-section li img.rounded-lg {
+          display: block !important;
+        }
+        /* 이미지 컨테이너가 0 높이로 접히지 않도록 */
+        .manual-section li > div { min-height: 1px; }
 
         /* 색상/배경 충실 출력 */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
