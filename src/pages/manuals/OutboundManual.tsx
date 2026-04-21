@@ -176,15 +176,25 @@ export default function OutboundManual() {
           <ol className="list-decimal pl-5 space-y-3 text-sm leading-relaxed">
             <li>
               상단의 필터 기능을 통해 상태별로 조회가 가능합니다. 또한, 세일즈오더 또는 고객지원요청서 구분별로도 조회 가능합니다.
-              <div className="rounded-md border bg-card p-3 mt-2">
-                <img src={statusFilterImg} alt="현황표 상단 필터 (상태/구분/계약납기 7일전/반출 필요/재설치 필요)" className="w-full h-auto rounded" />
-              </div>
+              <figure className="mt-2 rounded-md border bg-muted/30 p-2 inline-block max-w-full">
+                <img
+                  src={statusFilterImg}
+                  alt="현황표 상단 필터 (상태/구분/계약납기 7일전/반출 필요/재설치 필요)"
+                  className="block h-9 w-auto max-w-full rounded"
+                />
+                <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 현황표 상단 필터 영역</figcaption>
+              </figure>
             </li>
             <li>
               검색은 우상단의 검색 기능을 통해 가능합니다.
-              <div className="rounded-md border bg-card p-3 mt-2">
-                <img src={statusSearchImg} alt="현황표 우상단 검색창 (건명 / 관리번호 / Serial No 검색)" className="w-full h-auto rounded" />
-              </div>
+              <figure className="mt-2 rounded-md border bg-muted/30 p-2 inline-block max-w-full">
+                <img
+                  src={statusSearchImg}
+                  alt="현황표 우상단 검색창 (건명 / 관리번호 / Serial No 검색)"
+                  className="block h-9 w-auto max-w-full rounded"
+                />
+                <figcaption className="mt-1 text-[11px] text-muted-foreground">▲ 현황표 우상단 검색창</figcaption>
+              </figure>
             </li>
             <li>
               해당 행을 클릭 시 등록 / 반출일 &amp; 재설치일자 입력 / 입고일 &amp; 1차 점검완료일 &amp; 최종 점검완료일자를 기입할 수 있습니다.
