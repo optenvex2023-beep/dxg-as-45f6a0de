@@ -1287,9 +1287,9 @@ function DetailView({ record, currentUser, onSaveMemo }: {
   };
 
   const fieldRow = (label: string, value: string, highlight?: boolean) => (
-    <div className={cn("flex items-center border-b border-border/40 py-2", highlight && "bg-primary/5")}>
-      <span className="w-[90px] shrink-0 text-[11px] font-medium text-muted-foreground pl-1">{label}</span>
-      <span className="text-xs text-foreground flex-1 whitespace-nowrap">{value}</span>
+    <div className={cn("flex items-start border-b border-border/40 py-2", highlight && "bg-primary/5")}>
+      <span className="w-[90px] shrink-0 text-[11px] font-medium text-muted-foreground pl-1 pt-0.5">{label}</span>
+      <span className="text-xs text-foreground flex-1 break-all leading-relaxed">{value}</span>
     </div>
   );
 
