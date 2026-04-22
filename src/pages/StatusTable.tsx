@@ -58,7 +58,7 @@ const statusTableColumns = [
   { key: "status", label: "현황", width: 80 },
   { key: "created_at", label: "등록일자", width: 100 },
   { key: "manage_no", label: "관리번호", width: 100 },
-  { key: "project_name", label: "건명", width: 160 },
+  { key: "project_name", label: "건명", width: 220 },
   { key: "equipment", label: "반출장비", width: 180 },
   { key: "parts_approval", label: "교체부품 승인", width: 90 },
   { key: "outbound_request", label: "반출요청일자", width: 120 },
@@ -460,7 +460,7 @@ export default function StatusTable() {
                   </td>
                   <td className="p-4 align-middle text-[11px] text-muted-foreground/70">{rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '') : "—"}</td>
                   <td className="p-4 align-middle text-xs">{rec.manage_no}</td>
-                  <td className="p-4 align-middle text-xs truncate">{rec.project_name}</td>
+                  <td className="p-4 align-middle text-xs whitespace-normal break-words leading-relaxed">{rec.project_name}</td>
                   <td className="p-4 align-middle text-xs">
                     {rec.equipment_items.length > 0 ? (
                       <div className="space-y-0.5">
