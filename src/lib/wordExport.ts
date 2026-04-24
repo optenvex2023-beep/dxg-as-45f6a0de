@@ -639,8 +639,9 @@ export async function exportReportToWord(
       if (tagName && (tagName.includes("SIGNATURE") || tagName.includes("MFG_SIGNATURE"))) {
         return SIGNATURE_IMAGE_SIZE_PX;
       }
-      // Photo images: larger size to fill photo cells
-      return [200, 150];
+      // Photo images: enlarged to fill photo cells with minimal padding
+      // Aspect ratio (4:3) preserved; Word will scale within the cell.
+      return [280, 210];
     },
   });
 
