@@ -977,7 +977,7 @@ function TemplateBody({
           <thead>
             <tr>
               <th className={thCls}>전압</th>
-              <th className={thCls}>측정가스</th>
+              <th className={thCls}>측정항목</th>
               <th className={thCls}>설치 구분</th>
             </tr>
           </thead>
