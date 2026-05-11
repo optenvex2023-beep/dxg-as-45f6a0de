@@ -1449,7 +1449,7 @@ function TemplateBody({
                     <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
                       {photo ? (
                         <div className="relative group border rounded overflow-hidden">
-                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || displayTitle} className="w-full h-40 object-contain bg-muted/30" />
+                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || displayTitle} className="w-full h-40 object-contain bg-muted/30 cursor-zoom-in" onClick={() => setLightboxUrl(resolvePhotoUrl(photo.file_url))} />
                           {!ro && (
                             <button
                               onClick={() => removePhoto(photo.id)}
