@@ -49,7 +49,7 @@ export default function FirstReport() {
   const {
     inspections, currentUser, reports,
     getReportsForInspection, addReport, updateReport, completeReport,
-    requestApproval, approveReport, addReportVersion, getReportVersions,
+    requestApproval, approveReport, addReportVersion, getReportVersions, deleteReportVersion,
   } = useApp();
 
   const [selectedInspectionId, setSelectedInspectionId] = useState("");
