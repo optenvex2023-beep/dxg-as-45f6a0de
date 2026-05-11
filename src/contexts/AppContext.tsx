@@ -35,6 +35,7 @@ interface AppState {
   approveReport: (reportId: string, approverName: string) => void;
   addReportVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<ReportVersion>;
   getReportVersions: (reportId: string) => ReportVersion[];
+  deleteReportVersion: (versionId: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   logout: () => void;
