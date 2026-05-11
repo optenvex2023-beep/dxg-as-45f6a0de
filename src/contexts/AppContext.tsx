@@ -8,7 +8,7 @@ import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
   fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
   fetchReports, insertReport as insertReportDb, updateReportDb,
-  fetchReportVersions, insertReportVersion as insertReportVersionDb,
+  fetchReportVersions, insertReportVersion as insertReportVersionDb, deleteReportVersion as deleteReportVersionDb,
   fetchInAppNotifications, insertInAppNotifications, updateNotificationRead, markAllNotificationsReadDb,
 } from "@/lib/supabaseDb";
 
