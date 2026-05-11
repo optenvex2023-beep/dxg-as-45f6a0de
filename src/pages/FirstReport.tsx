@@ -1166,63 +1166,105 @@ function TemplateBody({
         <h3 className="text-sm font-bold mb-2">Ⅳ. 기타 특이사항 (세부 설명)</h3>
         <table className="w-full border-collapse">
           <thead>
-            <tr><th className={thCls} colSpan={2}>기타 특이사항 (세부 설명)</th></tr>
+            <tr><th className={thCls} colSpan={ro ? 2 : 3}>기타 특이사항 (세부 설명)</th></tr>
           </thead>
           <tbody>
             <tr>
-              <td className={cn(thCls, "w-1/3")}>Main Control CPU Board</td>
+              <LabelCell fieldKey="main_control_cpu" defaultLabel="Main Control CPU Board" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), main_control_cpu: v } })} ro={ro} className="w-1/3" />
               <td className={tdCls}>
                 <EditableTextarea value={data.main_control_cpu} onChange={v => upd({ main_control_cpu: v })} disabled={ro} rows={2} />
               </td>
+              {!ro && <td className={cn(tdCls, "w-10")}></td>}
             </tr>
             <tr>
-              <td className={thCls}>광학부품 (윈도우, 볼록렌즈)</td>
+              <LabelCell fieldKey="optics_window_lens" defaultLabel="광학부품 (윈도우, 볼록렌즈)" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), optics_window_lens: v } })} ro={ro} />
               <td className={tdCls}>
                 <EditableTextarea value={data.optics_window_lens} onChange={v => upd({ optics_window_lens: v })} disabled={ro} rows={2} />
               </td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>광학부품 (Beam Splitter)</td>
+              <LabelCell fieldKey="beam_splitter" defaultLabel="광학부품 (Beam Splitter)" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), beam_splitter: v } })} ro={ro} />
               <td className={tdCls}>
                 <div className="text-xs mb-1">오염 상태:</div>
                 <EditableText value={data.beam_splitter_contamination} onChange={v => upd({ beam_splitter_contamination: v })} disabled={ro} />
                 <div className="text-xs mt-1 mb-1">점검결과:</div>
                 <EditableTextarea value={data.beam_splitter_result} onChange={v => upd({ beam_splitter_result: v })} disabled={ro} rows={2} />
               </td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>Spectrometer 형상/신호 상태</td>
+              <LabelCell fieldKey="spectrometer" defaultLabel="Spectrometer 형상/신호 상태" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), spectrometer: v } })} ro={ro} />
               <td className={tdCls}>
                 <div className="text-xs mb-1">상태:</div>
                 <EditableText value={data.spectrometer_status} onChange={v => upd({ spectrometer_status: v })} disabled={ro} />
                 <div className="text-xs mt-1 mb-1">점검결과:</div>
                 <EditableTextarea value={data.spectrometer_result} onChange={v => upd({ spectrometer_result: v })} disabled={ro} rows={2} />
               </td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>UV Lamp</td>
+              <LabelCell fieldKey="uv_lamp" defaultLabel="UV Lamp" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), uv_lamp: v } })} ro={ro} />
               <td className={tdCls}><EditableTextarea value={data.uv_lamp_note} onChange={v => upd({ uv_lamp_note: v })} disabled={ro} rows={2} /></td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>냉각 팬</td>
+              <LabelCell fieldKey="cooling_fan" defaultLabel="냉각 팬" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), cooling_fan: v } })} ro={ro} />
               <td className={tdCls}>
                 <span className="text-xs">동작 상태: </span>
                 <EditableText value={data.cooling_fan_status} onChange={v => upd({ cooling_fan_status: v })} disabled={ro} />
               </td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>5V, 12V, 24V SMPS</td>
+              <LabelCell fieldKey="smps" defaultLabel="5V, 12V, 24V SMPS" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), smps: v } })} ro={ro} />
               <td className={tdCls}><EditableTextarea value={data.smps_note} onChange={v => upd({ smps_note: v })} disabled={ro} rows={2} /></td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
             <tr>
-              <td className={thCls}>배선 결선 상태</td>
+              <LabelCell fieldKey="wiring" defaultLabel="배선 결선 상태" overrides={data.detail_label_overrides} onChange={(v) => upd({ detail_label_overrides: { ...(data.detail_label_overrides || {}), wiring: v } })} ro={ro} />
               <td className={tdCls}>
                 <span className="text-xs">단락, 단선, 연결상태: </span>
                 <EditableText value={data.wiring_status} onChange={v => upd({ wiring_status: v })} disabled={ro} />
               </td>
+              {!ro && <td className={tdCls}></td>}
             </tr>
+            {(data.detail_extra_rows || []).map((row, idx) => (
+              <tr key={row.id}>
+                <td className={cn(thCls, "w-1/3")}>
+                  {ro ? (
+                    <span className="text-xs">{row.label || "—"}</span>
+                  ) : (
+                    <Input className="h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent font-semibold" value={row.label} placeholder="항목명" onChange={(e) => {
+                      const rows = [...(data.detail_extra_rows || [])];
+                      rows[idx] = { ...rows[idx], label: e.target.value };
+                      upd({ detail_extra_rows: rows });
+                    }} />
+                  )}
+                </td>
+                <td className={tdCls}>
+                  <EditableTextarea value={row.value} onChange={(v) => {
+                    const rows = [...(data.detail_extra_rows || [])];
+                    rows[idx] = { ...rows[idx], value: v };
+                    upd({ detail_extra_rows: rows });
+                  }} disabled={ro} rows={2} />
+                </td>
+                {!ro && (
+                  <td className={cn(tdCls, "w-10 text-center")}>
+                    <button onClick={() => upd({ detail_extra_rows: (data.detail_extra_rows || []).filter((_, i) => i !== idx) })} className="text-destructive hover:text-destructive/80" aria-label="행 삭제">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
+        {!ro && (
+          <Button type="button" variant="outline" size="sm" className="mt-2 gap-1" onClick={() => upd({ detail_extra_rows: [...(data.detail_extra_rows || []), { id: crypto.randomUUID(), label: "", value: "" }] })}>
+            <Plus className="h-3 w-3" /> 행 추가
+          </Button>
+        )}
       </div>
 
       {/* Probe section */}
@@ -1230,14 +1272,56 @@ function TemplateBody({
         <h3 className="text-sm font-bold mb-2">프로브 점검</h3>
         <table className="w-full border-collapse">
           <tbody>
-            <tr><td className={thCls} style={{ width: "30%" }}>외관 상태</td><td className={tdCls}><EditableText value={data.probe_exterior} onChange={v => upd({ probe_exterior: v })} disabled={ro} /></td></tr>
-            <tr><td className={thCls}>온도센서</td><td className={tdCls}><EditableText value={data.probe_temp_sensor} onChange={v => upd({ probe_temp_sensor: v })} disabled={ro} /></td></tr>
-            <tr><td className={thCls}>코너 큐브 미러</td><td className={tdCls}><EditableText value={data.probe_corner_mirror} onChange={v => upd({ probe_corner_mirror: v })} disabled={ro} /></td></tr>
-            <tr><td className={thCls}>프로브 길이</td><td className={tdCls}><EditableText value={data.probe_length} onChange={v => upd({ probe_length: v })} disabled={ro} placeholder="mm" /></td></tr>
-            <tr><td className={thCls}>측정구간</td><td className={tdCls}><EditableText value={data.probe_measure_section} onChange={v => upd({ probe_measure_section: v })} disabled={ro} /></td></tr>
-            <tr><td className={thCls}>가스방향</td><td className={tdCls}><EditableText value={data.probe_gas_direction} onChange={v => upd({ probe_gas_direction: v })} disabled={ro} /></td></tr>
+            {[
+              { fieldKey: "probe_exterior", defaultLabel: "외관 상태", value: data.probe_exterior, set: (v: string) => upd({ probe_exterior: v }) },
+              { fieldKey: "probe_temp_sensor", defaultLabel: "온도센서", value: data.probe_temp_sensor, set: (v: string) => upd({ probe_temp_sensor: v }) },
+              { fieldKey: "probe_corner_mirror", defaultLabel: "코너 큐브 미러", value: data.probe_corner_mirror, set: (v: string) => upd({ probe_corner_mirror: v }) },
+              { fieldKey: "probe_length", defaultLabel: "프로브 길이", value: data.probe_length, set: (v: string) => upd({ probe_length: v }), placeholder: "mm" },
+              { fieldKey: "probe_measure_section", defaultLabel: "측정구간", value: data.probe_measure_section, set: (v: string) => upd({ probe_measure_section: v }) },
+              { fieldKey: "probe_gas_direction", defaultLabel: "가스방향", value: data.probe_gas_direction, set: (v: string) => upd({ probe_gas_direction: v }) },
+            ].map((r) => (
+              <tr key={r.fieldKey}>
+                <LabelCell fieldKey={r.fieldKey} defaultLabel={r.defaultLabel} overrides={data.probe_label_overrides} onChange={(v) => upd({ probe_label_overrides: { ...(data.probe_label_overrides || {}), [r.fieldKey]: v } })} ro={ro} className="w-[30%]" />
+                <td className={tdCls}><EditableText value={r.value} onChange={r.set} disabled={ro} placeholder={(r as any).placeholder} /></td>
+                {!ro && <td className={cn(tdCls, "w-10")}></td>}
+              </tr>
+            ))}
+            {(data.probe_extra_rows || []).map((row, idx) => (
+              <tr key={row.id}>
+                <td className={cn(thCls, "w-[30%]")}>
+                  {ro ? (
+                    <span className="text-xs">{row.label || "—"}</span>
+                  ) : (
+                    <Input className="h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent font-semibold" value={row.label} placeholder="항목명" onChange={(e) => {
+                      const rows = [...(data.probe_extra_rows || [])];
+                      rows[idx] = { ...rows[idx], label: e.target.value };
+                      upd({ probe_extra_rows: rows });
+                    }} />
+                  )}
+                </td>
+                <td className={tdCls}>
+                  <EditableText value={row.value} onChange={(v) => {
+                    const rows = [...(data.probe_extra_rows || [])];
+                    rows[idx] = { ...rows[idx], value: v };
+                    upd({ probe_extra_rows: rows });
+                  }} disabled={ro} />
+                </td>
+                {!ro && (
+                  <td className={cn(tdCls, "w-10 text-center")}>
+                    <button onClick={() => upd({ probe_extra_rows: (data.probe_extra_rows || []).filter((_, i) => i !== idx) })} className="text-destructive hover:text-destructive/80" aria-label="행 삭제">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
+        {!ro && (
+          <Button type="button" variant="outline" size="sm" className="mt-2 gap-1" onClick={() => upd({ probe_extra_rows: [...(data.probe_extra_rows || []), { id: crypto.randomUUID(), label: "", value: "" }] })}>
+            <Plus className="h-3 w-3" /> 행 추가
+          </Button>
+        )}
       </div>
 
       {/* Summary */}
@@ -1245,26 +1329,83 @@ function TemplateBody({
         <h3 className="text-sm font-bold mb-2">점검 사항 요약</h3>
         <table className="w-full border-collapse">
           <thead>
-            <tr><th className={thCls} colSpan={3}>점검 사항 요약</th></tr>
+            <tr><th className={thCls} colSpan={ro ? 3 : 4}>점검 사항 요약</th></tr>
           </thead>
           <tbody>
-            {["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"].map((label, idx) => (
-              <tr key={idx}>
-                <td className={cn(thCls, "w-8 text-center")}>{idx + 1}</td>
-                <td className={cn(thCls, "w-1/3")}>{label}</td>
-                <td className={tdCls}>
-                  <EditableTextarea value={data.summary_items[idx] || ""} onChange={v => updateSummary(idx, v)} disabled={ro} rows={2} />
-                </td>
-              </tr>
-            ))}
+            {(() => {
+              const defaults = ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
+              const labels = data.summary_labels && data.summary_labels.length >= defaults.length
+                ? data.summary_labels
+                : [...defaults, ...((data.summary_labels || []).slice(defaults.length))];
+              const total = Math.max(labels.length, data.summary_items.length, defaults.length);
+              const rows = [];
+              for (let idx = 0; idx < total; idx++) {
+                const labelDefault = idx < defaults.length ? defaults[idx] : "";
+                const currentLabel = data.summary_labels?.[idx] ?? labelDefault;
+                rows.push(
+                  <tr key={idx}>
+                    <td className={cn(thCls, "w-8 text-center")}>{idx + 1}</td>
+                    <td className={cn(thCls, "w-1/3")}>
+                      {ro ? (
+                        <span className="text-xs">{currentLabel || "—"}</span>
+                      ) : (
+                        <Input className="h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent font-semibold" value={currentLabel} placeholder="항목명" onChange={(e) => {
+                          const arr = [...(data.summary_labels || defaults.slice())];
+                          while (arr.length <= idx) arr.push(idx < defaults.length ? defaults[arr.length] : "");
+                          arr[idx] = e.target.value;
+                          upd({ summary_labels: arr });
+                        }} />
+                      )}
+                    </td>
+                    <td className={tdCls}>
+                      <EditableTextarea value={data.summary_items[idx] || ""} onChange={v => updateSummary(idx, v)} disabled={ro} rows={2} />
+                    </td>
+                    {!ro && (
+                      <td className={cn(tdCls, "w-10 text-center")}>
+                        {idx >= defaults.length && (
+                          <button onClick={() => {
+                            const items = data.summary_items.filter((_, i) => i !== idx);
+                            const lbls = (data.summary_labels || defaults.slice()).filter((_, i) => i !== idx);
+                            upd({ summary_items: items, summary_labels: lbls });
+                          }} className="text-destructive hover:text-destructive/80" aria-label="행 삭제">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
+        {!ro && (
+          <Button type="button" variant="outline" size="sm" className="mt-2 gap-1" onClick={() => {
+            const defaults = ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
+            const lbls = [...(data.summary_labels && data.summary_labels.length ? data.summary_labels : defaults.slice()), ""];
+            const items = [...data.summary_items, ""];
+            upd({ summary_labels: lbls, summary_items: items });
+          }}>
+            <Plus className="h-3 w-3" /> 행 추가
+          </Button>
+        )}
       </div>
 
       {/* ═══ PAGES 6-12: Photo Sections (2-column layout) ═══ */}
       <div className="space-y-6">
-        <h3 className="text-sm font-bold">사진 첨부</h3>
-        {PHOTO_SLOTS.map(slot => {
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold">사진 첨부</h3>
+          {!ro && (
+            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => upd({ photo_extra_slots: [...(data.photo_extra_slots || []), { key: `extra_${crypto.randomUUID()}`, title: "" }] })}>
+              <Plus className="h-3 w-3" /> 사진 항목 추가
+            </Button>
+          )}
+        </div>
+        {[...PHOTO_SLOTS, ...((data.photo_extra_slots || []).map(s => ({ key: s.key, title: s.title })))].map((slot, slotIdx) => {
+          const isExtra = slotIdx >= PHOTO_SLOTS.length;
+          const overrideTitle = data.photo_slot_label_overrides?.[slot.key];
+          const displayTitle = isExtra ? slot.title : (overrideTitle ?? slot.title);
           const slotPhotos = (data.photos || []).filter(p => p.page_slot === slot.key);
           // Group photos into rows of 2
           const photoRows: Array<[ReportPhoto | null, ReportPhoto | null]> = [];
@@ -1273,7 +1414,34 @@ function TemplateBody({
           }
           return (
             <div key={slot.key} className="rounded-lg border bg-card p-4 space-y-3">
-              <p className="text-xs font-semibold">{slot.title}</p>
+              <div className="flex items-center gap-2">
+                {ro ? (
+                  <p className="text-xs font-semibold flex-1">{displayTitle}</p>
+                ) : (
+                  <Input
+                    className="h-7 text-xs font-semibold border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent flex-1"
+                    value={displayTitle}
+                    placeholder="제목"
+                    onChange={(e) => {
+                      if (isExtra) {
+                        const slots = (data.photo_extra_slots || []).map(s => s.key === slot.key ? { ...s, title: e.target.value } : s);
+                        upd({ photo_extra_slots: slots });
+                      } else {
+                        upd({ photo_slot_label_overrides: { ...(data.photo_slot_label_overrides || {}), [slot.key]: e.target.value } });
+                      }
+                    }}
+                  />
+                )}
+                {!ro && isExtra && (
+                  <button onClick={() => {
+                    const slots = (data.photo_extra_slots || []).filter(s => s.key !== slot.key);
+                    const photos = (data.photos || []).filter(p => p.page_slot !== slot.key);
+                    upd({ photo_extra_slots: slots, photos });
+                  }} className="text-destructive hover:text-destructive/80" aria-label="항목 삭제">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
               {/* 2-column grid rows */}
               {photoRows.map((row, rowIdx) => (
                 <div key={rowIdx} className="grid grid-cols-2 gap-3">
@@ -1281,7 +1449,7 @@ function TemplateBody({
                     <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
                       {photo ? (
                         <div className="relative group border rounded overflow-hidden">
-                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || slot.title} className="w-full h-40 object-cover" />
+                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || displayTitle} className="w-full h-40 object-cover" />
                           {!ro && (
                             <button
                               onClick={() => removePhoto(photo.id)}
