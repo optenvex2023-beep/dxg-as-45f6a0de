@@ -24,17 +24,42 @@ function chk(val: boolean): boolean {
   return val;
 }
 
-/* ─── Fetch image as base64 ─── */
+/* ─── Fetch image as base64 (with EXIF orientation applied) ─── */
+async function arrayBufferToBase64(buf: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(binary);
+}
+
+async function normalizeImageOrientation(blob: Blob): Promise<string> {
+  // Use createImageBitmap to honor EXIF orientation, then re-encode via canvas.
+  try {
+    const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" } as any);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no ctx");
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close?.();
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    return dataUrl.split(",")[1] || "";
+  } catch {
+    // Fallback: return original bytes as base64
+    const buf = await blob.arrayBuffer();
+    return arrayBufferToBase64(buf);
+  }
+}
+
 async function fetchImageBase64(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) return "";
-  const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
+  const blob = await res.blob();
+  return normalizeImageOrientation(blob);
 }
 
 /* ─── Rewrite template XML to convert {{IMAGE_TAG}} to {%IMAGE_TAG} ─── */
