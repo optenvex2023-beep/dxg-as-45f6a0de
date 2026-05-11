@@ -1011,13 +1011,18 @@ function TemplateBody({
               <th className={thCls} style={{ width: "20%" }}>점검 결과</th>
               <th className={thCls} style={{ width: "25%" }}>점검 내용</th>
               <th className={thCls} style={{ width: "25%" }}>점검 결과</th>
+              {!ro && <th className={thCls} style={{ width: "40px" }}></th>}
             </tr>
           </thead>
           <tbody>
             {data.check_items.map((item, idx) => (
               <tr key={idx}>
-                <td className={cn(tdCls, "font-medium")}>{item.category}</td>
-                <td className={tdCls}>{item.item}</td>
+                <td className={cn(tdCls, "font-medium")}>
+                  <EditableText value={item.category} onChange={v => updateCheckItem(idx, "category", v)} disabled={ro} />
+                </td>
+                <td className={tdCls}>
+                  <EditableText value={item.item} onChange={v => updateCheckItem(idx, "item", v)} disabled={ro} />
+                </td>
                 <td className={tdCls}>
                   <div className="flex gap-3">
                     <label className="flex items-center gap-1 text-xs cursor-pointer">
