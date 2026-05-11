@@ -6,7 +6,7 @@ import { createNotificationsForDepts } from "@/lib/notificationHelper";
 import { isExcludedFromDue7 } from "@/lib/inspectionFilters";
 import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
-  fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
+  fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb, deleteInspectionDb,
   fetchReports, insertReport as insertReportDb, updateReportDb,
   fetchReportVersions, insertReportVersion as insertReportVersionDb, deleteReportVersion as deleteReportVersionDb,
   fetchInAppNotifications, insertInAppNotifications, updateNotificationRead, markAllNotificationsReadDb,
