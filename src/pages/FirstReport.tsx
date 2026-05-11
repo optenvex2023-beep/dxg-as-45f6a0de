@@ -1526,6 +1526,12 @@ function TemplateBody({
         <p>반출장비: {equipment.equipment_name} | 수량: {equipment.qty_set} set</p>
         <p>점검자: {inspectorName} | 작성일: {createdDate}</p>
       </div>
+      </div>
+      <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 w-fit">
+          {lightboxUrl && <img src={lightboxUrl} alt="원본 사진" className="max-w-[90vw] max-h-[85vh] object-contain" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
