@@ -1029,7 +1029,7 @@ function TemplateBody({
           <thead>
             <tr>
               <th className={thCls}>전압</th>
-              <th className={thCls}>측정가스</th>
+              <th className={thCls}>측정항목</th>
               <th className={thCls}>설치 구분</th>
             </tr>
           </thead>
@@ -1063,13 +1063,18 @@ function TemplateBody({
               <th className={thCls} style={{ width: "20%" }}>점검 결과</th>
               <th className={thCls} style={{ width: "25%" }}>점검 내용</th>
               <th className={thCls} style={{ width: "25%" }}>조치결과</th>
+              {!ro && <th className={thCls} style={{ width: "40px" }}></th>}
             </tr>
           </thead>
           <tbody>
             {data.check_items.map((item, idx) => (
               <tr key={idx}>
-                <td className={cn(tdCls, "font-medium")}>{item.category}</td>
-                <td className={tdCls}>{item.item}</td>
+                <td className={cn(tdCls, "font-medium")}>
+                  <EditableText value={item.category} onChange={v => updateCheckItem(idx, "category", v)} disabled={ro} />
+                </td>
+                <td className={tdCls}>
+                  <EditableText value={item.item} onChange={v => updateCheckItem(idx, "item", v)} disabled={ro} />
+                </td>
                 <td className={tdCls}>
                   <div className="flex gap-3">
                     <label className="flex items-center gap-1 text-xs cursor-pointer">
@@ -1133,10 +1138,38 @@ function TemplateBody({
                     </div>
                   )}
                 </td>
+                {!ro && (
+                  <td className={cn(tdCls, "text-center")}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        const items = data.check_items.filter((_, i) => i !== idx);
+                        upd({ check_items: items });
+                      }}
+                      aria-label="행 삭제"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+        {!ro && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 gap-1"
+            onClick={() => upd({ check_items: [...data.check_items, { category: "", item: "", result: "", action: "", action_result: "", inspection_result_option: "사용 가능", inspection_result_detail: "" }] })}
+          >
+            <Plus className="h-3 w-3" /> 행 추가
+          </Button>
+        )}
       </div>
 
       {/* Ⅲ. 교체 (필요) 품목 List — header "조치결과" instead of "점검내용" */}
