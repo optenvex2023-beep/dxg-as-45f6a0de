@@ -27,6 +27,7 @@ interface AppState {
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at" | "is_closed" | "closed_at">) => void;
   updateInspection: (id: string, updates: Partial<OutboundInspection>) => void;
+  deleteInspection: (id: string) => Promise<void>;
   getReportsForInspection: (inspectionId: string, type: ReportType) => InspectionReport[];
   addReport: (data: Omit<InspectionReport, "id" | "created_at" | "updated_at" | "completed_at" | "approved_at" | "approved_by">) => InspectionReport;
   updateReport: (id: string, updates: Partial<InspectionReport>) => void;
