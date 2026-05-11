@@ -634,7 +634,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         users, inspections, notifications, mailOutbox, reports, reportVersions, inAppNotifications,
-        currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
+        currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection, deleteInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions, deleteReportVersion,
         markNotificationRead, markAllNotificationsRead, logout, refetchAll,
