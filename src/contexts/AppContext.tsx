@@ -559,6 +559,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return reportVersions.filter(v => v.report_id === reportId);
   }, [reportVersions]);
 
+  const deleteReportVersion = useCallback(async (versionId: string) => {
+    const target = reportVersions.find(v => v.id === versionId);
+    if (!target) throw new Error("삭제할 파일을 찾을 수 없습니다.");
+    await deleteReportVersionDb(target.id, target.file_path);
+    setReportVersions(prev => prev.filter(v => v.id !== versionId));
+  }, [reportVersions]);
+
   const logout = useCallback(() => {
     setCurrentUser(null);
   }, []);
