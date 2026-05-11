@@ -200,6 +200,15 @@ export interface InspectionReportData {
   summary_items: string[];
   department_head: string;
   photos: ReportPhoto[];
+
+  /** UI-only: label overrides + extra rows for editable section headers (do not affect Word export) */
+  detail_label_overrides?: Record<string, string>;
+  detail_extra_rows?: Array<{ id: string; label: string; value: string }>;
+  probe_label_overrides?: Record<string, string>;
+  probe_extra_rows?: Array<{ id: string; label: string; value: string }>;
+  summary_labels?: string[];
+  photo_slot_label_overrides?: Record<string, string>;
+  photo_extra_slots?: Array<{ key: string; title: string }>;
 }
 
 export type QAReviewStatus = "미검토" | "검토완료";
