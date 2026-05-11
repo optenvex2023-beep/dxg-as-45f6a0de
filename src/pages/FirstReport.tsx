@@ -236,6 +236,7 @@ export default function FirstReport() {
                 onQAReviewComplete={handleQAReviewComplete}
                 onAddVersion={addReportVersion}
                 getVersions={getReportVersions}
+                onDeleteVersion={deleteReportVersion}
                 currentUserName={currentUser?.name || ""}
               />
             </div>
