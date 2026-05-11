@@ -1086,10 +1086,38 @@ function TemplateBody({
                     </div>
                   )}
                 </td>
+                {!ro && (
+                  <td className={cn(tdCls, "text-center")}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        const items = data.check_items.filter((_, i) => i !== idx);
+                        upd({ check_items: items });
+                      }}
+                      aria-label="행 삭제"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+        {!ro && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 gap-1"
+            onClick={() => upd({ check_items: [...data.check_items, { category: "", item: "", result: "", action: "", action_result: "", inspection_result_option: "사용 가능", inspection_result_detail: "" }] })}
+          >
+            <Plus className="h-3 w-3" /> 행 추가
+          </Button>
+        )}
       </div>
 
       {/* Ⅲ. 교체 (필요) 품목 List */}
