@@ -707,11 +707,30 @@ function DocumentView({
                     <span className="truncate font-medium">{v.file_name}</span>
                     <span className="text-[10px] text-muted-foreground shrink-0">({v.uploaded_by} / {v.uploaded_at.split("T")[0]})</span>
                   </div>
-                  <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
-                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
-                      <Download className="h-3 w-3" /> 다운로드
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
+                        <Download className="h-3 w-3" /> 다운로드
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={async () => {
+                        if (!window.confirm(`"${v.file_name}" 파일을 삭제하시겠습니까?\n삭제된 파일은 복구할 수 없습니다.`)) return;
+                        try {
+                          await onDeleteVersion(v.id);
+                          toast.success("파일이 삭제되었습니다.");
+                        } catch (err) {
+                          const msg = err instanceof Error ? err.message : String(err);
+                          toast.error(`삭제 실패: ${msg}`);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" /> 삭제
                     </Button>
-                  </a>
+                  </div>
                 </div>
               ))}
             </div>
