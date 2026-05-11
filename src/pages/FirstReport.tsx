@@ -381,6 +381,7 @@ export default function FirstReport() {
               onQAReviewComplete={handleDetailQAReview}
               onAddVersion={addReportVersion}
               getVersions={getReportVersions}
+              onDeleteVersion={deleteReportVersion}
               currentUserName={currentUser?.name || ""}
             />
           </DialogContent>
