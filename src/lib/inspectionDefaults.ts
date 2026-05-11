@@ -64,5 +64,12 @@ export function createDefaultReportData(): InspectionReportData {
     summary_items: ["", "", "", ""],
     department_head: "",
     photos: [],
+    detail_label_overrides: {},
+    detail_extra_rows: [],
+    probe_label_overrides: {},
+    probe_extra_rows: [],
+    summary_labels: [],
+    photo_slot_label_overrides: {},
+    photo_extra_slots: [],
   };
 }
