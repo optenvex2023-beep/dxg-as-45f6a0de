@@ -1554,3 +1554,29 @@ function EditableTextarea({ value, onChange, disabled, rows }: {
     />
   );
 }
+
+/* ─── Editable label cell (for section headers) ─── */
+function LabelCell({ fieldKey, defaultLabel, overrides, onChange, ro, className }: {
+  fieldKey: string;
+  defaultLabel: string;
+  overrides?: Record<string, string>;
+  onChange: (v: string) => void;
+  ro: boolean;
+  className?: string;
+}) {
+  const current = overrides?.[fieldKey] ?? defaultLabel;
+  return (
+    <td className={cn(thCls, className)}>
+      {ro ? (
+        <span className="text-xs">{current}</span>
+      ) : (
+        <Input
+          className="h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent font-semibold"
+          value={current}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+    </td>
+  );
+}
+
