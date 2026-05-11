@@ -8,7 +8,7 @@ import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
   fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
   fetchReports, insertReport as insertReportDb, updateReportDb,
-  fetchReportVersions, insertReportVersion as insertReportVersionDb,
+  fetchReportVersions, insertReportVersion as insertReportVersionDb, deleteReportVersion as deleteReportVersionDb,
   fetchInAppNotifications, insertInAppNotifications, updateNotificationRead, markAllNotificationsReadDb,
 } from "@/lib/supabaseDb";
 
@@ -35,6 +35,7 @@ interface AppState {
   approveReport: (reportId: string, approverName: string) => void;
   addReportVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<ReportVersion>;
   getReportVersions: (reportId: string) => ReportVersion[];
+  deleteReportVersion: (versionId: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   logout: () => void;
@@ -558,6 +559,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return reportVersions.filter(v => v.report_id === reportId);
   }, [reportVersions]);
 
+  const deleteReportVersion = useCallback(async (versionId: string) => {
+    const target = reportVersions.find(v => v.id === versionId);
+    if (!target) throw new Error("삭제할 파일을 찾을 수 없습니다.");
+    await deleteReportVersionDb(target.id, target.file_path);
+    setReportVersions(prev => prev.filter(v => v.id !== versionId));
+  }, [reportVersions]);
+
   const logout = useCallback(() => {
     setCurrentUser(null);
   }, []);
@@ -621,7 +629,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         users, inspections, notifications, mailOutbox, reports, reportVersions, inAppNotifications,
         currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
-        requestApproval, approveReport, addReportVersion, getReportVersions,
+        requestApproval, approveReport, addReportVersion, getReportVersions, deleteReportVersion,
         markNotificationRead, markAllNotificationsRead, logout, refetchAll,
       }}
     >

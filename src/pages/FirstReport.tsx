@@ -49,7 +49,7 @@ export default function FirstReport() {
   const {
     inspections, currentUser, reports,
     getReportsForInspection, addReport, updateReport, completeReport,
-    requestApproval, approveReport, addReportVersion, getReportVersions,
+    requestApproval, approveReport, addReportVersion, getReportVersions, deleteReportVersion,
   } = useApp();
 
   const [selectedInspectionId, setSelectedInspectionId] = useState("");
@@ -236,6 +236,7 @@ export default function FirstReport() {
                 onQAReviewComplete={handleQAReviewComplete}
                 onAddVersion={addReportVersion}
                 getVersions={getReportVersions}
+                onDeleteVersion={deleteReportVersion}
                 currentUserName={currentUser?.name || ""}
               />
             </div>
@@ -380,6 +381,7 @@ export default function FirstReport() {
               onQAReviewComplete={handleDetailQAReview}
               onAddVersion={addReportVersion}
               getVersions={getReportVersions}
+              onDeleteVersion={deleteReportVersion}
               currentUserName={currentUser?.name || ""}
             />
           </DialogContent>
@@ -486,7 +488,7 @@ function DocumentForm({
 function DocumentView({
   inspection, equipment, report, canEdit, canApprove, isManufacturing, isQC, isSales,
   onUpdate, onComplete, onRequestApproval, onQAReviewComplete,
-  onAddVersion, getVersions, currentUserName,
+  onAddVersion, getVersions, onDeleteVersion, currentUserName,
 }: {
   inspection: OutboundInspection;
   equipment: OutboundEquipmentItem;
@@ -502,6 +504,7 @@ function DocumentView({
   onQAReviewComplete: () => void;
   onAddVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<{ id: string; report_id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_by: string; uploaded_at: string }>;
   getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
+  onDeleteVersion: (versionId: string) => Promise<void>;
   currentUserName: string;
 }) {
   const isDraft = report.status === "draft";
@@ -650,11 +653,30 @@ function DocumentView({
                     <span className="truncate font-medium">{v.file_name}</span>
                     <span className="text-[10px] text-muted-foreground shrink-0">({v.uploaded_by} / {v.uploaded_at.split("T")[0]})</span>
                   </div>
-                  <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
-                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
-                      <Download className="h-3 w-3" /> 다운로드
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a href={v.file_url} download={v.file_name} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2">
+                        <Download className="h-3 w-3" /> 다운로드
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={async () => {
+                        if (!window.confirm(`"${v.file_name}" 파일을 삭제하시겠습니까?\n삭제된 파일은 복구할 수 없습니다.`)) return;
+                        try {
+                          await onDeleteVersion(v.id);
+                          toast.success("파일이 삭제되었습니다.");
+                        } catch (err) {
+                          const msg = err instanceof Error ? err.message : String(err);
+                          toast.error(`삭제 실패: ${msg}`);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" /> 삭제
                     </Button>
-                  </a>
+                  </div>
                 </div>
               ))}
             </div>
