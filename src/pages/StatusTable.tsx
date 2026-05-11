@@ -137,7 +137,7 @@ function emptyFormData(): CreateFormData {
 }
 
 export default function StatusTable() {
-  const { inspections, currentUser, addInspection, updateInspection } = useApp();
+  const { inspections, currentUser, addInspection, updateInspection, deleteInspection } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
   const urlDue = searchParams.get("due");
@@ -162,6 +162,14 @@ export default function StatusTable() {
   const [csModalOpen, setCsModalOpen] = useState(false);
   const [mfgModalOpen, setMfgModalOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  // 삭제 권한 화이트리스트 (이름 기준)
+  const DELETE_ALLOWED_NAMES = new Set([
+    "김현성", "이현석", "하용선", "송재석", "정두현",
+    "신준호", "박소미", "정혜림", "김세빈", "박소현", "노주형",
+  ]);
+  const canDelete = !!currentUser && DELETE_ALLOWED_NAMES.has(currentUser.name);
 
   const syncHorizontalScroll = (source: "header" | "body") => (event: UIEvent<HTMLDivElement>) => {
     const scrollLeft = event.currentTarget.scrollLeft;
@@ -610,7 +618,60 @@ export default function StatusTable() {
             <CheckCircle2 className="h-4 w-4" /> 종결
           </Button>
         )}
+        {canDelete && selectedId && selectedRecord && (
+          <Button
+            variant="outline"
+            onClick={() => setDeleteConfirmOpen(true)}
+            className="gap-1 border-destructive text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" /> 삭제
+          </Button>
+        )}
       </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>레코드 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              선택한 항목을 <span className="font-semibold text-destructive">영구 삭제</span>합니다.
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            {selectedRecord && (
+              <div className="rounded border bg-muted/40 px-3 py-2 text-xs space-y-0.5">
+                <div><span className="text-muted-foreground">관리번호:</span> {selectedRecord.manage_no || "—"}</div>
+                <div><span className="text-muted-foreground">건명:</span> {selectedRecord.project_name || "—"}</div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              연결된 점검보고서 및 첨부 버전 정보도 함께 삭제됩니다.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>취소</Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!selectedRecord) return;
+                  try {
+                    await deleteInspection(selectedRecord.id);
+                    toast.success("삭제되었습니다.");
+                    setSelectedId(null);
+                    setDeleteConfirmOpen(false);
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("삭제에 실패했습니다.");
+                  }
+                }}
+              >
+                삭제
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Detail view modal */}
       {selectedRecord && (

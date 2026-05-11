@@ -6,7 +6,7 @@ import { createNotificationsForDepts } from "@/lib/notificationHelper";
 import { isExcludedFromDue7 } from "@/lib/inspectionFilters";
 import {
   fetchUsers, insertUsers, insertUser as insertUserDb, updateUserDb,
-  fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb,
+  fetchInspections, insertInspection as insertInspectionDb, updateInspectionDb, deleteInspectionDb,
   fetchReports, insertReport as insertReportDb, updateReportDb,
   fetchReportVersions, insertReportVersion as insertReportVersionDb, deleteReportVersion as deleteReportVersionDb,
   fetchInAppNotifications, insertInAppNotifications, updateNotificationRead, markAllNotificationsReadDb,
@@ -27,6 +27,7 @@ interface AppState {
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   addInspection: (data: Omit<OutboundInspection, "id" | "status" | "due_warning" | "created_at" | "updated_at" | "noti_confirm_needed_sent_at" | "noti_dispatch_plan_sent_at" | "noti_dispatch_done_sent_at" | "noti_first_check_done_sent_at" | "noti_final_check_done_sent_at" | "noti_install_done_sent_at" | "due_alert_sent_at" | "is_closed" | "closed_at">) => void;
   updateInspection: (id: string, updates: Partial<OutboundInspection>) => void;
+  deleteInspection: (id: string) => Promise<void>;
   getReportsForInspection: (inspectionId: string, type: ReportType) => InspectionReport[];
   addReport: (data: Omit<InspectionReport, "id" | "created_at" | "updated_at" | "completed_at" | "approved_at" | "approved_by">) => InspectionReport;
   updateReport: (id: string, updates: Partial<InspectionReport>) => void;
@@ -375,6 +376,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, [triggerNotifications, triggerInAppNotifications]);
 
+  const deleteInspection = useCallback(async (id: string) => {
+    await deleteInspectionDb(id);
+    setInspections((prev) => prev.filter((r) => r.id !== id));
+    setReports((prev) => prev.filter((r) => r.inspection_id !== id));
+  }, []);
+
   // C-8: Check due alerts on page load
   useEffect(() => {
     if (inspections.length === 0) return;
@@ -627,7 +634,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         users, inspections, notifications, mailOutbox, reports, reportVersions, inAppNotifications,
-        currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection,
+        currentUser, isLoading, setCurrentUser, addUser, updateUser, addInspection, updateInspection, deleteInspection,
         getReportsForInspection, addReport, updateReport, completeReport,
         requestApproval, approveReport, addReportVersion, getReportVersions, deleteReportVersion,
         markNotificationRead, markAllNotificationsRead, logout, refetchAll,
