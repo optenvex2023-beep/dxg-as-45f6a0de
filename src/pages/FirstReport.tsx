@@ -488,7 +488,7 @@ function DocumentForm({
 function DocumentView({
   inspection, equipment, report, canEdit, canApprove, isManufacturing, isQC, isSales,
   onUpdate, onComplete, onRequestApproval, onQAReviewComplete,
-  onAddVersion, getVersions, currentUserName,
+  onAddVersion, getVersions, onDeleteVersion, currentUserName,
 }: {
   inspection: OutboundInspection;
   equipment: OutboundEquipmentItem;
@@ -504,6 +504,7 @@ function DocumentView({
   onQAReviewComplete: () => void;
   onAddVersion: (reportId: string, fileName: string, filePath: string, fileUrl: string, uploadedBy: string) => Promise<{ id: string; report_id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_by: string; uploaded_at: string }>;
   getVersions: (reportId: string) => { id: string; version_number: number; file_name: string; file_path: string; file_url: string; uploaded_at: string; uploaded_by: string }[];
+  onDeleteVersion: (versionId: string) => Promise<void>;
   currentUserName: string;
 }) {
   const isDraft = report.status === "draft";
