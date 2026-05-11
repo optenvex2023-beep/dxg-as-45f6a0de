@@ -277,6 +277,7 @@ export default function FinalReport() {
                 onQAReviewComplete={handleQAReviewComplete}
                 onAddVersion={addReportVersion}
                 getVersions={getReportVersions}
+                onDeleteVersion={deleteReportVersion}
                 currentUserName={currentUser?.name || ""}
               />
             </div>
