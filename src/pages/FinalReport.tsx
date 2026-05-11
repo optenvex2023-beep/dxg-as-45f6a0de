@@ -1530,7 +1530,21 @@ function TemplateBody({
                 </div>
               ))}
               {!ro && (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50 transition-colors">
+                <label
+                  className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add("bg-muted/50"); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove("bg-muted/50"); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove("bg-muted/50");
+                    const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                    if (dropped.length === 0) return;
+                    const dt = new DataTransfer();
+                    dropped.forEach(f => dt.items.add(f));
+                    handlePhotoUpload(slot.key, dt.files);
+                  }}
+                >
                   <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
                   <span className="text-[10px] text-muted-foreground">드래그 또는 클릭하여 사진 추가</span>
                   <input
