@@ -834,6 +834,8 @@ function TemplateBody({
     upd({ photos: (data.photos || []).map(p => p.id === photoId ? { ...p, caption } : p) });
   };
 
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   return (
     <div className="space-y-8">
       {/* ═══ PAGE 1: Cover ═══ */}
