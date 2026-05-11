@@ -376,6 +376,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, [triggerNotifications, triggerInAppNotifications]);
 
+  const deleteInspection = useCallback(async (id: string) => {
+    await deleteInspectionDb(id);
+    setInspections((prev) => prev.filter((r) => r.id !== id));
+    setReports((prev) => prev.filter((r) => r.inspection_id !== id));
+  }, []);
+
   // C-8: Check due alerts on page load
   useEffect(() => {
     if (inspections.length === 0) return;
