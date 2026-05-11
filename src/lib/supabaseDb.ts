@@ -161,6 +161,28 @@ export async function updateInspectionDb(id: string, updates: Partial<OutboundIn
   }
 }
 
+export async function deleteInspectionDb(id: string) {
+  // 1) report_versions for all reports under this inspection
+  const { data: reps } = await supabase.from("inspection_reports").select("id").eq("inspection_id", id);
+  const repIds = (reps ?? []).map((r: any) => r.id);
+  if (repIds.length > 0) {
+    const { error: rvErr } = await supabase.from("report_versions").delete().in("report_id", repIds);
+    if (rvErr) console.error("deleteInspectionDb report_versions error:", rvErr);
+  }
+  // 2) inspection_reports
+  const { error: repErr } = await supabase.from("inspection_reports").delete().eq("inspection_id", id);
+  if (repErr) console.error("deleteInspectionDb reports error:", repErr);
+  // 3) equipment items
+  const { error: eqErr } = await supabase.from("outbound_equipment_items").delete().eq("outbound_inspection_id", id);
+  if (eqErr) console.error("deleteInspectionDb equipment_items error:", eqErr);
+  // 4) inspection itself
+  const { error } = await supabase.from("outbound_inspections").delete().eq("id", id);
+  if (error) {
+    console.error("deleteInspectionDb error:", error);
+    throw error;
+  }
+}
+
 /* ═══════════════════════════════════════════
    INSPECTION REPORTS
    ═══════════════════════════════════════════ */
