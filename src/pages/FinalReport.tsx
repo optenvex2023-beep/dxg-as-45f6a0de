@@ -423,6 +423,7 @@ export default function FinalReport() {
               onQAReviewComplete={handleDetailQAReview}
               onAddVersion={addReportVersion}
               getVersions={getReportVersions}
+              onDeleteVersion={deleteReportVersion}
               currentUserName={currentUser?.name || ""}
             />
           </DialogContent>
