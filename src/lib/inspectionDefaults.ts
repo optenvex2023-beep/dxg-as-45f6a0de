@@ -24,7 +24,7 @@ export const DEFAULT_CHECK_ITEMS: InspectionCheckItem[] = [
 
 export const MODEL_OPTIONS = ["DGA-X", "DSM-XG", "RGA-60", "RSM-61", "TGA-50", "LSM-30", "GGA-70-1", "PGA-91", "LGS-80", "LCD-80", "LCD-82", "LGA-8", "DSM-X"];
 export const INBOUND_ITEM_OPTIONS = ["Main Unit", "ACU", "Probe", "Purge Air Unit"];
-export const GAS_OPTIONS = ["NOx", "NO2", "SO2", "NH3", "CO", "HCl", "O2", "Flow", "LGS-80"];
+export const GAS_OPTIONS = ["NOx", "NO2", "SO2", "NH3", "CO", "HCl", "O2", "Flow", "Dust"];
 export const INSTALL_OPTIONS = ["BLR", "SCR", "ESP", "FGD", "TMS"];
 
 export function createDefaultReportData(): InspectionReportData {
