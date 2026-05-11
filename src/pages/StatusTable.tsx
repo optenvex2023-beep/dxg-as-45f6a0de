@@ -618,7 +618,60 @@ export default function StatusTable() {
             <CheckCircle2 className="h-4 w-4" /> 종결
           </Button>
         )}
+        {canDelete && selectedId && selectedRecord && (
+          <Button
+            variant="outline"
+            onClick={() => setDeleteConfirmOpen(true)}
+            className="gap-1 border-destructive text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" /> 삭제
+          </Button>
+        )}
       </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>레코드 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              선택한 항목을 <span className="font-semibold text-destructive">영구 삭제</span>합니다.
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            {selectedRecord && (
+              <div className="rounded border bg-muted/40 px-3 py-2 text-xs space-y-0.5">
+                <div><span className="text-muted-foreground">관리번호:</span> {selectedRecord.manage_no || "—"}</div>
+                <div><span className="text-muted-foreground">건명:</span> {selectedRecord.project_name || "—"}</div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              연결된 점검보고서 및 첨부 버전 정보도 함께 삭제됩니다.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>취소</Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!selectedRecord) return;
+                  try {
+                    await deleteInspection(selectedRecord.id);
+                    toast.success("삭제되었습니다.");
+                    setSelectedId(null);
+                    setDeleteConfirmOpen(false);
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("삭제에 실패했습니다.");
+                  }
+                }}
+              >
+                삭제
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Detail view modal */}
       {selectedRecord && (
