@@ -834,7 +834,10 @@ function TemplateBody({
     upd({ photos: (data.photos || []).map(p => p.id === photoId ? { ...p, caption } : p) });
   };
 
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   return (
+    <>
     <div className="space-y-8">
       {/* ═══ PAGE 1: Cover ═══ */}
       <div className="text-center space-y-2">
@@ -1449,7 +1452,7 @@ function TemplateBody({
                     <div key={photo?.id || `empty-${rowIdx}-${colIdx}`}>
                       {photo ? (
                         <div className="relative group border rounded overflow-hidden">
-                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || displayTitle} className="w-full h-40 object-contain bg-muted/30" />
+                          <img src={resolvePhotoUrl(photo.file_url)} alt={photo.caption || displayTitle} className="w-full h-40 object-contain bg-muted/30 cursor-zoom-in" onClick={() => setLightboxUrl(resolvePhotoUrl(photo.file_url))} />
                           {!ro && (
                             <button
                               onClick={() => removePhoto(photo.id)}
@@ -1524,7 +1527,13 @@ function TemplateBody({
         <p>반출장비: {equipment.equipment_name} | 수량: {equipment.qty_set} set</p>
         <p>점검자: {inspectorName} | 작성일: {createdDate}</p>
       </div>
-    </div>
+      </div>
+      <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 w-fit">
+          {lightboxUrl && <img src={lightboxUrl} alt="원본 사진" className="max-w-[90vw] max-h-[85vh] object-contain" />}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
