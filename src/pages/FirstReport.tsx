@@ -1533,7 +1533,7 @@ function TemplateBody({
           {lightboxUrl && <img src={lightboxUrl} alt="원본 사진" className="max-w-[90vw] max-h-[85vh] object-contain" />}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 
