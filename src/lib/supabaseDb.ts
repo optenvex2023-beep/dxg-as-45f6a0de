@@ -229,6 +229,21 @@ export async function insertReportVersion(rv: ReportVersion) {
   }
 }
 
+export async function deleteReportVersion(id: string, filePath: string) {
+  if (filePath) {
+    const { error: storageError } = await supabase.storage.from("report-files").remove([filePath]);
+    if (storageError) {
+      console.error("deleteReportVersion storage error:", storageError);
+      // Continue to attempt DB delete even if storage fails
+    }
+  }
+  const { error } = await supabase.from("report_versions").delete().eq("id", id);
+  if (error) {
+    console.error("deleteReportVersion db error:", error);
+    throw error;
+  }
+}
+
 /* ═══════════════════════════════════════════
    IN-APP NOTIFICATIONS
    ═══════════════════════════════════════════ */
