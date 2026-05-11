@@ -137,7 +137,7 @@ function emptyFormData(): CreateFormData {
 }
 
 export default function StatusTable() {
-  const { inspections, currentUser, addInspection, updateInspection } = useApp();
+  const { inspections, currentUser, addInspection, updateInspection, deleteInspection } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
   const urlDue = searchParams.get("due");
