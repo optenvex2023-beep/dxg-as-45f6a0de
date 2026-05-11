@@ -837,6 +837,7 @@ function TemplateBody({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   return (
+    <>
     <div className="space-y-8">
       {/* ═══ PAGE 1: Cover ═══ */}
       <div className="text-center space-y-2">
