@@ -1148,19 +1148,26 @@ export default function CalibrationGasInventory() {
                     })()}
                     {renderMergedCell(item, "gas_inspection_round", s.gas, idx, "text-center")}
                     {/* 예정/완료 column */}
-                    {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center`}>
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
-                          <button
-                            onClick={() => setCompletionTarget({ itemId: item.id, type: "gas" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20 whitespace-nowrap"
-                          >
-                            <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                    {(() => {
+                      const colKey = "gas_inspection_status";
+                      const manual = getManualSpan(colKey, idx);
+                      const span = manual !== undefined ? manual : s.gas;
+                      if (span === 0) return null;
+                      const sel = cellMergeProps(colKey, idx);
+                      return (
+                        <td rowSpan={span} className={`${td} text-center ${sel.className}`} onClick={sel.onClick}>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCompletionTarget({ itemId: item.id, type: "gas" }); }}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 transition-colors border border-blue-500/20 whitespace-nowrap"
+                            >
+                              <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })()}
                     {renderMergedCell(item, "gas_inspection_so", s.gas, idx, "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, idx, "text-center whitespace-nowrap")}
 
@@ -1195,19 +1202,26 @@ export default function CalibrationGasInventory() {
                     })()}
                     {renderMergedCell(item, "velocity_inspection_round", s.vel, idx, "text-center")}
                     {/* 예정/완료 column */}
-                    {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center`}>
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
-                          <button
-                            onClick={() => setCompletionTarget({ itemId: item.id, type: "velocity" })}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20 whitespace-nowrap"
-                          >
-                            <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                    {(() => {
+                      const colKey = "velocity_inspection_status";
+                      const manual = getManualSpan(colKey, idx);
+                      const span = manual !== undefined ? manual : s.vel;
+                      if (span === 0) return null;
+                      const sel = cellMergeProps(colKey, idx);
+                      return (
+                        <td rowSpan={span} className={`${td} text-center ${sel.className}`} onClick={sel.onClick}>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">예정</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCompletionTarget({ itemId: item.id, type: "velocity" }); }}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors border border-green-500/20 whitespace-nowrap"
+                            >
+                              <CheckCircle2 className="h-2.5 w-2.5" /> 완료 체크
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })()}
                     {renderMergedCell(item, "velocity_inspection_so", s.vel, idx, "text-center whitespace-nowrap")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
