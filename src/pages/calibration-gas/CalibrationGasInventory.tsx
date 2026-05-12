@@ -1290,6 +1290,39 @@ export default function CalibrationGasInventory() {
             <Button variant="outline" onClick={() => { setInlineAddTarget(null); setInlineAddRange(""); }}>취소</Button>
             <Button onClick={handleInlineAdd}>추가</Button>
           </DialogFooter>
+
+      {/* Merge Value Input Dialog */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>병합된 셀에 표시할 내용</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="text-xs text-muted-foreground">
+              {selection && (
+                <>
+                  열: <span className="font-medium text-foreground">{FIELD_LABELS[selection.colKey] ?? selection.colKey}</span>
+                  {" · "}
+                  병합 행수: <span className="font-medium text-foreground">{selection.endIdx - selection.startIdx + 1}</span>
+                </>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">표시 내용</Label>
+              <Input
+                className="h-8 text-sm"
+                value={mergeDialogValue}
+                onChange={(e) => setMergeDialogValue(e.target.value)}
+                placeholder="병합된 셀에 표시할 내용을 입력하세요"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleConfirmMerge(); }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>취소</Button>
+            <Button onClick={handleConfirmMerge}>병합</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
