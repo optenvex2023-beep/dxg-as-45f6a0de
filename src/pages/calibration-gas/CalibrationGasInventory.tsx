@@ -94,7 +94,7 @@ function createEmptyItem(): CalibrationGasInventoryItem {
 
 export default function CalibrationGasInventory() {
 
-  const { inventory, updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems, cellMerges, mergeCells, unmergeCells } = useCalGas();
   const { currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
