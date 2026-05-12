@@ -15,6 +15,10 @@ import {
   updateCalGasInventoryItem as updateCalGasItemDb, deleteCalGasInventoryItem as deleteCalGasItemDb,
   fetchCalGasHistory, insertCalGasHistoryItems,
 } from "@/lib/supabaseDb";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Manual cell merges per column: column_key -> (inventory_item_id -> merge_group_id) */
+export type CellMergeMap = Record<string, Record<string, string>>;
 
 interface CalGasState {
   inventory: CalibrationGasInventoryItem[];
@@ -31,6 +35,11 @@ interface CalGasState {
 
   /* History */
   addHistoryItems: (items: CalibrationGasHistory[]) => void;
+
+  /* Manual cell merges */
+  cellMerges: CellMergeMap;
+  mergeCells: (columnKey: string, itemIds: string[], userName: string) => Promise<void>;
+  unmergeCells: (columnKey: string, itemIds: string[]) => Promise<void>;
 
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;
@@ -68,6 +77,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<CalibrationGasHistory[]>([]);
   const [notifications, setNotifications] = useState<CalibrationGasNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cellMerges, setCellMerges] = useState<CellMergeMap>({});
   const dataLoadedRef = useRef(false);
 
   /* ─── Load data from Supabase on mount ─── */
@@ -87,6 +97,19 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
 
         const dbHistory = await fetchCalGasHistory();
         setHistory(dbHistory);
+
+        // Load manual cell merges
+        const { data: mergeRows } = await supabase
+          .from("calibration_gas_cell_merges")
+          .select("column_key, inventory_item_id, merge_group_id");
+        if (mergeRows) {
+          const map: CellMergeMap = {};
+          for (const r of mergeRows as Array<{ column_key: string; inventory_item_id: string; merge_group_id: string }>) {
+            if (!map[r.column_key]) map[r.column_key] = {};
+            map[r.column_key][r.inventory_item_id] = r.merge_group_id;
+          }
+          setCellMerges(map);
+        }
       } catch (err) {
         console.error("Error loading cal gas data from Supabase:", err);
         setInventory(seedCalibrationGasInventory);
@@ -218,6 +241,45 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     setInventory((prev) => prev.filter((item) => item.id !== id));
     deleteCalGasItemDb(id);
   }, []);
+
+  /* ── Manual cell merges ── */
+  const mergeCells = useCallback(async (columnKey: string, itemIds: string[], userName: string) => {
+    if (itemIds.length < 2) return;
+    const groupId = crypto.randomUUID();
+    // Optimistic update
+    setCellMerges((prev) => {
+      const next = { ...prev, [columnKey]: { ...(prev[columnKey] || {}) } };
+      for (const id of itemIds) next[columnKey][id] = groupId;
+      return next;
+    });
+    // Upsert to DB
+    const rows = itemIds.map((id) => ({
+      column_key: columnKey,
+      inventory_item_id: id,
+      merge_group_id: groupId,
+      updated_by: userName,
+    }));
+    const { error } = await supabase
+      .from("calibration_gas_cell_merges")
+      .upsert(rows, { onConflict: "column_key,inventory_item_id" });
+    if (error) console.error("mergeCells error:", error);
+  }, []);
+
+  const unmergeCells = useCallback(async (columnKey: string, itemIds: string[]) => {
+    if (itemIds.length === 0) return;
+    setCellMerges((prev) => {
+      const colMap = { ...(prev[columnKey] || {}) };
+      for (const id of itemIds) delete colMap[id];
+      return { ...prev, [columnKey]: colMap };
+    });
+    const { error } = await supabase
+      .from("calibration_gas_cell_merges")
+      .delete()
+      .eq("column_key", columnKey)
+      .in("inventory_item_id", itemIds);
+    if (error) console.error("unmergeCells error:", error);
+  }, []);
+
 
   const addHistoryItems = useCallback((items: CalibrationGasHistory[]) => {
     if (items.length === 0) return;
@@ -463,6 +525,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,
         normalizeSiteName, findMatchingInventory, refetchAll,
+        cellMerges, mergeCells, unmergeCells,
       }}
     >
       {children}

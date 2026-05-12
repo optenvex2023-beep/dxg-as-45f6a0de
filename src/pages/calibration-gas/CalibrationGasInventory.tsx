@@ -94,7 +94,7 @@ function createEmptyItem(): CalibrationGasInventoryItem {
 
 export default function CalibrationGasInventory() {
 
-  const { inventory, updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems } = useCalGas();
+  const { inventory, updateInventoryItem, addInventoryItem, deleteInventoryItem, addHistoryItems, cellMerges, mergeCells, unmergeCells } = useCalGas();
   const { currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
@@ -108,6 +108,10 @@ export default function CalibrationGasInventory() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
+
+  /* ── Cell merge mode (Excel-like) ── */
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selection, setSelection] = useState<{ colKey: string; startIdx: number; endIdx: number } | null>(null);
 
   /* ── Cell memo state ── */
   const { getMemo, saveMemo } = useCellMemos();
@@ -240,6 +244,109 @@ export default function CalibrationGasInventory() {
     }
     return spans;
   }, [filtered]);
+
+  /* Manual cell-merge spans (override per column) */
+  const manualSpans = useMemo(() => {
+    const result: Record<string, (number | undefined)[]> = {};
+    for (const colKey of Object.keys(cellMerges)) {
+      const colMap = cellMerges[colKey];
+      const arr: (number | undefined)[] = new Array(filtered.length).fill(undefined);
+      let i = 0;
+      while (i < filtered.length) {
+        const gid = colMap[filtered[i].id];
+        if (!gid) { i++; continue; }
+        const siteName = filtered[i].site_name;
+        let j = i + 1;
+        while (j < filtered.length && filtered[j].site_name === siteName && colMap[filtered[j].id] === gid) j++;
+        if (j - i >= 2) {
+          arr[i] = j - i;
+          for (let k = i + 1; k < j; k++) arr[k] = 0;
+        }
+        i = j;
+      }
+      result[colKey] = arr;
+    }
+    return result;
+  }, [cellMerges, filtered]);
+
+  const getManualSpan = useCallback((colKey: string, idx: number): number | undefined => {
+    return manualSpans[colKey]?.[idx];
+  }, [manualSpans]);
+
+  const effectiveSpan = useCallback((colKey: string, idx: number, autoSpan: number): number => {
+    const m = getManualSpan(colKey, idx);
+    if (m !== undefined) return m;
+    return autoSpan;
+  }, [getManualSpan]);
+
+  /* Cell selection (merge mode) */
+  const handleCellClick = useCallback((colKey: string, idx: number, e: React.MouseEvent) => {
+    if (!mergeMode) return;
+    e.stopPropagation();
+    if (selection && selection.colKey === colKey) {
+      setSelection({ colKey, startIdx: Math.min(selection.startIdx, idx), endIdx: Math.max(selection.startIdx, idx) });
+    } else {
+      setSelection({ colKey, startIdx: idx, endIdx: idx });
+    }
+  }, [mergeMode, selection]);
+
+  const isCellInSelection = useCallback((colKey: string, idx: number) => {
+    if (!selection || selection.colKey !== colKey) return false;
+    return idx >= selection.startIdx && idx <= selection.endIdx;
+  }, [selection]);
+
+  const handleMergeSelection = useCallback(async () => {
+    if (!selection) return;
+    const { colKey, startIdx, endIdx } = selection;
+    if (endIdx <= startIdx) {
+      toast.error("2개 이상의 셀을 선택해주세요.");
+      return;
+    }
+    const siteName = filtered[startIdx].site_name;
+    const ids: string[] = [];
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (filtered[i].site_name !== siteName) {
+        toast.error("같은 사업장 안에서만 병합할 수 있습니다.");
+        return;
+      }
+      ids.push(filtered[i].id);
+    }
+    await mergeCells(colKey, ids, currentUser?.name || "시스템");
+    toast.success(`${ids.length}개 셀이 병합되었습니다.`);
+    setSelection(null);
+  }, [selection, filtered, mergeCells, currentUser]);
+
+  const handleUnmergeSelection = useCallback(async () => {
+    if (!selection) return;
+    const { colKey, startIdx, endIdx } = selection;
+    const colMap = cellMerges[colKey] || {};
+    const gidsToClear = new Set<string>();
+    for (let i = startIdx; i <= endIdx; i++) {
+      const g = colMap[filtered[i].id];
+      if (g) gidsToClear.add(g);
+    }
+    if (gidsToClear.size === 0) {
+      toast.error("병합된 셀이 없습니다.");
+      return;
+    }
+    const ids: string[] = [];
+    for (const item of filtered) {
+      if (gidsToClear.has(colMap[item.id])) ids.push(item.id);
+    }
+    await unmergeCells(colKey, ids);
+    toast.success("병합이 해제되었습니다.");
+    setSelection(null);
+  }, [selection, filtered, cellMerges, unmergeCells]);
+
+  const selectionHasMerge = useMemo(() => {
+    if (!selection) return false;
+    const colMap = cellMerges[selection.colKey] || {};
+    for (let i = selection.startIdx; i <= selection.endIdx; i++) {
+      if (colMap[filtered[i]?.id]) return true;
+    }
+    return false;
+  }, [selection, cellMerges, filtered]);
+
 
   /* ── Edit handlers ── */
   const handleStartEdit = useCallback(() => {
@@ -517,13 +624,28 @@ export default function CalibrationGasInventory() {
     );
   };
 
-  /** Render a plain or editable cell (no rowspan) */
-  const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
+  /** Get classes/handlers for cell selection in merge mode */
+  const cellMergeProps = (colKey: string, idx: number) => {
+    if (!mergeMode) return { className: "", onClick: undefined as undefined | ((e: React.MouseEvent) => void) };
+    const selected = isCellInSelection(colKey, idx);
+    return {
+      className: `cursor-cell ${selected ? "outline outline-2 outline-blue-500 outline-offset-[-2px] !bg-blue-100 dark:!bg-blue-900/40" : ""}`,
+      onClick: (e: React.MouseEvent) => handleCellClick(colKey, idx, e),
+    };
+  };
+
+  /** Render a plain cell (rowspan = manual override or 1) */
+  const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, idx: number, extraClass = "") => {
+    const colKey = field as string;
+    const manual = getManualSpan(colKey, idx);
+    if (manual === 0) return null;
+    const span = manual && manual > 1 ? manual : undefined;
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
     const val = getCellValue(item, field);
+    const sel = cellMergeProps(colKey, idx);
     if (isEditable) {
       return (
-        <td className={`${td} ${extraClass} p-0.5`}>
+        <td rowSpan={span} className={`${td} ${extraClass} p-0.5 ${sel.className}`} onClick={sel.onClick}>
           {wrapMemo(item, field,
             <input
               className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -534,22 +656,27 @@ export default function CalibrationGasInventory() {
         </td>
       );
     }
-    return <td className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass} ${sel.className}`} onClick={sel.onClick}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
-  /** Render a merged (rowspan) editable/read-only cell */
+  /** Render a merged (rowspan) cell with optional manual override */
   const renderMergedCell = (
     item: CalibrationGasInventoryItem,
     field: keyof CalibrationGasInventoryItem,
-    span: number,
+    autoSpan: number,
+    idx: number,
     extraClass = ""
   ) => {
+    const colKey = field as string;
+    const manual = getManualSpan(colKey, idx);
+    const span = manual !== undefined ? manual : autoSpan;
     if (span === 0) return null;
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
     const val = getCellValue(item, field);
+    const sel = cellMergeProps(colKey, idx);
     if (isEditable) {
       return (
-        <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
+        <td rowSpan={span} className={`${td} ${extraClass} p-0.5 ${sel.className}`} onClick={sel.onClick}>
           {wrapMemo(item, field,
             <input
               className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -560,7 +687,7 @@ export default function CalibrationGasInventory() {
         </td>
       );
     }
-    return <td rowSpan={span} className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass} ${sel.className}`} onClick={sel.onClick}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
@@ -588,6 +715,22 @@ export default function CalibrationGasInventory() {
           <Button size="sm" variant={isAddMode ? "default" : "outline"} onClick={() => setIsAddMode((v) => !v)} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" /> {isAddMode ? "추가모드 해제" : "행 추가"}
           </Button>
+          <Button size="sm" variant={mergeMode ? "default" : "outline"} onClick={() => { setMergeMode((v) => !v); setSelection(null); }} className="gap-1.5">
+            {mergeMode ? "병합모드 해제" : "셀 병합"}
+          </Button>
+          {mergeMode && selection && (
+            <>
+              {selectionHasMerge ? (
+                <Button size="sm" variant="destructive" onClick={handleUnmergeSelection} className="gap-1.5">
+                  병합 해제
+                </Button>
+              ) : (
+                <Button size="sm" onClick={handleMergeSelection} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
+                  병합 ({selection.endIdx - selection.startIdx + 1}행)
+                </Button>
+              )}
+            </>
+          )}
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
               <Pencil className="h-3.5 w-3.5" /> 등록
@@ -705,12 +848,19 @@ export default function CalibrationGasInventory() {
 
                   const isSiteStart = s.site > 0 && idx > 0;
 
+                // Effective spans (manual override > auto)
+                const siteSpan = effectiveSpan("site_name", idx, s.site);
+                const tmsSpan = effectiveSpan("tms_status", idx, s.tms);
+                const unitSpan = effectiveSpan("unit_no", idx, s.unit);
+                const siteSel = cellMergeProps("site_name", idx);
+                const tmsSel = cellMergeProps("tms_status", idx);
+                const unitSel = cellMergeProps("unit_no", idx);
+
                 return (
                   <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(170,167,167)]" : "border-b border-border/20"}`}>
-                    {/* ── Site-level merged (B 사업장명) ── */}
-                    {/* (계약종료일 컬럼 제거됨) */}
-                    {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
+                    {/* Site-level merged (B 사업장명) */}
+                    {siteSpan > 0 && (
+                      <td rowSpan={siteSpan > 1 ? siteSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"} ${siteSel.className}`} onClick={siteSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -726,9 +876,9 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── TMS-level merged (C) ── */}
-                    {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background`}>
+                    {/* TMS-level merged (C) */}
+                    {tmsSpan > 0 && (
+                      <td rowSpan={tmsSpan > 1 ? tmsSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background ${tmsSel.className}`} onClick={tmsSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -743,9 +893,9 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Unit-level merged (D) ── */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
+                    {/* Unit-level merged (D) */}
+                    {unitSpan > 0 && (
+                      <td rowSpan={unitSpan > 1 ? unitSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background ${unitSel.className}`} onClick={unitSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -757,7 +907,7 @@ export default function CalibrationGasInventory() {
                             <span>{item.unit_no}</span>
                             {isAddMode && (
                               <button
-                                onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                                onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
                                 className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
                                 title="새 호기 추가"
                               >
@@ -769,86 +919,111 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Per-gas-row columns (E): 분석기 Range ── */}
-                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere]`}>
-                      <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "analyzer_range")}
-                            onChange={(e) => handleCellChange(item.id, "analyzer_range", e.target.value)}
-                          />
-                        ) : (
-                          <div className="flex items-start gap-0.5">
-                            <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
-                            {isAddMode && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
-                                className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                                title="같은 호기에 Range 추가"
-                              >
-                                <Plus className="h-2.5 w-2.5" />
-                              </button>
+                    {/* Per-gas-row columns (E): 분석기 Range */}
+                    {(() => {
+                      const sp = effectiveSpan("analyzer_range", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("analyzer_range", idx);
+                      return (
+                        <td rowSpan={sp > 1 ? sp : undefined} className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere] ${sel.className}`} onClick={sel.onClick}>
+                          <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
+                            {editMode ? (
+                              <input
+                                className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "analyzer_range")}
+                                onChange={(e) => handleCellChange(item.id, "analyzer_range", e.target.value)}
+                              />
+                            ) : (
+                              <div className="flex items-start gap-0.5">
+                                <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
+                                {isAddMode && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                                    title="같은 호기에 Range 추가"
+                                  >
+                                    <Plus className="h-2.5 w-2.5" />
+                                  </button>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        )}
-                      </CellMemoWrapper>
-                    </td>
-                    {renderCell(item, "concentration", "text-center")}
-                    {renderCell(item, "volume_L", "text-center")}
+                          </CellMemoWrapper>
+                        </td>
+                      );
+                    })()}
+                    {renderCell(item, "concentration", idx, "text-center")}
+                    {renderCell(item, "volume_L", idx, "text-center")}
                     {/* Expiry date */}
-                    {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
-                      <td className={`${td} text-center whitespace-nowrap p-0.5`}>
-                        {wrapMemo(item, "expiry_date",
-                          <input
-                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "expiry_date")}
-                            onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
-                          />
-                        )}
-                      </td>
-                    ) : (
-                      <td className={`${td} text-center whitespace-nowrap`}>
-                        {wrapMemo(item, "expiry_date",
-                          <>
-                            <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
-                            {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
-                        )}
-                      </td>
-                    )}
+                    {(() => {
+                      const sp = effectiveSpan("expiry_date", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("expiry_date", idx);
+                      const rs = sp > 1 ? sp : undefined;
+                      if (editMode && EDITABLE_FIELDS.includes("expiry_date")) {
+                        return (
+                          <td rowSpan={rs} className={`${td} text-center whitespace-nowrap p-0.5 ${sel.className}`} onClick={sel.onClick}>
+                            {wrapMemo(item, "expiry_date",
+                              <input
+                                className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "expiry_date")}
+                                onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
+                              />
+                            )}
+                          </td>
+                        );
+                      }
+                      return (
+                        <td rowSpan={rs} className={`${td} text-center whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "expiry_date",
+                            <>
+                              <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
+                              {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })()}
                     {/* Remaining percent */}
-                    {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
-                      <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
-                        {wrapMemo(item, "remaining_percent",
-                          <input
-                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "remaining_percent")}
-                            onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
-                          />
-                        )}
-                      </td>
-                    ) : (
-                      <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
-                        {wrapMemo(item, "remaining_percent",
-                          <>
-                            <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
-                            {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
-                          </>
-                        )}
-                      </td>
-                    )}
+                    {(() => {
+                      const sp = effectiveSpan("remaining_percent", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("remaining_percent", idx);
+                      const rs = sp > 1 ? sp : undefined;
+                      if (editMode && EDITABLE_FIELDS.includes("remaining_percent")) {
+                        return (
+                          <td rowSpan={rs} className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px] ${sel.className}`} onClick={sel.onClick}>
+                            {wrapMemo(item, "remaining_percent",
+                              <input
+                                className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "remaining_percent")}
+                                onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
+                              />
+                            )}
+                          </td>
+                        );
+                      }
+                      return (
+                        <td rowSpan={rs} className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "remaining_percent",
+                            <>
+                              <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
+                              {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })()}
 
                     {/* ── Unit-level merged: J구매주체 ── */}
-                    {renderMergedCell(item, "purchase_entity", s.purchase, "text-center")}
+                    {renderMergedCell(item, "purchase_entity", s.purchase, idx, "text-center")}
                     {/* ── K S/O, L 도착: 개별 셀 (병합 안 함) ── */}
-                    {renderCell(item, "so_issue", "text-center whitespace-nowrap")}
-                    {renderCell(item, "arrival_status", "text-center whitespace-nowrap")}
+                    {renderCell(item, "so_issue", idx, "text-center whitespace-nowrap")}
+                    {renderCell(item, "arrival_status", idx, "text-center whitespace-nowrap")}
                     {/* (지점 컬럼 제거됨) */}
 
                     {/* ── Gas inspection merge group: N~S 가스상 정도검사 ── */}
-                    {renderMergedCell(item, "gas_inspection_first", s.gas, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_last", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_first", s.gas, idx, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_last", s.gas, idx, "text-center whitespace-nowrap")}
                     {/* P: 예정 - pink if within 60 days */}
                     {s.gas > 0 && (
                       <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
@@ -868,7 +1043,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_round", s.gas, "text-center")}
+                    {renderMergedCell(item, "gas_inspection_round", s.gas, idx, "text-center")}
                     {/* 예정/완료 column */}
                     {s.gas > 0 && (
                       <td rowSpan={s.gas} className={`${td} text-center`}>
@@ -883,12 +1058,12 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "gas_inspection_so", s.gas, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so", s.gas, idx, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "gas_inspection_so_arrival", s.gas, idx, "text-center whitespace-nowrap")}
 
                     {/* ── Velocity inspection merge group: T~X 유속계 정도검사 ── */}
-                    {renderMergedCell(item, "velocity_inspection_first", s.vel, "text-center whitespace-nowrap")}
-                    {renderMergedCell(item, "velocity_inspection_last", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_first", s.vel, idx, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_last", s.vel, idx, "text-center whitespace-nowrap")}
                     {/* V: 예정 - pink if within 60 days */}
                     {s.vel > 0 && (
                       <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
@@ -908,7 +1083,7 @@ export default function CalibrationGasInventory() {
                         )}
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_round", s.vel, "text-center")}
+                    {renderMergedCell(item, "velocity_inspection_round", s.vel, idx, "text-center")}
                     {/* 예정/완료 column */}
                     {s.vel > 0 && (
                       <td rowSpan={s.vel} className={`${td} text-center`}>
@@ -923,10 +1098,10 @@ export default function CalibrationGasInventory() {
                         </div>
                       </td>
                     )}
-                    {renderMergedCell(item, "velocity_inspection_so", s.vel, "text-center whitespace-nowrap")}
+                    {renderMergedCell(item, "velocity_inspection_so", s.vel, idx, "text-center whitespace-nowrap")}
 
                     {/* ── Unit-level merged: Y 비고사항 ── */}
-                    {renderMergedCell(item, "inspection_notes", s.unit, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
+                    {renderMergedCell(item, "inspection_notes", s.unit, idx, "min-w-[110px] w-[110px] max-w-[110px] whitespace-normal break-words [overflow-wrap:anywhere] leading-tight")}
                     <td className={`${td} text-center border-r-0`}>
                       <button
                         onClick={() => setDeleteTarget(item)}
