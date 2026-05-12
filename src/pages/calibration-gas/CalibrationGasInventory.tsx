@@ -1007,11 +1007,12 @@ export default function CalibrationGasInventory() {
                           {wrapMemo(item, "remaining_percent",
                             <>
                               <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
-                            {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
-                          </>
-                        )}
-                      </td>
-                    )}
+                              {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })()}
 
                     {/* ── Unit-level merged: J구매주체 ── */}
                     {renderMergedCell(item, "purchase_entity", s.purchase, idx, "text-center")}
