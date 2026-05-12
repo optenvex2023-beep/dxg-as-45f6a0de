@@ -109,6 +109,10 @@ export default function CalibrationGasInventory() {
   const [inlineAddTarget, setInlineAddTarget] = useState<InlineAddTarget>(null);
   const [inlineAddRange, setInlineAddRange] = useState("");
 
+  /* ── Cell merge mode (Excel-like) ── */
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selection, setSelection] = useState<{ colKey: string; startIdx: number; endIdx: number } | null>(null);
+
   /* ── Cell memo state ── */
   const { getMemo, saveMemo } = useCellMemos();
   const [memoTarget, setMemoTarget] = useState<{ rowId: string; colKey: string; label: string } | null>(null);
