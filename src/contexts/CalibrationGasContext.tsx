@@ -525,6 +525,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
         setExtractionMatchedIds, approveExtraction, rejectExtraction,
         markCalGasNotificationRead, markAllCalGasNotificationsRead,
         normalizeSiteName, findMatchingInventory, refetchAll,
+        cellMerges, mergeCells, unmergeCells,
       }}
     >
       {children}
