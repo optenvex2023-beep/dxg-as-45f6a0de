@@ -97,6 +97,19 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
 
         const dbHistory = await fetchCalGasHistory();
         setHistory(dbHistory);
+
+        // Load manual cell merges
+        const { data: mergeRows } = await supabase
+          .from("calibration_gas_cell_merges")
+          .select("column_key, inventory_item_id, merge_group_id");
+        if (mergeRows) {
+          const map: CellMergeMap = {};
+          for (const r of mergeRows as Array<{ column_key: string; inventory_item_id: string; merge_group_id: string }>) {
+            if (!map[r.column_key]) map[r.column_key] = {};
+            map[r.column_key][r.inventory_item_id] = r.merge_group_id;
+          }
+          setCellMerges(map);
+        }
       } catch (err) {
         console.error("Error loading cal gas data from Supabase:", err);
         setInventory(seedCalibrationGasInventory);
