@@ -919,70 +919,94 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Per-gas-row columns (E): 분석기 Range ── */}
-                    <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere]`}>
-                      <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
-                        {editMode ? (
-                          <input
-                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "analyzer_range")}
-                            onChange={(e) => handleCellChange(item.id, "analyzer_range", e.target.value)}
-                          />
-                        ) : (
-                          <div className="flex items-start gap-0.5">
-                            <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
-                            {isAddMode && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
-                                className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                                title="같은 호기에 Range 추가"
-                              >
-                                <Plus className="h-2.5 w-2.5" />
-                              </button>
+                    {/* Per-gas-row columns (E): 분석기 Range */}
+                    {(() => {
+                      const sp = effectiveSpan("analyzer_range", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("analyzer_range", idx);
+                      return (
+                        <td rowSpan={sp > 1 ? sp : undefined} className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere] ${sel.className}`} onClick={sel.onClick}>
+                          <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
+                            {editMode ? (
+                              <input
+                                className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "analyzer_range")}
+                                onChange={(e) => handleCellChange(item.id, "analyzer_range", e.target.value)}
+                              />
+                            ) : (
+                              <div className="flex items-start gap-0.5">
+                                <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
+                                {isAddMode && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                                    title="같은 호기에 Range 추가"
+                                  >
+                                    <Plus className="h-2.5 w-2.5" />
+                                  </button>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        )}
-                      </CellMemoWrapper>
-                    </td>
+                          </CellMemoWrapper>
+                        </td>
+                      );
+                    })()}
                     {renderCell(item, "concentration", idx, "text-center")}
                     {renderCell(item, "volume_L", idx, "text-center")}
                     {/* Expiry date */}
-                    {editMode && EDITABLE_FIELDS.includes("expiry_date") ? (
-                      <td className={`${td} text-center whitespace-nowrap p-0.5`}>
-                        {wrapMemo(item, "expiry_date",
-                          <input
-                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "expiry_date")}
-                            onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
-                          />
-                        )}
-                      </td>
-                    ) : (
-                      <td className={`${td} text-center whitespace-nowrap`}>
-                        {wrapMemo(item, "expiry_date",
-                          <>
-                            <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
-                            {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                          </>
-                        )}
-                      </td>
-                    )}
+                    {(() => {
+                      const sp = effectiveSpan("expiry_date", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("expiry_date", idx);
+                      const rs = sp > 1 ? sp : undefined;
+                      if (editMode && EDITABLE_FIELDS.includes("expiry_date")) {
+                        return (
+                          <td rowSpan={rs} className={`${td} text-center whitespace-nowrap p-0.5 ${sel.className}`} onClick={sel.onClick}>
+                            {wrapMemo(item, "expiry_date",
+                              <input
+                                className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "expiry_date")}
+                                onChange={(e) => handleCellChange(item.id, "expiry_date", e.target.value)}
+                              />
+                            )}
+                          </td>
+                        );
+                      }
+                      return (
+                        <td rowSpan={rs} className={`${td} text-center whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "expiry_date",
+                            <>
+                              <span className={expSoon ? "text-destructive font-medium" : ""}>{item.expiry_date || "-"}</span>
+                              {expSoon && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })()}
                     {/* Remaining percent */}
-                    {editMode && EDITABLE_FIELDS.includes("remaining_percent") ? (
-                      <td className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px]`}>
-                        {wrapMemo(item, "remaining_percent",
-                          <input
-                            className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                            value={getCellValue(item, "remaining_percent")}
-                            onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
-                          />
-                        )}
-                      </td>
-                    ) : (
-                      <td className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap`}>
-                        {wrapMemo(item, "remaining_percent",
-                          <>
-                            <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
+                    {(() => {
+                      const sp = effectiveSpan("remaining_percent", idx, 1);
+                      if (sp === 0) return null;
+                      const sel = cellMergeProps("remaining_percent", idx);
+                      const rs = sp > 1 ? sp : undefined;
+                      if (editMode && EDITABLE_FIELDS.includes("remaining_percent")) {
+                        return (
+                          <td rowSpan={rs} className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px] ${sel.className}`} onClick={sel.onClick}>
+                            {wrapMemo(item, "remaining_percent",
+                              <input
+                                className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "remaining_percent")}
+                                onChange={(e) => handleCellChange(item.id, "remaining_percent", e.target.value)}
+                              />
+                            )}
+                          </td>
+                        );
+                      }
+                      return (
+                        <td rowSpan={rs} className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "remaining_percent",
+                            <>
+                              <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
                             {lowRem && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">부족</Badge>}
                           </>
                         )}
