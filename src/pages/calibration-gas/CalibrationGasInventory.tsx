@@ -715,6 +715,22 @@ export default function CalibrationGasInventory() {
           <Button size="sm" variant={isAddMode ? "default" : "outline"} onClick={() => setIsAddMode((v) => !v)} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" /> {isAddMode ? "추가모드 해제" : "행 추가"}
           </Button>
+          <Button size="sm" variant={mergeMode ? "default" : "outline"} onClick={() => { setMergeMode((v) => !v); setSelection(null); }} className="gap-1.5">
+            {mergeMode ? "병합모드 해제" : "셀 병합"}
+          </Button>
+          {mergeMode && selection && (
+            <>
+              {selectionHasMerge ? (
+                <Button size="sm" variant="destructive" onClick={handleUnmergeSelection} className="gap-1.5">
+                  병합 해제
+                </Button>
+              ) : (
+                <Button size="sm" onClick={handleMergeSelection} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
+                  병합 ({selection.endIdx - selection.startIdx + 1}행)
+                </Button>
+              )}
+            </>
+          )}
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
               <Pencil className="h-3.5 w-3.5" /> 등록
