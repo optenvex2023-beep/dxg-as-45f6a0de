@@ -1121,24 +1121,31 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "gas_inspection_first", s.gas, idx, "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "gas_inspection_last", s.gas, idx, "text-center whitespace-nowrap")}
                     {/* P: 예정 - pink if within 60 days */}
-                    {s.gas > 0 && (
-                      <td rowSpan={s.gas} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {wrapMemo(item, "gas_inspection_next",
-                          editMode ? (
-                            <input
-                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                              value={getCellValue(item, "gas_inspection_next")}
-                              onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {item.gas_inspection_next || ""}
-                              {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                            </>
-                          )
-                        )}
-                      </td>
-                    )}
+                    {(() => {
+                      const colKey = "gas_inspection_next";
+                      const manual = getManualSpan(colKey, idx);
+                      const span = manual !== undefined ? manual : s.gas;
+                      if (span === 0) return null;
+                      const sel = cellMergeProps(colKey, idx);
+                      return (
+                        <td rowSpan={span} className={`${td} text-center whitespace-nowrap ${gasInspDueOrPast(item) ? greenBg + " font-semibold" : ""} ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "gas_inspection_next",
+                            editMode ? (
+                              <input
+                                className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "gas_inspection_next")}
+                                onChange={(e) => handleCellChange(item.id, "gas_inspection_next", e.target.value)}
+                              />
+                            ) : (
+                              <>
+                                {item.gas_inspection_next || ""}
+                                {gasDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                              </>
+                            )
+                          )}
+                        </td>
+                      );
+                    })()}
                     {renderMergedCell(item, "gas_inspection_round", s.gas, idx, "text-center")}
                     {/* 예정/완료 column */}
                     {s.gas > 0 && (
@@ -1161,24 +1168,31 @@ export default function CalibrationGasInventory() {
                     {renderMergedCell(item, "velocity_inspection_first", s.vel, idx, "text-center whitespace-nowrap")}
                     {renderMergedCell(item, "velocity_inspection_last", s.vel, idx, "text-center whitespace-nowrap")}
                     {/* V: 예정 - pink if within 60 days */}
-                    {s.vel > 0 && (
-                      <td rowSpan={s.vel} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""}`}>
-                        {wrapMemo(item, "velocity_inspection_next",
-                          editMode ? (
-                            <input
-                              className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                              value={getCellValue(item, "velocity_inspection_next")}
-                              onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {item.velocity_inspection_next || ""}
-                              {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
-                            </>
-                          )
-                        )}
-                      </td>
-                    )}
+                    {(() => {
+                      const colKey = "velocity_inspection_next";
+                      const manual = getManualSpan(colKey, idx);
+                      const span = manual !== undefined ? manual : s.vel;
+                      if (span === 0) return null;
+                      const sel = cellMergeProps(colKey, idx);
+                      return (
+                        <td rowSpan={span} className={`${td} text-center whitespace-nowrap ${velInspDueOrPast(item) ? greenBg + " font-semibold" : ""} ${sel.className}`} onClick={sel.onClick}>
+                          {wrapMemo(item, "velocity_inspection_next",
+                            editMode ? (
+                              <input
+                                className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                value={getCellValue(item, "velocity_inspection_next")}
+                                onChange={(e) => handleCellChange(item.id, "velocity_inspection_next", e.target.value)}
+                              />
+                            ) : (
+                              <>
+                                {item.velocity_inspection_next || ""}
+                                {velDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">임박</Badge>}
+                              </>
+                            )
+                          )}
+                        </td>
+                      );
+                    })()}
                     {renderMergedCell(item, "velocity_inspection_round", s.vel, idx, "text-center")}
                     {/* 예정/완료 column */}
                     {s.vel > 0 && (
