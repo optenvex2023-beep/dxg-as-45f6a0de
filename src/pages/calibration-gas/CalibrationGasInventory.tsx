@@ -848,12 +848,19 @@ export default function CalibrationGasInventory() {
 
                   const isSiteStart = s.site > 0 && idx > 0;
 
+                // Effective spans (manual override > auto)
+                const siteSpan = effectiveSpan("site_name", idx, s.site);
+                const tmsSpan = effectiveSpan("tms_status", idx, s.tms);
+                const unitSpan = effectiveSpan("unit_no", idx, s.unit);
+                const siteSel = cellMergeProps("site_name", idx);
+                const tmsSel = cellMergeProps("tms_status", idx);
+                const unitSel = cellMergeProps("unit_no", idx);
+
                 return (
                   <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(170,167,167)]" : "border-b border-border/20"}`}>
-                    {/* ── Site-level merged (B 사업장명) ── */}
-                    {/* (계약종료일 컬럼 제거됨) */}
-                    {s.site > 0 && (
-                      <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
+                    {/* Site-level merged (B 사업장명) */}
+                    {siteSpan > 0 && (
+                      <td rowSpan={siteSpan > 1 ? siteSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"} ${siteSel.className}`} onClick={siteSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -869,9 +876,9 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── TMS-level merged (C) ── */}
-                    {s.tms > 0 && (
-                      <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background`}>
+                    {/* TMS-level merged (C) */}
+                    {tmsSpan > 0 && (
+                      <td rowSpan={tmsSpan > 1 ? tmsSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background ${tmsSel.className}`} onClick={tmsSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -886,9 +893,9 @@ export default function CalibrationGasInventory() {
                       </td>
                     )}
 
-                    {/* ── Unit-level merged (D) ── */}
-                    {s.unit > 0 && (
-                      <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
+                    {/* Unit-level merged (D) */}
+                    {unitSpan > 0 && (
+                      <td rowSpan={unitSpan > 1 ? unitSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background ${unitSel.className}`} onClick={unitSel.onClick}>
                         {editMode ? (
                           <input
                             className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -900,7 +907,7 @@ export default function CalibrationGasInventory() {
                             <span>{item.unit_no}</span>
                             {isAddMode && (
                               <button
-                                onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                                onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
                                 className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
                                 title="새 호기 추가"
                               >
