@@ -794,11 +794,16 @@ export default function CalibrationGasInventory() {
                   병합 해제
                 </Button>
               ) : (
-                <Button size="sm" onClick={handleMergeSelection} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
+                <Button size="sm" onClick={handleOpenMergeDialog} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
                   병합 ({selection.endIdx - selection.startIdx + 1}행)
                 </Button>
               )}
             </>
+          )}
+          {mergeMode && undoStack.length > 0 && (
+            <Button size="sm" variant="outline" onClick={handleUndoMerge} className="gap-1.5" title={undoStack[undoStack.length - 1].label}>
+              <Undo2 className="h-3.5 w-3.5" /> 되돌리기
+            </Button>
           )}
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
