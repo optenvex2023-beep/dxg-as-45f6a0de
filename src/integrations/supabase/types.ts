@@ -85,6 +85,33 @@ export type Database = {
           },
         ]
       }
+      calibration_gas_cell_merges: {
+        Row: {
+          column_key: string
+          created_at: string
+          id: string
+          inventory_item_id: string
+          merge_group_id: string
+          updated_by: string
+        }
+        Insert: {
+          column_key: string
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          merge_group_id: string
+          updated_by?: string
+        }
+        Update: {
+          column_key?: string
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          merge_group_id?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       calibration_gas_history: {
         Row: {
           after_value: string
