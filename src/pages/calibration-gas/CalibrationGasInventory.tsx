@@ -245,6 +245,109 @@ export default function CalibrationGasInventory() {
     return spans;
   }, [filtered]);
 
+  /* Manual cell-merge spans (override per column) */
+  const manualSpans = useMemo(() => {
+    const result: Record<string, (number | undefined)[]> = {};
+    for (const colKey of Object.keys(cellMerges)) {
+      const colMap = cellMerges[colKey];
+      const arr: (number | undefined)[] = new Array(filtered.length).fill(undefined);
+      let i = 0;
+      while (i < filtered.length) {
+        const gid = colMap[filtered[i].id];
+        if (!gid) { i++; continue; }
+        const siteName = filtered[i].site_name;
+        let j = i + 1;
+        while (j < filtered.length && filtered[j].site_name === siteName && colMap[filtered[j].id] === gid) j++;
+        if (j - i >= 2) {
+          arr[i] = j - i;
+          for (let k = i + 1; k < j; k++) arr[k] = 0;
+        }
+        i = j;
+      }
+      result[colKey] = arr;
+    }
+    return result;
+  }, [cellMerges, filtered]);
+
+  const getManualSpan = useCallback((colKey: string, idx: number): number | undefined => {
+    return manualSpans[colKey]?.[idx];
+  }, [manualSpans]);
+
+  const effectiveSpan = useCallback((colKey: string, idx: number, autoSpan: number): number => {
+    const m = getManualSpan(colKey, idx);
+    if (m !== undefined) return m;
+    return autoSpan;
+  }, [getManualSpan]);
+
+  /* Cell selection (merge mode) */
+  const handleCellClick = useCallback((colKey: string, idx: number, e: React.MouseEvent) => {
+    if (!mergeMode) return;
+    e.stopPropagation();
+    if (selection && selection.colKey === colKey) {
+      setSelection({ colKey, startIdx: Math.min(selection.startIdx, idx), endIdx: Math.max(selection.startIdx, idx) });
+    } else {
+      setSelection({ colKey, startIdx: idx, endIdx: idx });
+    }
+  }, [mergeMode, selection]);
+
+  const isCellInSelection = useCallback((colKey: string, idx: number) => {
+    if (!selection || selection.colKey !== colKey) return false;
+    return idx >= selection.startIdx && idx <= selection.endIdx;
+  }, [selection]);
+
+  const handleMergeSelection = useCallback(async () => {
+    if (!selection) return;
+    const { colKey, startIdx, endIdx } = selection;
+    if (endIdx <= startIdx) {
+      toast.error("2개 이상의 셀을 선택해주세요.");
+      return;
+    }
+    const siteName = filtered[startIdx].site_name;
+    const ids: string[] = [];
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (filtered[i].site_name !== siteName) {
+        toast.error("같은 사업장 안에서만 병합할 수 있습니다.");
+        return;
+      }
+      ids.push(filtered[i].id);
+    }
+    await mergeCells(colKey, ids, currentUser?.name || "시스템");
+    toast.success(`${ids.length}개 셀이 병합되었습니다.`);
+    setSelection(null);
+  }, [selection, filtered, mergeCells, currentUser]);
+
+  const handleUnmergeSelection = useCallback(async () => {
+    if (!selection) return;
+    const { colKey, startIdx, endIdx } = selection;
+    const colMap = cellMerges[colKey] || {};
+    const gidsToClear = new Set<string>();
+    for (let i = startIdx; i <= endIdx; i++) {
+      const g = colMap[filtered[i].id];
+      if (g) gidsToClear.add(g);
+    }
+    if (gidsToClear.size === 0) {
+      toast.error("병합된 셀이 없습니다.");
+      return;
+    }
+    const ids: string[] = [];
+    for (const item of filtered) {
+      if (gidsToClear.has(colMap[item.id])) ids.push(item.id);
+    }
+    await unmergeCells(colKey, ids);
+    toast.success("병합이 해제되었습니다.");
+    setSelection(null);
+  }, [selection, filtered, cellMerges, unmergeCells]);
+
+  const selectionHasMerge = useMemo(() => {
+    if (!selection) return false;
+    const colMap = cellMerges[selection.colKey] || {};
+    for (let i = selection.startIdx; i <= selection.endIdx; i++) {
+      if (colMap[filtered[i]?.id]) return true;
+    }
+    return false;
+  }, [selection, cellMerges, filtered]);
+
+
   /* ── Edit handlers ── */
   const handleStartEdit = useCallback(() => {
     setEditBuffer({});
