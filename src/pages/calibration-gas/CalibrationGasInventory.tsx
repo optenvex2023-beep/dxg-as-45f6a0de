@@ -288,16 +288,38 @@ export default function CalibrationGasInventory() {
     return autoSpan;
   }, [getManualSpan]);
 
+  /* 클릭한 cell의 실제 시각적 rowSpan 범위를 idx 단위로 반환 */
+  const getVisibleRange = useCallback((colKey: string, idx: number): [number, number] => {
+    const s = rowSpanData[idx];
+    let auto = 1;
+    if (s) {
+      if (colKey === "site_name") auto = s.site || 1;
+      else if (colKey === "tms_status") auto = s.tms || 1;
+      else if (colKey === "unit_no") auto = s.unit || 1;
+      else if (colKey === "purchase_entity") auto = s.purchase || 1;
+      else if (colKey === "branch") auto = s.branch || 1;
+      else if (colKey.startsWith("gas_inspection_")) auto = s.gas || 1;
+      else if (colKey.startsWith("velocity_inspection_")) auto = s.vel || 1;
+      else if (colKey === "inspection_notes") auto = s.unit || 1;
+    }
+    const span = effectiveSpan(colKey, idx, auto);
+    const end = idx + Math.max(span, 1) - 1;
+    return [idx, Math.min(end, filtered.length - 1)];
+  }, [rowSpanData, effectiveSpan, filtered.length]);
+
   /* Cell selection (merge mode) */
   const handleCellClick = useCallback((colKey: string, idx: number, e: React.MouseEvent) => {
     if (!mergeMode) return;
     e.stopPropagation();
+    const [cs, ce] = getVisibleRange(colKey, idx);
     if (selection && selection.colKey === colKey) {
-      setSelection({ colKey, startIdx: Math.min(selection.startIdx, idx), endIdx: Math.max(selection.startIdx, idx) });
+      const ns = Math.min(selection.startIdx, cs);
+      const ne = Math.max(selection.endIdx, ce);
+      setSelection({ colKey, startIdx: ns, endIdx: ne });
     } else {
-      setSelection({ colKey, startIdx: idx, endIdx: idx });
+      setSelection({ colKey, startIdx: cs, endIdx: ce });
     }
-  }, [mergeMode, selection]);
+  }, [mergeMode, selection, getVisibleRange]);
 
   const isCellInSelection = useCallback((colKey: string, idx: number) => {
     if (!selection || selection.colKey !== colKey) return false;
