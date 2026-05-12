@@ -1290,6 +1290,8 @@ export default function CalibrationGasInventory() {
             <Button variant="outline" onClick={() => { setInlineAddTarget(null); setInlineAddRange(""); }}>취소</Button>
             <Button onClick={handleInlineAdd}>추가</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Merge Value Input Dialog */}
       <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
