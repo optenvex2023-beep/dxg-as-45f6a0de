@@ -15,6 +15,10 @@ import {
   updateCalGasInventoryItem as updateCalGasItemDb, deleteCalGasInventoryItem as deleteCalGasItemDb,
   fetchCalGasHistory, insertCalGasHistoryItems,
 } from "@/lib/supabaseDb";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Manual cell merges per column: column_key -> (inventory_item_id -> merge_group_id) */
+export type CellMergeMap = Record<string, Record<string, string>>;
 
 interface CalGasState {
   inventory: CalibrationGasInventoryItem[];
