@@ -36,6 +36,11 @@ interface CalGasState {
   /* History */
   addHistoryItems: (items: CalibrationGasHistory[]) => void;
 
+  /* Manual cell merges */
+  cellMerges: CellMergeMap;
+  mergeCells: (columnKey: string, itemIds: string[], userName: string) => Promise<void>;
+  unmergeCells: (columnKey: string, itemIds: string[]) => Promise<void>;
+
   /* Upload flow */
   addUploadFile: (file: CalibrationGasUploadFile) => void;
   addExtraction: (extraction: CalibrationGasExtraction) => void;
