@@ -112,6 +112,15 @@ export default function CalibrationGasInventory() {
   /* ── Cell merge mode (Excel-like) ── */
   const [mergeMode, setMergeMode] = useState(false);
   const [selection, setSelection] = useState<{ colKey: string; startIdx: number; endIdx: number } | null>(null);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeDialogValue, setMergeDialogValue] = useState("");
+  type UndoEntry = {
+    colKey: string;
+    beforeValues: Record<string, string>;
+    beforeGroups: Record<string, string | undefined>;
+    label: string;
+  };
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
   /* ── Cell memo state ── */
   const { getMemo, saveMemo } = useCellMemos();
