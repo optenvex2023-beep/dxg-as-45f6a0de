@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap, Trash2 } from "lucide-react";
+import { Search, AlertTriangle, Clock, ChevronRight, Pencil, Save, CheckCircle2, X, Plus, Gauge, Zap, Trash2, Undo2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { CalibrationGasInventoryItem } from "@/types/calibrationGas";
 import type { CalibrationGasHistory } from "@/types/calibrationGas";
@@ -112,6 +112,15 @@ export default function CalibrationGasInventory() {
   /* ── Cell merge mode (Excel-like) ── */
   const [mergeMode, setMergeMode] = useState(false);
   const [selection, setSelection] = useState<{ colKey: string; startIdx: number; endIdx: number } | null>(null);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeDialogValue, setMergeDialogValue] = useState("");
+  type UndoEntry = {
+    colKey: string;
+    beforeValues: Record<string, string>;
+    beforeGroups: Record<string, string | undefined>;
+    label: string;
+  };
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
   /* ── Cell memo state ── */
   const { getMemo, saveMemo } = useCellMemos();
@@ -295,7 +304,7 @@ export default function CalibrationGasInventory() {
     return idx >= selection.startIdx && idx <= selection.endIdx;
   }, [selection]);
 
-  const handleMergeSelection = useCallback(async () => {
+  const handleOpenMergeDialog = useCallback(() => {
     if (!selection) return;
     const { colKey, startIdx, endIdx } = selection;
     if (endIdx <= startIdx) {
@@ -303,18 +312,42 @@ export default function CalibrationGasInventory() {
       return;
     }
     const siteName = filtered[startIdx].site_name;
-    const ids: string[] = [];
     for (let i = startIdx; i <= endIdx; i++) {
       if (filtered[i].site_name !== siteName) {
         toast.error("같은 사업장 안에서만 병합할 수 있습니다.");
         return;
       }
-      ids.push(filtered[i].id);
+    }
+    // 첫번째 셀의 현재값으로 기본 prefill
+    const firstVal = (filtered[startIdx] as any)[colKey];
+    setMergeDialogValue(firstVal != null ? String(firstVal) : "");
+    setMergeDialogOpen(true);
+  }, [selection, filtered]);
+
+  const handleConfirmMerge = useCallback(async () => {
+    if (!selection) return;
+    const { colKey, startIdx, endIdx } = selection;
+    const ids: string[] = [];
+    const beforeValues: Record<string, string> = {};
+    const beforeGroups: Record<string, string | undefined> = {};
+    const colMap = cellMerges[colKey] || {};
+    for (let i = startIdx; i <= endIdx; i++) {
+      const item = filtered[i];
+      ids.push(item.id);
+      const cur = (item as any)[colKey];
+      beforeValues[item.id] = cur != null ? String(cur) : "";
+      beforeGroups[item.id] = colMap[item.id];
+    }
+    // 병합된 셀에 표시할 값 적용
+    for (const id of ids) {
+      updateInventoryItem(id, { [colKey]: mergeDialogValue } as any);
     }
     await mergeCells(colKey, ids, currentUser?.name || "시스템");
+    setUndoStack((prev) => [...prev, { colKey, beforeValues, beforeGroups, label: `병합 (${ids.length}행)` }]);
     toast.success(`${ids.length}개 셀이 병합되었습니다.`);
+    setMergeDialogOpen(false);
     setSelection(null);
-  }, [selection, filtered, mergeCells, currentUser]);
+  }, [selection, filtered, cellMerges, mergeCells, updateInventoryItem, mergeDialogValue, currentUser]);
 
   const handleUnmergeSelection = useCallback(async () => {
     if (!selection) return;
@@ -330,13 +363,49 @@ export default function CalibrationGasInventory() {
       return;
     }
     const ids: string[] = [];
+    const beforeValues: Record<string, string> = {};
+    const beforeGroups: Record<string, string | undefined> = {};
     for (const item of filtered) {
-      if (gidsToClear.has(colMap[item.id])) ids.push(item.id);
+      if (gidsToClear.has(colMap[item.id])) {
+        ids.push(item.id);
+        const cur = (item as any)[colKey];
+        beforeValues[item.id] = cur != null ? String(cur) : "";
+        beforeGroups[item.id] = colMap[item.id];
+      }
     }
     await unmergeCells(colKey, ids);
+    setUndoStack((prev) => [...prev, { colKey, beforeValues, beforeGroups, label: `병합 해제 (${ids.length}행)` }]);
     toast.success("병합이 해제되었습니다.");
     setSelection(null);
   }, [selection, filtered, cellMerges, unmergeCells]);
+
+  const handleUndoMerge = useCallback(async () => {
+    const action = undoStack[undoStack.length - 1];
+    if (!action) return;
+    setUndoStack((prev) => prev.slice(0, -1));
+    const { colKey, beforeValues, beforeGroups } = action;
+    // 1) 값 복원
+    for (const [id, val] of Object.entries(beforeValues)) {
+      updateInventoryItem(id, { [colKey]: val } as any);
+    }
+    // 2) 그룹 복원
+    const groupMap: Record<string, string[]> = {};
+    const noGroupIds: string[] = [];
+    for (const [id, gid] of Object.entries(beforeGroups)) {
+      if (gid) (groupMap[gid] ||= []).push(id);
+      else noGroupIds.push(id);
+    }
+    if (noGroupIds.length > 0) await unmergeCells(colKey, noGroupIds);
+    for (const gids of Object.values(groupMap)) {
+      if (gids.length >= 2) {
+        await mergeCells(colKey, gids, currentUser?.name || "시스템");
+      } else {
+        await unmergeCells(colKey, gids);
+      }
+    }
+    toast.success("이전 상태로 되돌렸습니다.");
+    setSelection(null);
+  }, [undoStack, mergeCells, unmergeCells, updateInventoryItem, currentUser]);
 
   const selectionHasMerge = useMemo(() => {
     if (!selection) return false;
@@ -725,11 +794,16 @@ export default function CalibrationGasInventory() {
                   병합 해제
                 </Button>
               ) : (
-                <Button size="sm" onClick={handleMergeSelection} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
+                <Button size="sm" onClick={handleOpenMergeDialog} disabled={selection.endIdx === selection.startIdx} className="gap-1.5">
                   병합 ({selection.endIdx - selection.startIdx + 1}행)
                 </Button>
               )}
             </>
+          )}
+          {mergeMode && undoStack.length > 0 && (
+            <Button size="sm" variant="outline" onClick={handleUndoMerge} className="gap-1.5" title={undoStack[undoStack.length - 1].label}>
+              <Undo2 className="h-3.5 w-3.5" /> 되돌리기
+            </Button>
           )}
           {!editMode ? (
             <Button size="sm" onClick={handleStartEdit} className="gap-1.5">
@@ -1215,6 +1289,41 @@ export default function CalibrationGasInventory() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setInlineAddTarget(null); setInlineAddRange(""); }}>취소</Button>
             <Button onClick={handleInlineAdd}>추가</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Value Input Dialog */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>병합된 셀에 표시할 내용</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="text-xs text-muted-foreground">
+              {selection && (
+                <>
+                  열: <span className="font-medium text-foreground">{FIELD_LABELS[selection.colKey] ?? selection.colKey}</span>
+                  {" · "}
+                  병합 행수: <span className="font-medium text-foreground">{selection.endIdx - selection.startIdx + 1}</span>
+                </>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">표시 내용</Label>
+              <Input
+                className="h-8 text-sm"
+                value={mergeDialogValue}
+                onChange={(e) => setMergeDialogValue(e.target.value)}
+                placeholder="병합된 셀에 표시할 내용을 입력하세요"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleConfirmMerge(); }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>취소</Button>
+            <Button onClick={handleConfirmMerge}>병합</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
