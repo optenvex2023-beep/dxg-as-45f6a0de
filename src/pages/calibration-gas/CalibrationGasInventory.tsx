@@ -711,53 +711,87 @@ export default function CalibrationGasInventory() {
                     {/* (계약종료일 컬럼 제거됨) */}
                     {s.site > 0 && (
                       <td rowSpan={s.site} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"}`}>
-                        <span className="block leading-tight">{item.site_name}</span>
-                        {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
+                        {editMode ? (
+                          <input
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "site_name")}
+                            onChange={(e) => handleCellChange(item.id, "site_name", e.target.value)}
+                          />
+                        ) : (
+                          <>
+                            <span className="block leading-tight">{item.site_name}</span>
+                            {anyInspDue && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">검사예정</Badge>}
+                          </>
+                        )}
                       </td>
                     )}
 
                     {/* ── TMS-level merged (C) ── */}
                     {s.tms > 0 && (
                       <td rowSpan={s.tms} className={`${td} ${stickyTd} ${stickyCol[2].left} ${stickyCol[2].w} text-center !bg-background`}>
-                        <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
-                          {item.tms_status}
-                        </Badge>
+                        {editMode ? (
+                          <input
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "tms_status")}
+                            onChange={(e) => handleCellChange(item.id, "tms_status", e.target.value)}
+                          />
+                        ) : (
+                          <Badge variant={item.tms_status === "전송" ? "default" : "secondary"} className="text-[10px] px-1.5">
+                            {item.tms_status}
+                          </Badge>
+                        )}
                       </td>
                     )}
 
                     {/* ── Unit-level merged (D) ── */}
                     {s.unit > 0 && (
                       <td rowSpan={s.unit} className={`${td} ${stickyTd} ${stickyCol[3].left} ${stickyCol[3].w} text-center font-medium !bg-background`}>
-                        <div className="flex items-center justify-center gap-0.5">
-                          <span>{item.unit_no}</span>
-                          {isAddMode && (
-                            <button
-                              onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
-                              className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                              title="새 호기 추가"
-                            >
-                              <Plus className="h-2.5 w-2.5" />
-                            </button>
-                          )}
-                        </div>
+                        {editMode ? (
+                          <input
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-center text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "unit_no")}
+                            onChange={(e) => handleCellChange(item.id, "unit_no", e.target.value)}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center gap-0.5">
+                            <span>{item.unit_no}</span>
+                            {isAddMode && (
+                              <button
+                                onClick={() => { setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "unit" }); setInlineAddRange(""); }}
+                                className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                                title="새 호기 추가"
+                              >
+                                <Plus className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     )}
 
                     {/* ── Per-gas-row columns (E): 분석기 Range ── */}
                     <td className={`${td} ${stickyTd} ${stickyCol[4].left} ${stickyCol[4].w} ${stickyBorderRight} group-hover:!bg-accent/40 whitespace-normal break-words [overflow-wrap:anywhere]`}>
                       <CellMemoWrapper hasMemo={!!getMemo(item.id, "analyzer_range")} onOpenMemo={() => openMemoFor(item, "analyzer_range")}>
-                        <div className="flex items-start gap-0.5">
-                          <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
-                          {isAddMode && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
-                              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
-                              title="같은 호기에 Range 추가"
-                            >
-                              <Plus className="h-2.5 w-2.5" />
-                            </button>
-                          )}
-                        </div>
+                        {editMode ? (
+                          <input
+                            className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                            value={getCellValue(item, "analyzer_range")}
+                            onChange={(e) => handleCellChange(item.id, "analyzer_range", e.target.value)}
+                          />
+                        ) : (
+                          <div className="flex items-start gap-0.5">
+                            <span className="flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">{item.analyzer_range}</span>
+                            {isAddMode && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setInlineAddTarget({ site_name: item.site_name, tms_status: item.tms_status, unit_no: item.unit_no, contract_end_date: item.contract_end_date, mode: "range" }); setInlineAddRange(""); }}
+                                className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
+                                title="같은 호기에 Range 추가"
+                              >
+                                <Plus className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </CellMemoWrapper>
                     </td>
                     {renderCell(item, "concentration", "text-center")}
