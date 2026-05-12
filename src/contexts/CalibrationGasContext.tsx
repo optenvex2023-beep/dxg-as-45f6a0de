@@ -77,6 +77,7 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<CalibrationGasHistory[]>([]);
   const [notifications, setNotifications] = useState<CalibrationGasNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cellMerges, setCellMerges] = useState<CellMergeMap>({});
   const dataLoadedRef = useRef(false);
 
   /* ─── Load data from Supabase on mount ─── */
