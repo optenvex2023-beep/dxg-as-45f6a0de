@@ -624,13 +624,28 @@ export default function CalibrationGasInventory() {
     );
   };
 
-  /** Render a plain or editable cell (no rowspan) */
-  const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, extraClass = "") => {
+  /** Get classes/handlers for cell selection in merge mode */
+  const cellMergeProps = (colKey: string, idx: number) => {
+    if (!mergeMode) return { className: "", onClick: undefined as undefined | ((e: React.MouseEvent) => void) };
+    const selected = isCellInSelection(colKey, idx);
+    return {
+      className: `cursor-cell ${selected ? "outline outline-2 outline-blue-500 outline-offset-[-2px] !bg-blue-100 dark:!bg-blue-900/40" : ""}`,
+      onClick: (e: React.MouseEvent) => handleCellClick(colKey, idx, e),
+    };
+  };
+
+  /** Render a plain cell (rowspan = manual override or 1) */
+  const renderCell = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, idx: number, extraClass = "") => {
+    const colKey = field as string;
+    const manual = getManualSpan(colKey, idx);
+    if (manual === 0) return null;
+    const span = manual && manual > 1 ? manual : undefined;
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
     const val = getCellValue(item, field);
+    const sel = cellMergeProps(colKey, idx);
     if (isEditable) {
       return (
-        <td className={`${td} ${extraClass} p-0.5`}>
+        <td rowSpan={span} className={`${td} ${extraClass} p-0.5 ${sel.className}`} onClick={sel.onClick}>
           {wrapMemo(item, field,
             <input
               className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -641,22 +656,27 @@ export default function CalibrationGasInventory() {
         </td>
       );
     }
-    return <td className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass} ${sel.className}`} onClick={sel.onClick}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
-  /** Render a merged (rowspan) editable/read-only cell */
+  /** Render a merged (rowspan) cell with optional manual override */
   const renderMergedCell = (
     item: CalibrationGasInventoryItem,
     field: keyof CalibrationGasInventoryItem,
-    span: number,
+    autoSpan: number,
+    idx: number,
     extraClass = ""
   ) => {
+    const colKey = field as string;
+    const manual = getManualSpan(colKey, idx);
+    const span = manual !== undefined ? manual : autoSpan;
     if (span === 0) return null;
     const isEditable = editMode && EDITABLE_FIELDS.includes(field);
     const val = getCellValue(item, field);
+    const sel = cellMergeProps(colKey, idx);
     if (isEditable) {
       return (
-        <td rowSpan={span} className={`${td} ${extraClass} p-0.5`}>
+        <td rowSpan={span} className={`${td} ${extraClass} p-0.5 ${sel.className}`} onClick={sel.onClick}>
           {wrapMemo(item, field,
             <input
               className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -667,7 +687,7 @@ export default function CalibrationGasInventory() {
         </td>
       );
     }
-    return <td rowSpan={span} className={`${td} ${extraClass}`}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
+    return <td rowSpan={span} className={`${td} ${extraClass} ${sel.className}`} onClick={sel.onClick}>{wrapMemo(item, field, <>{val || ""}</>)}</td>;
   };
 
   const gasInspectionDue = (item: CalibrationGasInventoryItem) => isWithin60Days(item.gas_inspection_next);
