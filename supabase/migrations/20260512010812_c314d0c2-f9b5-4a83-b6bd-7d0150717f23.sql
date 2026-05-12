@@ -1,0 +1,1 @@
+DELETE FROM public.calibration_gas_cell_merges WHERE merge_group_id = 'a1a6da63-d224-4019-8f24-46687d5b50b1';
