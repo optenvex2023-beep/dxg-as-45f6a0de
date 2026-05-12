@@ -242,6 +242,45 @@ export function CalGasProvider({ children }: { children: React.ReactNode }) {
     deleteCalGasItemDb(id);
   }, []);
 
+  /* ── Manual cell merges ── */
+  const mergeCells = useCallback(async (columnKey: string, itemIds: string[], userName: string) => {
+    if (itemIds.length < 2) return;
+    const groupId = crypto.randomUUID();
+    // Optimistic update
+    setCellMerges((prev) => {
+      const next = { ...prev, [columnKey]: { ...(prev[columnKey] || {}) } };
+      for (const id of itemIds) next[columnKey][id] = groupId;
+      return next;
+    });
+    // Upsert to DB
+    const rows = itemIds.map((id) => ({
+      column_key: columnKey,
+      inventory_item_id: id,
+      merge_group_id: groupId,
+      updated_by: userName,
+    }));
+    const { error } = await supabase
+      .from("calibration_gas_cell_merges")
+      .upsert(rows, { onConflict: "column_key,inventory_item_id" });
+    if (error) console.error("mergeCells error:", error);
+  }, []);
+
+  const unmergeCells = useCallback(async (columnKey: string, itemIds: string[]) => {
+    if (itemIds.length === 0) return;
+    setCellMerges((prev) => {
+      const colMap = { ...(prev[columnKey] || {}) };
+      for (const id of itemIds) delete colMap[id];
+      return { ...prev, [columnKey]: colMap };
+    });
+    const { error } = await supabase
+      .from("calibration_gas_cell_merges")
+      .delete()
+      .eq("column_key", columnKey)
+      .in("inventory_item_id", itemIds);
+    if (error) console.error("unmergeCells error:", error);
+  }, []);
+
+
   const addHistoryItems = useCallback((items: CalibrationGasHistory[]) => {
     if (items.length === 0) return;
     setHistory((prev) => [...items, ...prev]);
