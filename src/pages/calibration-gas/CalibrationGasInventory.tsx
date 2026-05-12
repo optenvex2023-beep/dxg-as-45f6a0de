@@ -43,6 +43,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const EDITABLE_FIELDS: (keyof CalibrationGasInventoryItem)[] = [
+  "site_name", "tms_status", "unit_no", "analyzer_range",
   "concentration", "volume_L", "expiry_date", "remaining_percent",
   "purchase_entity", "so_issue", "arrival_status", "branch",
   "gas_inspection_first", "gas_inspection_last", "gas_inspection_next",
