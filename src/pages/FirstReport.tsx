@@ -820,7 +820,7 @@ function TemplateBody({
     });
 
     // 1) 즉시 미리보기 — 항상 최신 prev 기준으로 추가 (스냅샷 덮어쓰기 방지)
-    setData((prev) => {
+    upd((prev) => {
       const existing = prev.photos || [];
       const slotCount = existing.filter((p) => p.page_slot === slotKey).length;
       const appended = newEntries.map((e, i) => ({
@@ -835,7 +835,7 @@ function TemplateBody({
       newEntries.map(async ({ id, file }) => {
         try {
           const storagePath = await uploadReportPhoto(file, "first", id);
-          setData((prev) => ({
+          upd((prev) => ({
             ...prev,
             photos: (prev.photos || []).map((x) =>
               x.id === id ? { ...x, file_url: storagePath } : x,
