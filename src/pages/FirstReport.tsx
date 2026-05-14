@@ -756,7 +756,7 @@ function TemplateBody({
   serialNo: string;
   onSerialChange?: (v: string) => void;
   data: InspectionReportData;
-  onDataChange?: (patch: Partial<InspectionReportData>) => void;
+  onDataChange?: (patchOrFn: Partial<InspectionReportData> | ((prev: InspectionReportData) => InspectionReportData)) => void;
   inspectorName: string;
   createdDate: string;
   disabled: boolean;
