@@ -181,7 +181,8 @@ export default function StatusTable() {
   };
 
   const superAdmin = isSuperAdmin(currentUser);
-  const isNoh = currentUser?.emp_no === "7023013";
+  const NOH_EQUIVALENT_EMP_NOS = new Set(["7023013", "7026034", "9020121"]);
+  const isNoh = !!currentUser && NOH_EQUIVALENT_EMP_NOS.has(currentUser.emp_no);
   const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀") || isNoh;
   const isCS = superAdmin || currentUser?.department === "CS팀" || isNoh;
   const isManufacturing = superAdmin || currentUser?.department === "제조본부" || isNoh;
