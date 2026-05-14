@@ -63,6 +63,8 @@ function hasSalesAdminPermissions(user: AppUser | null): boolean {
 const REGISTER_ALLOWED_EMP_NOS = new Set([
   "7023121", // 류상헌
   "7023013", // 노주형
+  "7026034", // 고재윤
+  "9020121", // 김가영
 ]);
 
 /** Can register new inspections */
