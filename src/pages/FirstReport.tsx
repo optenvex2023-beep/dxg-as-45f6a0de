@@ -531,7 +531,10 @@ function DocumentView({
   });
   const versions = getVersions(report.id);
 
-  const upd = (patch: Partial<InspectionReportData>) => setData(prev => ({ ...prev, ...patch }));
+  const upd = (patchOrFn: Partial<InspectionReportData> | ((prev: InspectionReportData) => InspectionReportData)) =>
+    typeof patchOrFn === "function"
+      ? setData(patchOrFn as (p: InspectionReportData) => InspectionReportData)
+      : setData(prev => ({ ...prev, ...patchOrFn }));
 
   const handleSave = () => {
     const inspectorName = report.inspector_name || currentUserName;
