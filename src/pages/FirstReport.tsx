@@ -794,34 +794,52 @@ function TemplateBody({
 
   const handlePhotoUpload = async (slotKey: string, files: FileList | null) => {
     if (ro || !files) return;
-    const photos = [...(data.photos || [])];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const photoId = crypto.randomUUID();
-      // Immediate blob preview
+
+    // Build new photo entries with blob preview URLs
+    const fileList = Array.from(files);
+    const newEntries = fileList.map((file) => {
+      const id = crypto.randomUUID();
       const blobUrl = URL.createObjectURL(file);
-      const newPhoto: ReportPhoto = {
-        id: photoId,
+      const photo: ReportPhoto = {
+        id,
         report_id: "",
         file_url: blobUrl,
         caption: "",
         page_slot: slotKey,
-        order_index: photos.filter(p => p.page_slot === slotKey).length,
+        order_index: 0,
         uploaded_by: inspectorName,
         uploaded_at: new Date().toISOString(),
       };
-      photos.push(newPhoto);
-      // Upload to storage in background
-      try {
-        const storagePath = await uploadReportPhoto(file, "first", photoId);
-        // Replace blob URL with storage path
-        const idx = photos.findIndex(p => p.id === photoId);
-        if (idx !== -1) photos[idx] = { ...photos[idx], file_url: storagePath };
-      } catch (err) {
-        console.error("[FirstReport] photo upload failed, keeping blob URL:", err);
-      }
-    }
-    upd({ photos });
+      return { id, file, photo };
+    });
+
+    // 1) 즉시 미리보기 — 항상 최신 prev 기준으로 추가 (스냅샷 덮어쓰기 방지)
+    setData((prev) => {
+      const existing = prev.photos || [];
+      const slotCount = existing.filter((p) => p.page_slot === slotKey).length;
+      const appended = newEntries.map((e, i) => ({
+        ...e.photo,
+        order_index: slotCount + i,
+      }));
+      return { ...prev, photos: [...existing, ...appended] };
+    });
+
+    // 2) Storage 업로드는 각 사진별 독립적으로, 끝나는 즉시 해당 id만 부분 갱신
+    await Promise.all(
+      newEntries.map(async ({ id, file }) => {
+        try {
+          const storagePath = await uploadReportPhoto(file, "first", id);
+          setData((prev) => ({
+            ...prev,
+            photos: (prev.photos || []).map((x) =>
+              x.id === id ? { ...x, file_url: storagePath } : x,
+            ),
+          }));
+        } catch (err) {
+          console.error("[FirstReport] photo upload failed, keeping blob URL:", err);
+        }
+      }),
+    );
   };
 
   const removePhoto = (photoId: string) => {
