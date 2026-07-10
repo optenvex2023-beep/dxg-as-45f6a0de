@@ -92,10 +92,21 @@ export function canEditMfgFields(user: AppUser | null): boolean {
   return user?.department === "제조본부";
 }
 
+/**
+ * 손영호와 동일한 점검보고서(1차/최종) 작성·저장 권한을 부여받은 이름 화이트리스트.
+ * 부서/역할은 변경하지 않고 보고서 작성 권한만 동등 부여한다.
+ */
+const REPORT_EDIT_NAME_WHITELIST = new Set([
+  "김민성", "김용", "김태형", "나경수", "석애경", "송승진",
+  "용휘순", "이대진", "이지민", "전평식", "정준호", "주혜웅",
+]);
+
 /** Can create/edit inspection reports */
 export function canEditReports(user: AppUser | null): boolean {
   if (isSuperAdmin(user)) return true;
-  return user?.department === "제조본부";
+  if (user?.department === "제조본부") return true;
+  if (user && REPORT_EDIT_NAME_WHITELIST.has(user.name)) return true;
+  return false;
 }
 
 /** Can approve / QA-review reports */
