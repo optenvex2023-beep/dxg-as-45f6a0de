@@ -47,13 +47,9 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
     probe_measure_section: "측정구간",
     probe_gas_direction: "가스방향",
   };
-  const photoSlotDefaults: Record<string, string> = {
-    replacement_parts: "교체 부품 사진",
-    body_optics: "본체, 광학 (렌즈) 관련 부품 점검 사진",
-    cpu_smps: "Main Control CPU Board, SMPS, 기타 부품 점검 사진",
-    ao_probe: "프로브 점검 사진",
-    spectrometer: "Spectrometer / 기타 사진",
-  };
+  // NOTE: photo section header titles are handled by
+  // postProcessRewritePhotoSectionTitles (below), not by this simple label-swap,
+  // because template headers split the title across multiple <w:r> runs.
   const summaryDefaults = report.report_type === "final"
     ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
     : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
@@ -68,7 +64,7 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
   };
   pushIf(detailDefaults, data.detail_label_overrides);
   pushIf(probeDefaults, data.probe_label_overrides);
-  pushIf(photoSlotDefaults, data.photo_slot_label_overrides);
+
 
   const summaryLabels = data.summary_labels || [];
   for (let i = 0; i < 4; i++) {
@@ -379,12 +375,6 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   });
 }
 
-/* ─── Post-process: inject user-added photo sections as independent tables ─── */
-type ExtraPhotoSection = {
-  title: string;
-  photos: Array<{ base64: string; caption: string }>;
-};
-
 function xmlEscape(s: string): string {
   return s.replace(/[<>&"']/g, c => (
     c === "<" ? "&lt;" :
@@ -393,6 +383,59 @@ function xmlEscape(s: string): string {
     c === '"' ? "&quot;" : "&apos;"
   ));
 }
+
+/* ─── Post-process: rewrite built-in photo section header titles ─── */
+const PHOTO_SECTION_LOOP_TO_SLOT: Array<{ loop: string; slot: string }> = [
+  { loop: "REPLACEMENT_PHOTO_ROWS", slot: "replacement_parts" },
+  { loop: "OPTICAL_PHOTOS_ROWS", slot: "body_optics" },
+  { loop: "ELECTRICAL_PHOTOS_ROWS", slot: "cpu_smps" },
+  { loop: "PROBE_PHOTOS_ROWS", slot: "ao_probe" },
+  { loop: "OTHER_PHOTOS_ROWS", slot: "spectrometer" },
+];
+
+function postProcessRewritePhotoSectionTitles(zip: PizZip, report: InspectionReport): void {
+  const overrides = report.inspection_data?.photo_slot_label_overrides || {};
+  const active = PHOTO_SECTION_LOOP_TO_SLOT.filter(m => (overrides[m.slot] || "").trim());
+  if (!active.length) return;
+  const file = zip.file("word/document.xml");
+  if (!file) return;
+  let xml = file.asText();
+
+  for (const { loop, slot } of active) {
+    const override = (overrides[slot] || "").trim();
+    if (!override) continue;
+    const loopTag = `{{#${loop}}}`;
+    const loopIdx = xml.indexOf(loopTag);
+    if (loopIdx < 0) continue;
+    // The title cell lives in the <w:tbl> immediately BEFORE the loop paragraph.
+    const tblStart = xml.lastIndexOf("<w:tbl>", loopIdx);
+    if (tblStart < 0) continue;
+    const tcStart = xml.indexOf("<w:tc>", tblStart);
+    if (tcStart < 0 || tcStart > loopIdx) continue;
+    const tcEndRel = xml.indexOf("</w:tc>", tcStart);
+    if (tcEndRel < 0) continue;
+    const tcEnd = tcEndRel + "</w:tc>".length;
+    const cellXml = xml.substring(tcStart, tcEnd);
+    // Preserve run formatting from the first <w:r> in the cell
+    const firstR = cellXml.match(/<w:r\b[\s\S]*?<\/w:r>/);
+    if (!firstR) continue;
+    const rPr = (firstR[0].match(/<w:rPr>[\s\S]*?<\/w:rPr>/) || [""])[0];
+    const newRun = `<w:r>${rPr}<w:t xml:space="preserve">${xmlEscape(override)}</w:t></w:r>`;
+    let replacedOnce = false;
+    const newCellXml = cellXml.replace(/<w:r\b[\s\S]*?<\/w:r>/g, () => {
+      if (!replacedOnce) { replacedOnce = true; return newRun; }
+      return "";
+    });
+    xml = xml.substring(0, tcStart) + newCellXml + xml.substring(tcEnd);
+  }
+  zip.file("word/document.xml", xml);
+}
+
+/* ─── Post-process: inject user-added photo sections as independent tables ─── */
+type ExtraPhotoSection = {
+  title: string;
+  photos: Array<{ base64: string; caption: string }>;
+};
 
 function postProcessInjectExtraPhotoSections(zip: PizZip, sections: ExtraPhotoSection[]): void {
   const valid = sections.filter(s => s.photos.some(p => p.base64));
@@ -406,21 +449,38 @@ function postProcessInjectExtraPhotoSections(zip: PizZip, sections: ExtraPhotoSe
   let relIdCounter = 5000;
   let docPrCounter = 5000;
 
+  // Common run-property fragments (match template style: pStyle a6, Arial, size 22/18, centered)
+  const titleRPr = `<w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>`;
+  const captionRPr = `<w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:noProof/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`;
+  const imgRPr = `<w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`;
+  const centerPPr = `<w:pPr><w:pStyle w:val="a6"/><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>`;
+
   const sectionBlocks: string[] = [];
 
   for (const section of valid) {
-    // Header row (merged 2 cols) with section title
+    // ── (A) Title table (identical to template header table style: single 9016 col) ──
     const titleXml = xmlEscape(section.title || "");
-    const headerRow = `<w:tr><w:trPr/><w:tc><w:tcPr><w:tcW w:w="9360" w:type="dxa"/><w:gridSpan w:val="2"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="D9E2F3"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">${titleXml}</w:t></w:r></w:p></w:tc></w:tr>`;
+    const titleTable =
+      `<w:tbl>` +
+        `<w:tblPr><w:tblStyle w:val="a7"/><w:tblW w:w="0" w:type="auto"/><w:jc w:val="center"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>` +
+        `<w:tblGrid><w:gridCol w:w="9016"/></w:tblGrid>` +
+        `<w:tr><w:trPr><w:trHeight w:val="710"/><w:jc w:val="center"/></w:trPr>` +
+          `<w:tc><w:tcPr><w:tcW w:w="9016" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>` +
+            `<w:p>${centerPPr.replace("</w:pPr>", `<w:rPr><w:b/><w:sz w:val="22"/></w:rPr></w:pPr>`)}` +
+              `<w:r>${titleRPr}<w:t xml:space="preserve">${titleXml}</w:t></w:r>` +
+            `</w:p>` +
+          `</w:tc>` +
+        `</w:tr>` +
+      `</w:tbl>`;
 
-    // Photo rows, 2 per row
-    const photoRows: string[] = [];
+    // ── (B) Photo grid table (identical to template photo table: 2 cols 4531+4485) ──
+    const gridRows: string[] = [];
     for (let i = 0; i < section.photos.length; i += 2) {
       const left = section.photos[i];
       const right = section.photos[i + 1];
-      const buildCell = (p?: { base64: string; caption: string }) => {
+      const buildImgCell = (p: { base64: string; caption: string } | undefined, w: number) => {
         if (!p || !p.base64) {
-          return `<w:tc><w:tcPr><w:tcW w:w="4680" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders></w:tcPr><w:p/></w:tc>`;
+          return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p>${centerPPr}<w:r>${imgRPr}<w:t xml:space="preserve"></w:t></w:r></w:p></w:tc>`;
         }
         relIdCounter++;
         docPrCounter++;
@@ -428,22 +488,37 @@ function postProcessInjectExtraPhotoSections(zip: PizZip, sections: ExtraPhotoSe
         const fileName = `extra_photo_${relIdCounter}.jpg`;
         writeBase64MediaFile(zip, fileName, p.base64);
         ensureDocumentImageRelationship(zip, relId, fileName);
-        // ~7 cm wide x 5.25 cm tall (2660000 EMU x 2000000 EMU) ≈ preview size
+        // ~7.4cm x 5.55cm (matches image module getSize of 280x210 px)
         const cx = 2660000, cy = 2000000;
-        const imgRun = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${docPrCounter}" name="ExtraPhoto${docPrCounter}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${docPrCounter}" name="${fileName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-        const captionXml = xmlEscape(p.caption || "");
-        return `<w:tc><w:tcPr><w:tcW w:w="4680" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>${imgRun}</w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${captionXml}</w:t></w:r></w:p></w:tc>`;
+        const imgRun = `<w:r>${imgRPr}<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${docPrCounter}" name="ExtraPhoto${docPrCounter}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${docPrCounter}" name="${fileName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+        return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p>${centerPPr}${imgRun}</w:p></w:tc>`;
       };
-      photoRows.push(`<w:tr>${buildCell(left)}${buildCell(right)}</w:tr>`);
+      const buildCapCell = (p: { base64: string; caption: string } | undefined, w: number) => {
+        const caption = xmlEscape(p?.caption || "");
+        return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p>${centerPPr}<w:r>${captionRPr}<w:t xml:space="preserve">${caption}</w:t></w:r></w:p></w:tc>`;
+      };
+      gridRows.push(
+        `<w:tr><w:trPr><w:trHeight w:val="3398"/><w:jc w:val="center"/></w:trPr>${buildImgCell(left, 4531)}${buildImgCell(right, 4485)}</w:tr>` +
+        `<w:tr><w:trPr><w:trHeight w:val="556"/><w:jc w:val="center"/></w:trPr>${buildCapCell(left, 4531)}${buildCapCell(right, 4485)}</w:tr>`
+      );
     }
+    const gridTable =
+      `<w:tbl>` +
+        `<w:tblPr><w:tblStyle w:val="a7"/><w:tblW w:w="0" w:type="auto"/><w:jc w:val="center"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>` +
+        `<w:tblGrid><w:gridCol w:w="4531"/><w:gridCol w:w="4485"/></w:tblGrid>` +
+        gridRows.join("") +
+      `</w:tbl>`;
 
-    const table = `<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4680"/><w:gridCol w:w="4680"/></w:tblGrid>${headerRow}${photoRows.join("")}</w:tbl>`;
-    // Empty paragraph as spacer before/after
-    sectionBlocks.push(`<w:p><w:pPr><w:spacing w:before="120" w:after="60"/></w:pPr></w:p>${table}`);
+    // Spacer paragraph before section + between title/grid (matches template layout)
+    sectionBlocks.push(
+      `<w:p><w:pPr><w:spacing w:before="120" w:after="60"/></w:pPr></w:p>` +
+      titleTable +
+      `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>` +
+      gridTable
+    );
   }
 
   const injection = sectionBlocks.join("") + `<w:p/>`;
-  // Insert before final section properties (<w:sectPr>) at the very end of the body
   const sectPrRegex = /(<w:sectPr\b[\s\S]*?<\/w:sectPr>\s*<\/w:body>)/;
   if (sectPrRegex.test(content)) {
     content = content.replace(sectPrRegex, `${injection}$1`);
@@ -452,6 +527,7 @@ function postProcessInjectExtraPhotoSections(zip: PizZip, sections: ExtraPhotoSe
   }
   zip.file("word/document.xml", content);
 }
+
 
 
 const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
@@ -878,6 +954,9 @@ export async function exportReportToWord(
 
   // Post-process: apply user label overrides (detail / probe / photo slot / summary)
   postProcessLabelOverrides(outputZip, report);
+
+  // Post-process: rewrite built-in photo section header titles with user overrides
+  postProcessRewritePhotoSectionTitles(outputZip, report);
 
   // Post-process: inject user-added photo sections as independent tables
   const data = report.inspection_data;
