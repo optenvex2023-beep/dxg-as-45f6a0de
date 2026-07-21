@@ -24,6 +24,80 @@ function chk(val: boolean): boolean {
   return val;
 }
 
+/* ─── Post-process: rewrite hardcoded template labels with user overrides ─── */
+function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void {
+  const data = report.inspection_data;
+  if (!data) return;
+
+  const detailDefaults: Record<string, string> = {
+    main_control_cpu: "Main Control CPU Board",
+    optics_window_lens: "광학부품 (윈도우, 볼록렌즈)",
+    beam_splitter: "광학부품 (Beam Splitter)",
+    spectrometer: "Spectrometer 형상/신호 상태",
+    uv_lamp: "UV Lamp",
+    cooling_fan: "냉각 팬",
+    smps: "5V, 12V, 24V SMPS",
+    wiring: "배선 결선 상태",
+  };
+  const probeDefaults: Record<string, string> = {
+    probe_exterior: "외관 상태",
+    probe_temp_sensor: "온도센서",
+    probe_corner_mirror: "코너 큐브 미러",
+    probe_length: "프로브 길이",
+    probe_measure_section: "측정구간",
+    probe_gas_direction: "가스방향",
+  };
+  const photoSlotDefaults: Record<string, string> = {
+    replacement_parts: "교체 부품 사진",
+    body_optics: "본체, 광학 (렌즈) 관련 부품 점검 사진",
+    cpu_smps: "Main Control CPU Board, SMPS, 기타 부품 점검 사진",
+    ao_probe: "프로브 점검 사진",
+    spectrometer: "Spectrometer / 기타 사진",
+  };
+  const summaryDefaults = report.report_type === "final"
+    ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
+    : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
+
+  const replacements: Array<[string, string]> = [];
+  const pushIf = (defMap: Record<string, string>, overrides: Record<string, string> | undefined) => {
+    if (!overrides) return;
+    for (const [k, def] of Object.entries(defMap)) {
+      const ov = (overrides[k] || "").trim();
+      if (ov && ov !== def) replacements.push([def, ov]);
+    }
+  };
+  pushIf(detailDefaults, data.detail_label_overrides);
+  pushIf(probeDefaults, data.probe_label_overrides);
+  pushIf(photoSlotDefaults, data.photo_slot_label_overrides);
+
+  const summaryLabels = data.summary_labels || [];
+  for (let i = 0; i < 4; i++) {
+    const ov = (summaryLabels[i] || "").trim();
+    const def = summaryDefaults[i];
+    if (ov && ov !== def) replacements.push([def, ov]);
+  }
+
+  if (!replacements.length) return;
+
+  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapeXml = (s: string) => s.replace(/[<>&]/g, c => (c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"));
+
+  const targets = ["word/document.xml", "word/header1.xml", "word/header2.xml", "word/footer1.xml", "word/footer2.xml"];
+  for (const path of targets) {
+    const file = zip.file(path);
+    if (!file) continue;
+    let xml = file.asText();
+    let changed = false;
+    for (const [from, to] of replacements) {
+      // Replace only inside <w:t> ... </w:t> to avoid touching attributes/tags
+      const re = new RegExp(`(<w:t(?:\\s[^>]*)?>)${escapeRegex(from)}(</w:t>)`, "g");
+      const next = xml.replace(re, `$1${escapeXml(to)}$2`);
+      if (next !== xml) { xml = next; changed = true; }
+    }
+    if (changed) zip.file(path, xml);
+  }
+}
+
 /* ─── Fetch image as base64 (with EXIF orientation applied) ─── */
 async function arrayBufferToBase64(buf: ArrayBuffer): Promise<string> {
   const bytes = new Uint8Array(buf);
