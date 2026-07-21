@@ -616,7 +616,7 @@ async function buildTemplateData(
     UVLAMP_STATUS: safe(data.uv_lamp_note),
     COOLINGFAN_STATUS: safe(data.cooling_fan_status),
     SMPS_STATUS: safe(data.smps_note),
-    WIRING_STATUS: safe(data.wiring_status),
+    WIRING_STATUS: mergeExtras(safe(data.wiring_status), data.detail_extra_rows),
 
     // ── Probe detail ──
     PROBE_APPEARANCE_DETAIL: safe(data.probe_exterior),
@@ -624,20 +624,20 @@ async function buildTemplateData(
     PROBE_CORNERMIRROR_DETAIL: safe(data.probe_corner_mirror),
     PROBE_LENGTH_DETAIL: safe(data.probe_length),
     PROBE_MEASURE_SECTION_DETAIL: safe(data.probe_measure_section),
-    GAS_DIRECTION_DETAIL: safe(data.probe_gas_direction),
+    GAS_DIRECTION_DETAIL: mergeExtras(safe(data.probe_gas_direction), data.probe_extra_rows),
 
     // ── Summary ──
     SUMMARY_FIRST_INSPECTION: safe(data.summary_items?.[0]),
     SUMMARY_SPECTROMETER_ALIGNMENT: safe(data.summary_items?.[1]),
     SUMMARY_PROBE_ALIGNMENT: safe(data.summary_items?.[2]),
-    SUMMARY_STANDARD_GAS_CALIBRATION: safe(data.summary_items?.[3]),
+    SUMMARY_STANDARD_GAS_CALIBRATION: mergeExtras(safe(data.summary_items?.[3]), extraSummaryPairs),
 
     // ── Photo rows (images + captions) ──
     REPLACEMENT_PHOTO_ROWS: buildPhotoRows("replacement_parts"),
     OPTICAL_PHOTOS_ROWS: buildPhotoRows("body_optics"),
     ELECTRICAL_PHOTOS_ROWS: buildPhotoRows("cpu_smps"),
     PROBE_PHOTOS_ROWS: buildPhotoRows("ao_probe"),
-    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer"),
+    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer", true),
 
     LEFT_IMAGE: "",
     RIGHT_IMAGE: "",
