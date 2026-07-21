@@ -54,6 +54,16 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
     ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
     : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
 
+  const photoDefaults: Record<string, string[]> = {
+    replacement_parts: report.report_type === "final"
+      ? ["교체 부품 사진", "교체 필요 부품 사진"]
+      : ["교체 필요 부품 사진", "교체 부품 사진"],
+    body_optics: ["본체, 광학 (렌즈) 관련 부품 점검 사진"],
+    cpu_smps: ["Main Control CPU Board, SMPS, 기타 부품 점검 사진"],
+    ao_probe: ["AO 출력 / 프로브 점검 사진", "프로브 점검 사진"],
+    spectrometer: ["Spectrometer 얼라인먼트 / 기타 사진", "Spectrometer / 기타 사진", "기타 사진"],
+  };
+
   const replacements: Array<[string, string]> = [];
   const pushIf = (defMap: Record<string, string>, overrides: Record<string, string> | undefined) => {
     if (!overrides) return;
@@ -65,6 +75,25 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
   pushIf(detailDefaults, data.detail_label_overrides);
   pushIf(probeDefaults, data.probe_label_overrides);
 
+  const spectrometerDetailOverride = (data.detail_label_overrides?.spectrometer || "").trim();
+  if (spectrometerDetailOverride) {
+    replacements.push(["Spectrometer 형상 / 신호 상태", spectrometerDetailOverride]);
+  }
+
+  const cornerMirrorProbeOverride = (data.probe_label_overrides?.probe_corner_mirror || "").trim();
+  if (cornerMirrorProbeOverride) {
+    replacements.push(["코너큐브미러", cornerMirrorProbeOverride]);
+  }
+
+  const photoOverrides = data.photo_slot_label_overrides || {};
+  for (const [slot, defaults] of Object.entries(photoDefaults)) {
+    const ov = (photoOverrides[slot] || "").trim();
+    if (!ov) continue;
+    for (const def of defaults) {
+      if (ov !== def) replacements.push([def, ov]);
+    }
+  }
+
 
   const summaryLabels = data.summary_labels || [];
   for (let i = 0; i < 4; i++) {
@@ -75,22 +104,15 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
 
   if (!replacements.length) return;
 
-  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const escapeXml = (s: string) => s.replace(/[<>&]/g, c => (c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"));
-
   const targets = ["word/document.xml", "word/header1.xml", "word/header2.xml", "word/footer1.xml", "word/footer2.xml"];
   for (const path of targets) {
     const file = zip.file(path);
     if (!file) continue;
     let xml = file.asText();
-    let changed = false;
     for (const [from, to] of replacements) {
-      // Replace only inside <w:t> ... </w:t> to avoid touching attributes/tags
-      const re = new RegExp(`(<w:t(?:\\s[^>]*)?>)${escapeRegex(from)}(</w:t>)`, "g");
-      const next = xml.replace(re, `$1${escapeXml(to)}$2`);
-      if (next !== xml) { xml = next; changed = true; }
+      xml = replaceVisibleTextAcrossRuns(xml, from, to);
     }
-    if (changed) zip.file(path, xml);
+    zip.file(path, xml);
   }
 }
 
