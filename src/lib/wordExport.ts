@@ -24,6 +24,80 @@ function chk(val: boolean): boolean {
   return val;
 }
 
+/* ─── Post-process: rewrite hardcoded template labels with user overrides ─── */
+function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void {
+  const data = report.inspection_data;
+  if (!data) return;
+
+  const detailDefaults: Record<string, string> = {
+    main_control_cpu: "Main Control CPU Board",
+    optics_window_lens: "광학부품 (윈도우, 볼록렌즈)",
+    beam_splitter: "광학부품 (Beam Splitter)",
+    spectrometer: "Spectrometer 형상/신호 상태",
+    uv_lamp: "UV Lamp",
+    cooling_fan: "냉각 팬",
+    smps: "5V, 12V, 24V SMPS",
+    wiring: "배선 결선 상태",
+  };
+  const probeDefaults: Record<string, string> = {
+    probe_exterior: "외관 상태",
+    probe_temp_sensor: "온도센서",
+    probe_corner_mirror: "코너 큐브 미러",
+    probe_length: "프로브 길이",
+    probe_measure_section: "측정구간",
+    probe_gas_direction: "가스방향",
+  };
+  const photoSlotDefaults: Record<string, string> = {
+    replacement_parts: "교체 부품 사진",
+    body_optics: "본체, 광학 (렌즈) 관련 부품 점검 사진",
+    cpu_smps: "Main Control CPU Board, SMPS, 기타 부품 점검 사진",
+    ao_probe: "프로브 점검 사진",
+    spectrometer: "Spectrometer / 기타 사진",
+  };
+  const summaryDefaults = report.report_type === "final"
+    ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
+    : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
+
+  const replacements: Array<[string, string]> = [];
+  const pushIf = (defMap: Record<string, string>, overrides: Record<string, string> | undefined) => {
+    if (!overrides) return;
+    for (const [k, def] of Object.entries(defMap)) {
+      const ov = (overrides[k] || "").trim();
+      if (ov && ov !== def) replacements.push([def, ov]);
+    }
+  };
+  pushIf(detailDefaults, data.detail_label_overrides);
+  pushIf(probeDefaults, data.probe_label_overrides);
+  pushIf(photoSlotDefaults, data.photo_slot_label_overrides);
+
+  const summaryLabels = data.summary_labels || [];
+  for (let i = 0; i < 4; i++) {
+    const ov = (summaryLabels[i] || "").trim();
+    const def = summaryDefaults[i];
+    if (ov && ov !== def) replacements.push([def, ov]);
+  }
+
+  if (!replacements.length) return;
+
+  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapeXml = (s: string) => s.replace(/[<>&]/g, c => (c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"));
+
+  const targets = ["word/document.xml", "word/header1.xml", "word/header2.xml", "word/footer1.xml", "word/footer2.xml"];
+  for (const path of targets) {
+    const file = zip.file(path);
+    if (!file) continue;
+    let xml = file.asText();
+    let changed = false;
+    for (const [from, to] of replacements) {
+      // Replace only inside <w:t> ... </w:t> to avoid touching attributes/tags
+      const re = new RegExp(`(<w:t(?:\\s[^>]*)?>)${escapeRegex(from)}(</w:t>)`, "g");
+      const next = xml.replace(re, `$1${escapeXml(to)}$2`);
+      if (next !== xml) { xml = next; changed = true; }
+    }
+    if (changed) zip.file(path, xml);
+  }
+}
+
 /* ─── Fetch image as base64 (with EXIF orientation applied) ─── */
 async function arrayBufferToBase64(buf: ArrayBuffer): Promise<string> {
   const bytes = new Uint8Array(buf);
@@ -442,8 +516,24 @@ async function buildTemplateData(
   // Pre-fetch all photo images
   const photoImageMap = await fetchAllPhotoImages(data.photos || []);
 
-  const buildPhotoRows = (slotKey: string) => {
-    const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
+  const extraSlotTitleByKey: Record<string, string> = {};
+  for (const s of (data.photo_extra_slots || [])) extraSlotTitleByKey[s.key] = s.title || "";
+  const extraSlotKeys = new Set(Object.keys(extraSlotTitleByKey));
+
+  const buildPhotoRows = (slotKey: string, includeUserAddedSlots = false) => {
+    let slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
+    if (includeUserAddedSlots) {
+      // Photos from user-added extra photo slots are appended here so they are
+      // not lost in Word (template has a fixed number of slots).
+      for (const p of (data.photos || [])) {
+        if (!extraSlotKeys.has(p.page_slot)) continue;
+        const title = extraSlotTitleByKey[p.page_slot] || "";
+        slotPhotos = slotPhotos.concat({
+          ...p,
+          caption: title ? `[${title}] ${safe(p.caption)}`.trim() : safe(p.caption),
+        });
+      }
+    }
     const rows: Array<{
       LEFT_IMAGE: string;
       RIGHT_IMAGE: string;
@@ -460,6 +550,31 @@ async function buildTemplateData(
     }
     return rows;
   };
+
+  // Fold user-added extra rows/summary items back into existing template fields
+  // (template has fixed slots, so we append as extra lines to preserve content).
+  const mergeExtras = (base: string, extras: Array<{ label?: string; value?: string }> | undefined): string => {
+    const list = (extras || []).filter(e => (e?.label || "").trim() || (e?.value || "").trim());
+    if (!list.length) return base;
+    const lines = list.map(e => {
+      const lbl = (e.label || "").trim();
+      const val = (e.value || "").trim();
+      return lbl ? `[${lbl}] ${val}` : val;
+    });
+    return [base, ...lines].filter(Boolean).join("\n");
+  };
+
+  const extraSummaryPairs: Array<{ label: string; value: string }> = [];
+  const totalSummary = Math.max(
+    (data.summary_labels?.length || 0),
+    (data.summary_items?.length || 0),
+  );
+  for (let i = 4; i < totalSummary; i++) {
+    extraSummaryPairs.push({
+      label: safe(data.summary_labels?.[i]),
+      value: safe(data.summary_items?.[i]),
+    });
+  }
 
   // QA signature: only when explicitly reviewed
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
@@ -575,7 +690,7 @@ async function buildTemplateData(
     UVLAMP_STATUS: safe(data.uv_lamp_note),
     COOLINGFAN_STATUS: safe(data.cooling_fan_status),
     SMPS_STATUS: safe(data.smps_note),
-    WIRING_STATUS: safe(data.wiring_status),
+    WIRING_STATUS: mergeExtras(safe(data.wiring_status), data.detail_extra_rows),
 
     // ── Probe detail ──
     PROBE_APPEARANCE_DETAIL: safe(data.probe_exterior),
@@ -583,20 +698,20 @@ async function buildTemplateData(
     PROBE_CORNERMIRROR_DETAIL: safe(data.probe_corner_mirror),
     PROBE_LENGTH_DETAIL: safe(data.probe_length),
     PROBE_MEASURE_SECTION_DETAIL: safe(data.probe_measure_section),
-    GAS_DIRECTION_DETAIL: safe(data.probe_gas_direction),
+    GAS_DIRECTION_DETAIL: mergeExtras(safe(data.probe_gas_direction), data.probe_extra_rows),
 
     // ── Summary ──
     SUMMARY_FIRST_INSPECTION: safe(data.summary_items?.[0]),
     SUMMARY_SPECTROMETER_ALIGNMENT: safe(data.summary_items?.[1]),
     SUMMARY_PROBE_ALIGNMENT: safe(data.summary_items?.[2]),
-    SUMMARY_STANDARD_GAS_CALIBRATION: safe(data.summary_items?.[3]),
+    SUMMARY_STANDARD_GAS_CALIBRATION: mergeExtras(safe(data.summary_items?.[3]), extraSummaryPairs),
 
     // ── Photo rows (images + captions) ──
     REPLACEMENT_PHOTO_ROWS: buildPhotoRows("replacement_parts"),
     OPTICAL_PHOTOS_ROWS: buildPhotoRows("body_optics"),
     ELECTRICAL_PHOTOS_ROWS: buildPhotoRows("cpu_smps"),
     PROBE_PHOTOS_ROWS: buildPhotoRows("ao_probe"),
-    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer"),
+    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer", true),
 
     LEFT_IMAGE: "",
     RIGHT_IMAGE: "",
@@ -699,6 +814,9 @@ export async function exportReportToWord(
   if (mfgNeeded && mfgSignatureBase64) {
     postProcessMfgSignatureImage(outputZip, mfgSignatureBase64);
   }
+
+  // Post-process: apply user label overrides (detail / probe / photo slot / summary)
+  postProcessLabelOverrides(outputZip, report);
 
   const blob = outputZip.generate({
     type: "blob",
