@@ -375,6 +375,15 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   });
 }
 
+function xmlEscape(s: string): string {
+  return s.replace(/[<>&"']/g, c => (
+    c === "<" ? "&lt;" :
+    c === ">" ? "&gt;" :
+    c === "&" ? "&amp;" :
+    c === '"' ? "&quot;" : "&apos;"
+  ));
+}
+
 /* ─── Post-process: rewrite built-in photo section header titles ─── */
 const PHOTO_SECTION_LOOP_TO_SLOT: Array<{ loop: string; slot: string }> = [
   { loop: "REPLACEMENT_PHOTO_ROWS", slot: "replacement_parts" },
