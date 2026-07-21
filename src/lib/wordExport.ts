@@ -520,20 +520,8 @@ async function buildTemplateData(
   for (const s of (data.photo_extra_slots || [])) extraSlotTitleByKey[s.key] = s.title || "";
   const extraSlotKeys = new Set(Object.keys(extraSlotTitleByKey));
 
-  const buildPhotoRows = (slotKey: string, includeUserAddedSlots = false) => {
-    let slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
-    if (includeUserAddedSlots) {
-      // Photos from user-added extra photo slots are appended here so they are
-      // not lost in Word (template has a fixed number of slots).
-      for (const p of (data.photos || [])) {
-        if (!extraSlotKeys.has(p.page_slot)) continue;
-        const title = extraSlotTitleByKey[p.page_slot] || "";
-        slotPhotos = slotPhotos.concat({
-          ...p,
-          caption: title ? `[${title}] ${safe(p.caption)}`.trim() : safe(p.caption),
-        });
-      }
-    }
+  const buildPhotoRows = (slotKey: string) => {
+    const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
     const rows: Array<{
       LEFT_IMAGE: string;
       RIGHT_IMAGE: string;
