@@ -65,34 +65,37 @@ interface StatusMailConfig {
   body: (rec: OutboundInspection) => string;
 }
 
+// Email recipients are resolved server-side (edge function) at send time based on
+// `target_departments`. Keeping the list empty here avoids exposing internal
+// addresses in client-side code.
 const statusMailMap: Record<string, StatusMailConfig> = {
   "확인필요": {
     target_departments: ["품질본부", "CS팀", "제조본부"],
-    to_emails: ["qc@dxg.kr", "cs@dxg.kr", "hello@dxg.kr", "eng@dxg.kr"],
+    to_emails: [],
     subject: "반출 예정 건 등록 알림",
     body: (r) => `FE/FS팀에서는 반출 예정 건을 확인 후 반출 예정일자를 입력하여 주시기 바랍니다.\n- 관리번호: ${r.manage_no}\n- 건명: ${r.project_name}`,
   },
   "반출예정": {
     target_departments: ["환경영업팀"],
-    to_emails: ["opt@dxg.kr"],
+    to_emails: [],
     subject: "반출 예정일 등록",
     body: (r) => `아래 건에 대해 반출 예정일이 등록되었습니다.\n- 관리번호: ${r.manage_no}\n- 건명: ${r.project_name}`,
   },
   "반출완료": {
     target_departments: ["환경영업팀", "제조본부"],
-    to_emails: ["opt@dxg.kr", "hello@dxg.kr", "eng@dxg.kr"],
+    to_emails: [],
     subject: "반출 완료 알림",
     body: (r) => `아래 건에 대해 반출이 완료되었습니다.\n- 관리번호: ${r.manage_no}\n- 건명: ${r.project_name}`,
   },
   "1차 점검완료": {
     target_departments: ["품질본부", "환경영업팀"],
-    to_emails: ["qc@dxg.kr", "opt@dxg.kr"],
+    to_emails: [],
     subject: "1차 점검 완료 알림",
     body: (r) => `아래 건에 대한 1차 점검이 완료되었습니다. 1차 점검 보고서를 확인하여 주시기 바랍니다.\n- 관리번호: ${r.manage_no}\n- 건명: ${r.project_name}`,
   },
   "최종 점검완료": {
     target_departments: ["품질본부", "CS팀", "환경영업팀"],
-    to_emails: ["qc@dxg.kr", "cs@dxg.kr", "opt@dxg.kr"],
+    to_emails: [],
     subject: "최종 점검 완료 알림",
     body: (r) => `아래 건에 대한 최종 점검이 완료되었습니다. 완료 점검 보고서를 확인하여 주시기 바랍니다.\nFE/FS팀에서는 재설치 예정일자를 기입하여 주시기 바랍니다.\n- 관리번호: ${r.manage_no}\n- 건명: ${r.project_name}`,
   },
@@ -105,11 +108,12 @@ function buildDueWarningMail(rec: OutboundInspection): StatusMailConfig {
   }
   return {
     target_departments: ["제조본부", "품질본부", "CS팀", "환경영업팀"],
-    to_emails: ["opt@dxg.kr", "cs@dxg.kr"],
+    to_emails: [],
     subject: "계약납기 도래 알림",
     body: () => `아래 건에 대한 계약 납기가 도래하였으니, 일정을 확인하여 주시기 바랍니다.\n- 관리번호: ${rec.manage_no}\n- 건명: ${rec.project_name}${reinstallLine}`,
   };
 }
+
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<AppUser[]>([]);
