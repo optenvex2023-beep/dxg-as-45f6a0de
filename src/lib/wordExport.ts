@@ -379,7 +379,81 @@ function postProcessMfgSignatureImage(zip: PizZip, signatureBase64: string) {
   });
 }
 
-/* ─── Check item → template boolean key mapping ─── */
+/* ─── Post-process: inject user-added photo sections as independent tables ─── */
+type ExtraPhotoSection = {
+  title: string;
+  photos: Array<{ base64: string; caption: string }>;
+};
+
+function xmlEscape(s: string): string {
+  return s.replace(/[<>&"']/g, c => (
+    c === "<" ? "&lt;" :
+    c === ">" ? "&gt;" :
+    c === "&" ? "&amp;" :
+    c === '"' ? "&quot;" : "&apos;"
+  ));
+}
+
+function postProcessInjectExtraPhotoSections(zip: PizZip, sections: ExtraPhotoSection[]): void {
+  const valid = sections.filter(s => s.photos.some(p => p.base64));
+  if (!valid.length) return;
+
+  const contentFile = zip.file("word/document.xml");
+  if (!contentFile) return;
+  ensureImageContentTypes(zip);
+
+  let content = contentFile.asText();
+  let relIdCounter = 5000;
+  let docPrCounter = 5000;
+
+  const sectionBlocks: string[] = [];
+
+  for (const section of valid) {
+    // Header row (merged 2 cols) with section title
+    const titleXml = xmlEscape(section.title || "");
+    const headerRow = `<w:tr><w:trPr/><w:tc><w:tcPr><w:tcW w:w="9360" w:type="dxa"/><w:gridSpan w:val="2"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="D9E2F3"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">${titleXml}</w:t></w:r></w:p></w:tc></w:tr>`;
+
+    // Photo rows, 2 per row
+    const photoRows: string[] = [];
+    for (let i = 0; i < section.photos.length; i += 2) {
+      const left = section.photos[i];
+      const right = section.photos[i + 1];
+      const buildCell = (p?: { base64: string; caption: string }) => {
+        if (!p || !p.base64) {
+          return `<w:tc><w:tcPr><w:tcW w:w="4680" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders></w:tcPr><w:p/></w:tc>`;
+        }
+        relIdCounter++;
+        docPrCounter++;
+        const relId = `rIdExtraImg${relIdCounter}`;
+        const fileName = `extra_photo_${relIdCounter}.jpg`;
+        writeBase64MediaFile(zip, fileName, p.base64);
+        ensureDocumentImageRelationship(zip, relId, fileName);
+        // ~7 cm wide x 5.25 cm tall (2660000 EMU x 2000000 EMU) ≈ preview size
+        const cx = 2660000, cy = 2000000;
+        const imgRun = `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${docPrCounter}" name="ExtraPhoto${docPrCounter}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${docPrCounter}" name="${fileName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+        const captionXml = xmlEscape(p.caption || "");
+        return `<w:tc><w:tcPr><w:tcW w:w="4680" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>${imgRun}</w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${captionXml}</w:t></w:r></w:p></w:tc>`;
+      };
+      photoRows.push(`<w:tr>${buildCell(left)}${buildCell(right)}</w:tr>`);
+    }
+
+    const table = `<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="4680"/><w:gridCol w:w="4680"/></w:tblGrid>${headerRow}${photoRows.join("")}</w:tbl>`;
+    // Empty paragraph as spacer before/after
+    sectionBlocks.push(`<w:p><w:pPr><w:spacing w:before="120" w:after="60"/></w:pPr></w:p>${table}`);
+  }
+
+  const injection = sectionBlocks.join("") + `<w:p/>`;
+  // Insert before final section properties (<w:sectPr>) at the very end of the body
+  const sectPrRegex = /(<w:sectPr\b[\s\S]*?<\/w:sectPr>\s*<\/w:body>)/;
+  if (sectPrRegex.test(content)) {
+    content = content.replace(sectPrRegex, `${injection}$1`);
+  } else {
+    content = content.replace(/<\/w:body>/, `${injection}</w:body>`);
+  }
+  zip.file("word/document.xml", content);
+}
+
+
 const CHECK_ITEM_KEY_MAP: Array<{ category: string; item: string; key: string }> = [
   { category: "광학부", item: "Beam Splitter", key: "BEAMSPLITTER" },
   { category: "광학부", item: "Focusing Lens", key: "FOCUSINGLENS" },
