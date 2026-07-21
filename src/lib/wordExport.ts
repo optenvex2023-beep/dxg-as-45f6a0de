@@ -471,6 +471,63 @@ function replaceVisibleTextAcrossRuns(xml: string, from: string, to: string): st
   });
 }
 
+function buildWordTextParagraph(text: string, options: { align?: "left" | "center"; bold?: boolean } = {}): string {
+  const align = options.align || "center";
+  const bold = options.bold ? "<w:b/>" : "";
+  return `<w:p><w:pPr><w:pStyle w:val="a6"/><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="${align}"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/>${bold}<w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
+}
+
+function buildCheckItemCell(text: string, width: number, options: { align?: "left" | "center"; bold?: boolean } = {}): string {
+  return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${buildWordTextParagraph(text, options)}</w:tc>`;
+}
+
+function formatCheckItemResult(item: InspectionCheckItem): string {
+  const ok = item.result === "양호" ? "☑" : "☐";
+  const need = item.result === "추가점검 필요" ? "☑" : "☐";
+  return `${ok} 양호 ${need} 추가점검 필요`;
+}
+
+function formatCheckItemFinalText(item: InspectionCheckItem, reportType: InspectionReport["report_type"]): string {
+  const selected = reportType === "final"
+    ? (item.action_result || item.inspection_result_option || "사용 가능")
+    : (item.inspection_result_option || "사용 가능");
+  if (item.inspection_result_option === "직접 기입" && item.inspection_result_detail) {
+    return item.inspection_result_detail;
+  }
+  return selected;
+}
+
+function postProcessRewriteCheckItemsTable(zip: PizZip, report: InspectionReport): void {
+  const items = report.inspection_data?.check_items || [];
+  const file = zip.file("word/document.xml");
+  if (!file || !items.length) return;
+
+  let xml = file.asText();
+  const tables = xml.match(/<w:tbl\b[\s\S]*?<\/w:tbl>/g) || [];
+  const table = tables.find(t => t.includes("구분") && t.includes("점검 항목") && t.includes("추가점검 필요"));
+  if (!table) return;
+
+  const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) || [];
+  if (rows.length < 2) return;
+
+  const headerRow = rows[0];
+  const dynamicRows = items.map(item => {
+    const resultText = formatCheckItemResult(item);
+    const finalText = formatCheckItemFinalText(item, report.report_type);
+    return `<w:tr>` +
+      buildCheckItemCell(safe(item.category), 1153, { bold: true }) +
+      buildCheckItemCell(safe(item.item), 1502) +
+      buildCheckItemCell(resultText, 2003, { align: "left" }) +
+      buildCheckItemCell(safe(item.action), 2180, { align: "left" }) +
+      buildCheckItemCell(finalText, 2180, { align: "left" }) +
+      `</w:tr>`;
+  }).join("");
+
+  const rewrittenTable = table.replace(rows.join(""), `${headerRow}${dynamicRows}`);
+  xml = xml.replace(table, rewrittenTable);
+  zip.file("word/document.xml", xml);
+}
+
 /* ─── Post-process: rewrite built-in photo section header titles ─── */
 const PHOTO_SECTION_LOOP_TO_SLOT: Array<{ loop: string; slot: string }> = [
   { loop: "REPLACEMENT_PHOTO_ROWS", slot: "replacement_parts" },
