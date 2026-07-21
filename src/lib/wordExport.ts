@@ -47,13 +47,9 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
     probe_measure_section: "측정구간",
     probe_gas_direction: "가스방향",
   };
-  const photoSlotDefaults: Record<string, string> = {
-    replacement_parts: "교체 부품 사진",
-    body_optics: "본체, 광학 (렌즈) 관련 부품 점검 사진",
-    cpu_smps: "Main Control CPU Board, SMPS, 기타 부품 점검 사진",
-    ao_probe: "프로브 점검 사진",
-    spectrometer: "Spectrometer / 기타 사진",
-  };
+  // NOTE: photo section header titles are handled by
+  // postProcessRewritePhotoSectionTitles (below), not by this simple label-swap,
+  // because template headers split the title across multiple <w:r> runs.
   const summaryDefaults = report.report_type === "final"
     ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
     : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
@@ -68,7 +64,7 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
   };
   pushIf(detailDefaults, data.detail_label_overrides);
   pushIf(probeDefaults, data.probe_label_overrides);
-  pushIf(photoSlotDefaults, data.photo_slot_label_overrides);
+
 
   const summaryLabels = data.summary_labels || [];
   for (let i = 0; i < 4; i++) {
