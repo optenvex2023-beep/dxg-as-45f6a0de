@@ -406,6 +406,71 @@ function xmlEscape(s: string): string {
   ));
 }
 
+function replaceVisibleTextAcrossRuns(xml: string, from: string, to: string): string {
+  if (!from || from === to || !xml.includes(from[0])) return xml;
+
+  return xml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, paragraphXml => {
+    const textRegex = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g;
+    const nodes: Array<{ match: string; start: number; end: number; open: string; text: string; close: string; textStart: number; textEnd: number }> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = textRegex.exec(paragraphXml)) !== null) {
+      const open = match[1];
+      const text = match[2];
+      const close = match[3];
+      const start = match.index;
+      nodes.push({
+        match: match[0],
+        start,
+        end: start + match[0].length,
+        open,
+        text,
+        close,
+        textStart: 0,
+        textEnd: 0,
+      });
+    }
+
+    if (!nodes.length) return paragraphXml;
+
+    let cursor = 0;
+    for (const node of nodes) {
+      node.textStart = cursor;
+      cursor += node.text.length;
+      node.textEnd = cursor;
+    }
+
+    const joined = nodes.map(node => node.text).join("");
+    const replaceStart = joined.indexOf(from);
+    if (replaceStart < 0) return paragraphXml;
+    const replaceEnd = replaceStart + from.length;
+    const firstNode = nodes.find(node => node.textEnd > replaceStart && node.textStart < replaceEnd);
+    if (!firstNode) return paragraphXml;
+
+    const updatedNodes = new Map<number, string>();
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node.textEnd <= replaceStart || node.textStart >= replaceEnd) continue;
+
+      const before = node === firstNode ? node.text.slice(0, Math.max(0, replaceStart - node.textStart)) : "";
+      const after = node.textEnd >= replaceEnd ? node.text.slice(Math.max(0, replaceEnd - node.textStart)) : "";
+      const nextText = node === firstNode ? `${before}${xmlEscape(to)}${after}` : after;
+      updatedNodes.set(i, `${node.open}${nextText}${node.close}`);
+    }
+
+    let result = "";
+    let pos = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      result += paragraphXml.slice(pos, node.start);
+      result += updatedNodes.get(i) ?? node.match;
+      pos = node.end;
+    }
+    result += paragraphXml.slice(pos);
+    return result;
+  });
+}
+
 /* ─── Post-process: rewrite built-in photo section header titles ─── */
 const PHOTO_SECTION_LOOP_TO_SLOT: Array<{ loop: string; slot: string }> = [
   { loop: "REPLACEMENT_PHOTO_ROWS", slot: "replacement_parts" },
