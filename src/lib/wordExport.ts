@@ -1099,6 +1099,9 @@ export async function exportReportToWord(
   // Post-process: apply user label overrides (detail / probe / photo slot / summary)
   postProcessLabelOverrides(outputZip, report);
 
+  // Post-process: replace fixed Section II rows with the latest editable report rows
+  postProcessRewriteCheckItemsTable(outputZip, report);
+
   // Post-process: rewrite built-in photo section header titles with user overrides
   postProcessRewritePhotoSectionTitles(outputZip, report);
 
