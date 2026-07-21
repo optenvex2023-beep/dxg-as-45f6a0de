@@ -699,7 +699,7 @@ async function buildTemplateData(
     OPTICAL_PHOTOS_ROWS: buildPhotoRows("body_optics"),
     ELECTRICAL_PHOTOS_ROWS: buildPhotoRows("cpu_smps"),
     PROBE_PHOTOS_ROWS: buildPhotoRows("ao_probe"),
-    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer", true),
+    OTHER_PHOTOS_ROWS: buildPhotoRows("spectrometer"),
 
     LEFT_IMAGE: "",
     RIGHT_IMAGE: "",
