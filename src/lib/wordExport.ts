@@ -955,6 +955,9 @@ export async function exportReportToWord(
   // Post-process: apply user label overrides (detail / probe / photo slot / summary)
   postProcessLabelOverrides(outputZip, report);
 
+  // Post-process: rewrite built-in photo section header titles with user overrides
+  postProcessRewritePhotoSectionTitles(outputZip, report);
+
   // Post-process: inject user-added photo sections as independent tables
   const data = report.inspection_data;
   const extraSlots = data?.photo_extra_slots || [];
