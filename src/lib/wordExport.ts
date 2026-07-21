@@ -442,8 +442,24 @@ async function buildTemplateData(
   // Pre-fetch all photo images
   const photoImageMap = await fetchAllPhotoImages(data.photos || []);
 
-  const buildPhotoRows = (slotKey: string) => {
-    const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
+  const extraSlotTitleByKey: Record<string, string> = {};
+  for (const s of (data.photo_extra_slots || [])) extraSlotTitleByKey[s.key] = s.title || "";
+  const extraSlotKeys = new Set(Object.keys(extraSlotTitleByKey));
+
+  const buildPhotoRows = (slotKey: string, includeUserAddedSlots = false) => {
+    let slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
+    if (includeUserAddedSlots) {
+      // Photos from user-added extra photo slots are appended here so they are
+      // not lost in Word (template has a fixed number of slots).
+      for (const p of (data.photos || [])) {
+        if (!extraSlotKeys.has(p.page_slot)) continue;
+        const title = extraSlotTitleByKey[p.page_slot] || "";
+        slotPhotos = slotPhotos.concat({
+          ...p,
+          caption: title ? `[${title}] ${safe(p.caption)}`.trim() : safe(p.caption),
+        });
+      }
+    }
     const rows: Array<{
       LEFT_IMAGE: string;
       RIGHT_IMAGE: string;
@@ -460,6 +476,31 @@ async function buildTemplateData(
     }
     return rows;
   };
+
+  // Fold user-added extra rows/summary items back into existing template fields
+  // (template has fixed slots, so we append as extra lines to preserve content).
+  const mergeExtras = (base: string, extras: Array<{ label?: string; value?: string }> | undefined): string => {
+    const list = (extras || []).filter(e => (e?.label || "").trim() || (e?.value || "").trim());
+    if (!list.length) return base;
+    const lines = list.map(e => {
+      const lbl = (e.label || "").trim();
+      const val = (e.value || "").trim();
+      return lbl ? `[${lbl}] ${val}` : val;
+    });
+    return [base, ...lines].filter(Boolean).join("\n");
+  };
+
+  const extraSummaryPairs: Array<{ label: string; value: string }> = [];
+  const totalSummary = Math.max(
+    (data.summary_labels?.length || 0),
+    (data.summary_items?.length || 0),
+  );
+  for (let i = 4; i < totalSummary; i++) {
+    extraSummaryPairs.push({
+      label: safe(data.summary_labels?.[i]),
+      value: safe(data.summary_items?.[i]),
+    });
+  }
 
   // QA signature: only when explicitly reviewed
   const qaReviewDone = report.qa_review_status === "검토완료" && report.qa_signature_applied;
