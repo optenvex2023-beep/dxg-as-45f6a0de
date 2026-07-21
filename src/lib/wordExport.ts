@@ -54,6 +54,16 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
     ? ["최종 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"]
     : ["1차 점검 결과 요약", "분광기 얼라인 확인", "프로브 얼라인먼트 확인", "표준가스 교정"];
 
+  const photoDefaults: Record<string, string[]> = {
+    replacement_parts: report.report_type === "final"
+      ? ["교체 부품 사진", "교체 필요 부품 사진"]
+      : ["교체 필요 부품 사진", "교체 부품 사진"],
+    body_optics: ["본체, 광학 (렌즈) 관련 부품 점검 사진"],
+    cpu_smps: ["Main Control CPU Board, SMPS, 기타 부품 점검 사진"],
+    ao_probe: ["AO 출력 / 프로브 점검 사진", "프로브 점검 사진"],
+    spectrometer: ["Spectrometer 얼라인먼트 / 기타 사진", "Spectrometer / 기타 사진", "기타 사진"],
+  };
+
   const replacements: Array<[string, string]> = [];
   const pushIf = (defMap: Record<string, string>, overrides: Record<string, string> | undefined) => {
     if (!overrides) return;
@@ -65,6 +75,25 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
   pushIf(detailDefaults, data.detail_label_overrides);
   pushIf(probeDefaults, data.probe_label_overrides);
 
+  const spectrometerDetailOverride = (data.detail_label_overrides?.spectrometer || "").trim();
+  if (spectrometerDetailOverride) {
+    replacements.push(["Spectrometer 형상 / 신호 상태", spectrometerDetailOverride]);
+  }
+
+  const cornerMirrorProbeOverride = (data.probe_label_overrides?.probe_corner_mirror || "").trim();
+  if (cornerMirrorProbeOverride) {
+    replacements.push(["코너큐브미러", cornerMirrorProbeOverride]);
+  }
+
+  const photoOverrides = data.photo_slot_label_overrides || {};
+  for (const [slot, defaults] of Object.entries(photoDefaults)) {
+    const ov = (photoOverrides[slot] || "").trim();
+    if (!ov) continue;
+    for (const def of defaults) {
+      if (ov !== def) replacements.push([def, ov]);
+    }
+  }
+
 
   const summaryLabels = data.summary_labels || [];
   for (let i = 0; i < 4; i++) {
@@ -75,22 +104,15 @@ function postProcessLabelOverrides(zip: PizZip, report: InspectionReport): void 
 
   if (!replacements.length) return;
 
-  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const escapeXml = (s: string) => s.replace(/[<>&]/g, c => (c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"));
-
   const targets = ["word/document.xml", "word/header1.xml", "word/header2.xml", "word/footer1.xml", "word/footer2.xml"];
   for (const path of targets) {
     const file = zip.file(path);
     if (!file) continue;
     let xml = file.asText();
-    let changed = false;
     for (const [from, to] of replacements) {
-      // Replace only inside <w:t> ... </w:t> to avoid touching attributes/tags
-      const re = new RegExp(`(<w:t(?:\\s[^>]*)?>)${escapeRegex(from)}(</w:t>)`, "g");
-      const next = xml.replace(re, `$1${escapeXml(to)}$2`);
-      if (next !== xml) { xml = next; changed = true; }
+      xml = replaceVisibleTextAcrossRuns(xml, from, to);
     }
-    if (changed) zip.file(path, xml);
+    zip.file(path, xml);
   }
 }
 
@@ -382,6 +404,128 @@ function xmlEscape(s: string): string {
     c === "&" ? "&amp;" :
     c === '"' ? "&quot;" : "&apos;"
   ));
+}
+
+function replaceVisibleTextAcrossRuns(xml: string, from: string, to: string): string {
+  if (!from || from === to || !xml.includes(from[0])) return xml;
+
+  return xml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, paragraphXml => {
+    const textRegex = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g;
+    const nodes: Array<{ match: string; start: number; end: number; open: string; text: string; close: string; textStart: number; textEnd: number }> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = textRegex.exec(paragraphXml)) !== null) {
+      const open = match[1];
+      const text = match[2];
+      const close = match[3];
+      const start = match.index;
+      nodes.push({
+        match: match[0],
+        start,
+        end: start + match[0].length,
+        open,
+        text,
+        close,
+        textStart: 0,
+        textEnd: 0,
+      });
+    }
+
+    if (!nodes.length) return paragraphXml;
+
+    let cursor = 0;
+    for (const node of nodes) {
+      node.textStart = cursor;
+      cursor += node.text.length;
+      node.textEnd = cursor;
+    }
+
+    const joined = nodes.map(node => node.text).join("");
+    const replaceStart = joined.indexOf(from);
+    if (replaceStart < 0) return paragraphXml;
+    const replaceEnd = replaceStart + from.length;
+    const firstNode = nodes.find(node => node.textEnd > replaceStart && node.textStart < replaceEnd);
+    if (!firstNode) return paragraphXml;
+
+    const updatedNodes = new Map<number, string>();
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node.textEnd <= replaceStart || node.textStart >= replaceEnd) continue;
+
+      const before = node === firstNode ? node.text.slice(0, Math.max(0, replaceStart - node.textStart)) : "";
+      const after = node.textEnd >= replaceEnd ? node.text.slice(Math.max(0, replaceEnd - node.textStart)) : "";
+      const nextText = node === firstNode ? `${before}${xmlEscape(to)}${after}` : after;
+      updatedNodes.set(i, `${node.open}${nextText}${node.close}`);
+    }
+
+    let result = "";
+    let pos = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      result += paragraphXml.slice(pos, node.start);
+      result += updatedNodes.get(i) ?? node.match;
+      pos = node.end;
+    }
+    result += paragraphXml.slice(pos);
+    return result;
+  });
+}
+
+function buildWordTextParagraph(text: string, options: { align?: "left" | "center"; bold?: boolean } = {}): string {
+  const align = options.align || "center";
+  const bold = options.bold ? "<w:b/>" : "";
+  return `<w:p><w:pPr><w:pStyle w:val="a6"/><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="${align}"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/>${bold}<w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
+}
+
+function buildCheckItemCell(text: string, width: number, options: { align?: "left" | "center"; bold?: boolean } = {}): string {
+  return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${buildWordTextParagraph(text, options)}</w:tc>`;
+}
+
+function formatCheckItemResult(item: InspectionCheckItem): string {
+  const ok = item.result === "양호" ? "☑" : "☐";
+  const need = item.result === "추가점검 필요" ? "☑" : "☐";
+  return `${ok} 양호 ${need} 추가점검 필요`;
+}
+
+function formatCheckItemFinalText(item: InspectionCheckItem, reportType: InspectionReport["report_type"]): string {
+  const selected = reportType === "final"
+    ? (item.action_result || item.inspection_result_option || "사용 가능")
+    : (item.inspection_result_option || "사용 가능");
+  if (item.inspection_result_option === "직접 기입" && item.inspection_result_detail) {
+    return item.inspection_result_detail;
+  }
+  return selected;
+}
+
+function postProcessRewriteCheckItemsTable(zip: PizZip, report: InspectionReport): void {
+  const items = report.inspection_data?.check_items || [];
+  const file = zip.file("word/document.xml");
+  if (!file || !items.length) return;
+
+  let xml = file.asText();
+  const tables = xml.match(/<w:tbl\b[\s\S]*?<\/w:tbl>/g) || [];
+  const table = tables.find(t => t.includes("구분") && t.includes("점검 항목") && t.includes("추가점검 필요"));
+  if (!table) return;
+
+  const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) || [];
+  if (rows.length < 2) return;
+
+  const headerRow = rows[0];
+  const dynamicRows = items.map(item => {
+    const resultText = formatCheckItemResult(item);
+    const finalText = formatCheckItemFinalText(item, report.report_type);
+    return `<w:tr>` +
+      buildCheckItemCell(safe(item.category), 1153, { bold: true }) +
+      buildCheckItemCell(safe(item.item), 1502) +
+      buildCheckItemCell(resultText, 2003, { align: "left" }) +
+      buildCheckItemCell(safe(item.action), 2180, { align: "left" }) +
+      buildCheckItemCell(finalText, 2180, { align: "left" }) +
+      `</w:tr>`;
+  }).join("");
+
+  const rewrittenTable = table.replace(rows.join(""), `${headerRow}${dynamicRows}`);
+  xml = xml.replace(table, rewrittenTable);
+  zip.file("word/document.xml", xml);
 }
 
 /* ─── Post-process: rewrite built-in photo section header titles ─── */
@@ -954,6 +1098,9 @@ export async function exportReportToWord(
 
   // Post-process: apply user label overrides (detail / probe / photo slot / summary)
   postProcessLabelOverrides(outputZip, report);
+
+  // Post-process: replace fixed Section II rows with the latest editable report rows
+  postProcessRewriteCheckItemsTable(outputZip, report);
 
   // Post-process: rewrite built-in photo section header titles with user overrides
   postProcessRewritePhotoSectionTitles(outputZip, report);
