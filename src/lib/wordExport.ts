@@ -741,6 +741,9 @@ export async function exportReportToWord(
     postProcessMfgSignatureImage(outputZip, mfgSignatureBase64);
   }
 
+  // Post-process: apply user label overrides (detail / probe / photo slot / summary)
+  postProcessLabelOverrides(outputZip, report);
+
   const blob = outputZip.generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
