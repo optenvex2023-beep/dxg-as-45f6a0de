@@ -879,6 +879,27 @@ export async function exportReportToWord(
   // Post-process: apply user label overrides (detail / probe / photo slot / summary)
   postProcessLabelOverrides(outputZip, report);
 
+  // Post-process: inject user-added photo sections as independent tables
+  const data = report.inspection_data;
+  const extraSlots = data?.photo_extra_slots || [];
+  if (extraSlots.length > 0) {
+    const extraPhotoImageMap = await fetchAllPhotoImages(
+      (data.photos || []).filter(p => extraSlots.some(s => s.key === p.page_slot))
+    );
+    const extraSections: ExtraPhotoSection[] = extraSlots
+      .map(slot => ({
+        title: slot.title || "",
+        photos: (data.photos || [])
+          .filter(p => p.page_slot === slot.key)
+          .map(p => ({
+            base64: extraPhotoImageMap.get(p.id) || "",
+            caption: safe(p.caption),
+          })),
+      }))
+      .filter(s => s.photos.some(p => p.base64));
+    postProcessInjectExtraPhotoSections(outputZip, extraSections);
+  }
+
   const blob = outputZip.generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
