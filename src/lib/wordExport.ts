@@ -516,9 +516,8 @@ async function buildTemplateData(
   // Pre-fetch all photo images
   const photoImageMap = await fetchAllPhotoImages(data.photos || []);
 
-  const extraSlotTitleByKey: Record<string, string> = {};
-  for (const s of (data.photo_extra_slots || [])) extraSlotTitleByKey[s.key] = s.title || "";
-  const extraSlotKeys = new Set(Object.keys(extraSlotTitleByKey));
+  // Extra photo slots are rendered as independent sections in post-processing (not merged here).
+
 
   const buildPhotoRows = (slotKey: string) => {
     const slotPhotos = (data.photos || []).filter(p => p.page_slot === slotKey);
