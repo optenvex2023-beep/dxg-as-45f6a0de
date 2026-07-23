@@ -1301,7 +1301,7 @@ function EditForm({
 const REPLACEMENT_NOTE_EMP_NOS = new Set([
   "9024125", "9017091", "7023013", "7023121", "9022113",
   "9025082", "9019042", "9024105", "9014094", "9019081",
-  "9023031", "9026011",
+  "9023031", "9026011", "4017101",
 ]);
 
 /* ─── Detail View (read-only popup with editable memos) ─── */
