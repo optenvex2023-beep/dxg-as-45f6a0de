@@ -65,6 +65,12 @@ const REGISTER_ALLOWED_EMP_NOS = new Set([
   "7023013", // 노주형
   "7026034", // 고재윤
   "9020121", // 김가영
+  "4017101", // 정문식 (노주형 동등 권한)
+]);
+
+/** 품질본부 QA 검토 권한 동등 부여 사번 화이트리스트 */
+const QA_REVIEW_EMP_NOS = new Set([
+  "4017101", // 정문식 (노주형 동등 권한)
 ]);
 
 /** Can register new inspections */
@@ -112,6 +118,7 @@ export function canEditReports(user: AppUser | null): boolean {
 /** Can approve / QA-review reports */
 export function canQAReview(user: AppUser | null): boolean {
   if (isSuperAdmin(user)) return true;
+  if (user && QA_REVIEW_EMP_NOS.has(user.emp_no)) return true;
   return user?.department === "품질본부";
 }
 
