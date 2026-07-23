@@ -167,7 +167,7 @@ export default function StatusTable() {
   // 삭제 권한 화이트리스트 (이름 기준)
   const DELETE_ALLOWED_NAMES = new Set([
     "김현성", "이현석", "하용선", "송재석", "정두현",
-    "신준호", "박소미", "정혜림", "김세빈", "박소현", "노주형",
+    "신준호", "박소미", "정혜림", "김세빈", "박소현", "노주형", "정문식",
   ]);
   const canDelete = !!currentUser && DELETE_ALLOWED_NAMES.has(currentUser.name);
 
