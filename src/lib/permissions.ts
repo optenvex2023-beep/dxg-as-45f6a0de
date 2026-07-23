@@ -118,6 +118,7 @@ export function canEditReports(user: AppUser | null): boolean {
 /** Can approve / QA-review reports */
 export function canQAReview(user: AppUser | null): boolean {
   if (isSuperAdmin(user)) return true;
+  if (user && QA_REVIEW_EMP_NOS.has(user.emp_no)) return true;
   return user?.department === "품질본부";
 }
 
