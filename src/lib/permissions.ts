@@ -67,11 +67,13 @@ const REGISTER_ALLOWED_EMP_NOS = new Set([
   "7026034", // 고재윤
   "9020121", // 김가영
   "4017101", // 정문식 (노주형 동등 권한)
+  "7025064", // 박정섭 (정문식 동등 권한)
 ]);
 
 /** 품질본부 QA 검토 권한 동등 부여 사번 화이트리스트 */
 const QA_REVIEW_EMP_NOS = new Set([
   "4017101", // 정문식 (노주형 동등 권한)
+  "7025064", // 박정섭 (정문식 동등 권한)
 ]);
 
 /** Can register new inspections */
