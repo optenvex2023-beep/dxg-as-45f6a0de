@@ -167,7 +167,7 @@ export default function StatusTable() {
   // 삭제 권한 화이트리스트 (이름 기준)
   const DELETE_ALLOWED_NAMES = new Set([
     "김현성", "이현석", "하용선", "송재석", "정두현",
-    "신준호", "박소미", "정혜림", "김세빈", "박소현", "노주형", "정문식",
+    "신준호", "박소미", "정혜림", "김세빈", "박소현", "노주형", "정문식", "박정섭",
   ]);
   const canDelete = !!currentUser && DELETE_ALLOWED_NAMES.has(currentUser.name);
 
@@ -181,7 +181,7 @@ export default function StatusTable() {
   };
 
   const superAdmin = isSuperAdmin(currentUser);
-  const NOH_EQUIVALENT_EMP_NOS = new Set(["7023013", "7026034", "9020121", "4017101"]);
+  const NOH_EQUIVALENT_EMP_NOS = new Set(["7023013", "7026034", "9020121", "4017101", "7025064"]);
   const isNoh = !!currentUser && NOH_EQUIVALENT_EMP_NOS.has(currentUser.emp_no);
   const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser.department === "환경영업팀") || isNoh;
   const isCS = superAdmin || currentUser?.department === "CS팀" || isNoh;
@@ -1301,7 +1301,7 @@ function EditForm({
 const REPLACEMENT_NOTE_EMP_NOS = new Set([
   "9024125", "9017091", "7023013", "7023121", "9022113",
   "9025082", "9019042", "9024105", "9014094", "9019081",
-  "9023031", "9026011", "4017101",
+  "9023031", "9026011", "4017101", "7025064",
 ]);
 
 /* ─── Detail View (read-only popup with editable memos) ─── */
