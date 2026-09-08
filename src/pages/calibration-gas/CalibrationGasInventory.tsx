@@ -899,8 +899,8 @@ export default function CalibrationGasInventory() {
                 <th rowSpan={2} className={`${thBase} min-w-[52px] w-[52px]`}>구매주체</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] w-[40px]`}>S/O 발행</th>
                 <th rowSpan={2} className={`${thBase} min-w-[35px] w-[35px]`}>도착예정</th>
-                <th colSpan={7} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
-                <th colSpan={6} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
+                <th colSpan={6} className={`${thBase} bg-table-header-gas`}>가스상 정도검사</th>
+                <th colSpan={5} className={`${thBase} bg-table-header-velocity`}>유속계 정도검사</th>
                 <th rowSpan={2} className={`${thBase} min-w-[110px] w-[110px] max-w-[110px] border-r-0`}>비고사항</th>
                 <th rowSpan={2} className={`${thBase} min-w-[40px] border-r-0`}></th>
               </tr>
@@ -912,14 +912,14 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
-                <th className={`${thBase} min-w-[32px] w-[32px] bg-table-header-gas`}>차수</th>
+                
                 <th className={`${thBase} min-w-[96px] w-[96px] bg-table-header-gas`}>예정/완료</th>
                 <th className={`${thBase} min-w-[24px] w-[24px] bg-table-header-gas`}>S/O발행</th>
                 <th className={`${thBase} min-w-[25px] w-[25px] bg-table-header-gas`}>S/O도착</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>예정</th>
-                <th className={`${thBase} min-w-[32px] w-[32px] bg-table-header-velocity`}>차수</th>
+                
                 <th className={`${thBase} min-w-[96px] w-[96px] bg-table-header-velocity`}>예정/완료</th>
                 <th className={`${thBase} min-w-[24px] w-[24px] bg-table-header-velocity`}>S/O발행</th>
               </tr>
@@ -1146,7 +1146,7 @@ export default function CalibrationGasInventory() {
                         </td>
                       );
                     })()}
-                    {renderMergedCell(item, "gas_inspection_round", s.gas, idx, "text-center")}
+                    
                     {/* 예정/완료 column */}
                     {(() => {
                       const colKey = "gas_inspection_status";
@@ -1200,7 +1200,7 @@ export default function CalibrationGasInventory() {
                         </td>
                       );
                     })()}
-                    {renderMergedCell(item, "velocity_inspection_round", s.vel, idx, "text-center")}
+                    
                     {/* 예정/완료 column */}
                     {(() => {
                       const colKey = "velocity_inspection_status";
