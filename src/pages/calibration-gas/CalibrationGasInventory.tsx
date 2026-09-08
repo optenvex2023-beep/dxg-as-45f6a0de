@@ -908,7 +908,7 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
                 <th className={`${thBase} min-w-[32px] w-[32px]`}>용량</th>
                 <th className={`${thBase} min-w-[82px] w-[82px]`}>유효기간</th>
-                <th className={`${thBase} min-w-[76px] w-[76px] max-w-[76px]`}>잔량</th>
+                <th className={`${thBase} min-w-[56px] w-[56px] max-w-[56px]`}>잔량</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
@@ -1087,7 +1087,7 @@ export default function CalibrationGasInventory() {
                       const rs = sp > 1 ? sp : undefined;
                       if (editMode && EDITABLE_FIELDS.includes("remaining_percent")) {
                         return (
-                          <td rowSpan={rs} className={`${td} text-center p-0.5 min-w-[76px] w-[76px] max-w-[76px] ${sel.className}`} onClick={sel.onClick}>
+                          <td rowSpan={rs} className={`${td} text-center p-0.5 min-w-[56px] w-[56px] max-w-[56px] ${sel.className}`} onClick={sel.onClick}>
                             {wrapMemo(item, "remaining_percent",
                               <input
                                 className="w-full h-full bg-amber-50 dark:bg-amber-950/30 border border-amber-400/50 dark:border-amber-600/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
@@ -1099,7 +1099,7 @@ export default function CalibrationGasInventory() {
                         );
                       }
                       return (
-                        <td rowSpan={rs} className={`${td} text-center min-w-[76px] w-[76px] max-w-[76px] whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
+                        <td rowSpan={rs} className={`${td} text-center min-w-[56px] w-[56px] max-w-[56px] whitespace-nowrap ${sel.className}`} onClick={sel.onClick}>
                           {wrapMemo(item, "remaining_percent",
                             <>
                               <span className={lowRem ? "text-destructive font-medium" : ""}>{item.remaining_percent}</span>
