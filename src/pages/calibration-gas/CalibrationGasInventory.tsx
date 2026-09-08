@@ -943,6 +943,7 @@ export default function CalibrationGasInventory() {
                 const anyInspDue = gasDue || velDue;
 
                   const isSiteStart = s.site > 0 && idx > 0;
+                const isUnitStart = s.unit > 0 && idx > 0 && !isSiteStart;
 
                 // Effective spans (manual override > auto)
                 const siteSpan = effectiveSpan("site_name", idx, s.site);
@@ -953,7 +954,7 @@ export default function CalibrationGasInventory() {
                 const unitSel = cellMergeProps("unit_no", idx);
 
                 return (
-                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(170,167,167)]" : "border-b border-border/20"}`}>
+                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(170,167,167)]" : isUnitStart ? "[&>td]:shadow-[inset_0_1px_0_0_#D4D4D4]" : "border-b border-border/20"}`}>
                     {/* Site-level merged (B 사업장명) */}
                     {siteSpan > 0 && (
                       <td rowSpan={siteSpan > 1 ? siteSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"} ${siteSel.className}`} onClick={siteSel.onClick}>
