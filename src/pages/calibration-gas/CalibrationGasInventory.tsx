@@ -684,14 +684,14 @@ export default function CalibrationGasInventory() {
     toast.success(mode === "unit" ? "새 호기가 추가되었습니다." : "분석기 Range가 추가되었습니다.");
   }, [inlineAddTarget, inlineAddRange, inventory, addInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
-  const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
-  const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40 whitespace-normal break-words";
+  const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-black py-2 px-2 text-center text-[11px]";
+  const td = "text-[11px] border-r border-black py-1.5 px-2 align-middle group-hover:bg-accent/40 whitespace-normal break-words";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
   const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
   /* ── Sticky column styles (left-pinned) ── */
-  const stickyTh = "sticky z-30 bg-table-header border-r border-border";
-  const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
+  const stickyTh = "sticky z-30 bg-table-header border-r border-black";
+  const stickyTd = "sticky z-10 bg-background border-r border-black outline-none ring-0 shadow-none";
   // Cumulative left offsets: 사업장명(90) + TMS(60) + 호기(70) + Range(100)
   // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
@@ -701,7 +701,7 @@ export default function CalibrationGasInventory() {
     { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
     { left: "left-[220px]", w: "w-[140px] min-w-[140px] max-w-[140px]" }, // 분석기 Range
   ] as const;
-  const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
+  const stickyBorderRight = "border-r-2 border-r-black shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
   /** Helper: wrap a cell's inner content with memo trigger + indicator if applicable */
   const wrapMemo = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, content: React.ReactNode) => {
@@ -885,7 +885,7 @@ export default function CalibrationGasInventory() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-background shadow-sm">
+      <div className="border border-black rounded-lg bg-background shadow-sm">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)]" style={{ scrollbarGutter: "stable" }}>
           <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
@@ -953,7 +953,7 @@ export default function CalibrationGasInventory() {
                 const unitSel = cellMergeProps("unit_no", idx);
 
                 return (
-                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(170,167,167)]" : "border-b border-border/20"}`}>
+                  <tr key={item.id} className={`group ${rowBg} transition-colors ${isSiteStart ? "[&>td]:shadow-[inset_0_1px_0_0_rgb(0,0,0)]" : "border-b border-black"}`}>
                     {/* Site-level merged (B 사업장명) */}
                     {siteSpan > 0 && (
                       <td rowSpan={siteSpan > 1 ? siteSpan : undefined} className={`${td} ${stickyTd} ${stickyCol[1].left} ${stickyCol[1].w} font-semibold whitespace-normal break-keep ${anyInspDue ? "!bg-pink-100 dark:!bg-pink-950" : "!bg-muted"} ${siteSel.className}`} onClick={siteSel.onClick}>
