@@ -1200,7 +1200,7 @@ export default function CalibrationGasInventory() {
                         </td>
                       );
                     })()}
-                    {renderMergedCell(item, "velocity_inspection_round", s.vel, idx, "text-center")}
+                    
                     {/* 예정/완료 column */}
                     {(() => {
                       const colKey = "velocity_inspection_status";
