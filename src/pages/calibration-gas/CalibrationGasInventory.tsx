@@ -885,7 +885,7 @@ export default function CalibrationGasInventory() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-background shadow-sm">
+      <div className="cal-gas-table border rounded-lg bg-background shadow-sm">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)]" style={{ scrollbarGutter: "stable" }}>
           <table className="min-w-[3600px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]">
