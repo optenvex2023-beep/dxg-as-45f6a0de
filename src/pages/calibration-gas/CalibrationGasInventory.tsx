@@ -684,14 +684,14 @@ export default function CalibrationGasInventory() {
     toast.success(mode === "unit" ? "새 호기가 추가되었습니다." : "분석기 Range가 추가되었습니다.");
   }, [inlineAddTarget, inlineAddRange, inventory, addInventoryItem, addHistoryItems, currentUser]);
   /* ── Shared styles ── */
-  const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-white/20 py-2 px-2 text-center text-[11px]";
-  const td = "text-[11px] border-r border-border/30 py-1.5 px-2 align-middle group-hover:bg-accent/40 whitespace-normal break-words";
+  const thBase = "whitespace-nowrap font-bold text-table-header-foreground bg-table-header border-r border-b border-black py-2 px-2 text-center text-[11px]";
+  const td = "text-[11px] border-r border-black py-1.5 px-2 align-middle group-hover:bg-accent/40 whitespace-normal break-words";
   const pinkBg = "bg-pink-100 dark:bg-pink-950/40";
   const greenBg = "bg-lime-200 dark:bg-lime-900/50";
 
   /* ── Sticky column styles (left-pinned) ── */
-  const stickyTh = "sticky z-30 bg-table-header border-r border-border";
-  const stickyTd = "sticky z-10 bg-background border-r border-border outline-none ring-0 shadow-none";
+  const stickyTh = "sticky z-30 bg-table-header border-r border-black";
+  const stickyTd = "sticky z-10 bg-background border-r border-black outline-none ring-0 shadow-none";
   // Cumulative left offsets: 사업장명(90) + TMS(60) + 호기(70) + Range(100)
   // (계약종료일 컬럼 제거됨 — 인덱스 0은 더미로 유지하지만 사용하지 않음)
   const stickyCol = [
@@ -701,7 +701,7 @@ export default function CalibrationGasInventory() {
     { left: "left-[150px]", w: "w-[70px] min-w-[70px] max-w-[70px]" },   // 호기
     { left: "left-[220px]", w: "w-[140px] min-w-[140px] max-w-[140px]" }, // 분석기 Range
   ] as const;
-  const stickyBorderRight = "border-r-2 border-r-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
+  const stickyBorderRight = "border-r-2 border-r-black shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]";
 
   /** Helper: wrap a cell's inner content with memo trigger + indicator if applicable */
   const wrapMemo = (item: CalibrationGasInventoryItem, field: keyof CalibrationGasInventoryItem, content: React.ReactNode) => {
