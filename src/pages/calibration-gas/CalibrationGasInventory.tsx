@@ -30,7 +30,7 @@ const MEMO_ENABLED_COLUMNS: ReadonlySet<string> = new Set([
 ]);
 
 const FIELD_LABELS: Record<string, string> = {
-  concentration: "농도", volume_L: "용량(L)", expiry_date: "유효기간", remaining_percent: "잔량(%)",
+  concentration: "농도", volume_L: "용량", expiry_date: "유효기간", remaining_percent: "잔량(%)",
   purchase_entity: "구매주체", so_issue: "S/O 발행", arrival_status: "도착예정", branch: "지점",
   gas_inspection_first: "가스상검사-최초", gas_inspection_last: "가스상검사-최종", gas_inspection_next: "가스상검사-예정",
   gas_inspection_round: "가스상검사-차수", gas_inspection_so: "가스상검사-S/O", gas_inspection_so_arrival: "가스상검사-S/O도착",
@@ -64,7 +64,7 @@ const NEW_ROW_FIELDS: { key: keyof CalibrationGasInventoryItem; label: string; r
   { key: "unit_no", label: "호기", required: true },
   { key: "analyzer_range", label: "분석기 Range", required: true },
   { key: "concentration", label: "농도" },
-  { key: "volume_L", label: "용량(L)" },
+  { key: "volume_L", label: "용량" },
   { key: "expiry_date", label: "유효기간" },
   { key: "remaining_percent", label: "잔량(%)" },
   { key: "purchase_entity", label: "구매주체" },
@@ -906,7 +906,7 @@ export default function CalibrationGasInventory() {
               </tr>
               <tr className="bg-table-header">
                 <th className={`${thBase} min-w-[40px] w-[40px]`}>농도</th>
-                <th className={`${thBase} min-w-[32px] w-[32px]`}>용량(L)</th>
+                <th className={`${thBase} min-w-[32px] w-[32px]`}>용량</th>
                 <th className={`${thBase} min-w-[82px] w-[82px]`}>유효기간</th>
                 <th className={`${thBase} min-w-[76px] w-[76px] max-w-[76px]`}>잔량</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>최초</th>
