@@ -914,14 +914,14 @@ export default function CalibrationGasInventory() {
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-gas`}>예정</th>
                 
                 <th className={`${thBase} min-w-[96px] w-[96px] bg-table-header-gas`}>예정/완료</th>
-                <th className={`${thBase} min-w-[25px] w-[25px] bg-table-header-gas`}>S/O발행</th>
+                <th className={`${thBase} min-w-[24px] w-[24px] bg-table-header-gas`}>S/O발행</th>
                 <th className={`${thBase} min-w-[25px] w-[25px] bg-table-header-gas`}>S/O도착</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>최초</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>최종</th>
                 <th className={`${thBase} min-w-[58px] w-[58px] bg-table-header-velocity`}>예정</th>
                 
                 <th className={`${thBase} min-w-[96px] w-[96px] bg-table-header-velocity`}>예정/완료</th>
-                <th className={`${thBase} min-w-[25px] w-[25px] bg-table-header-velocity`}>S/O발행</th>
+                <th className={`${thBase} min-w-[24px] w-[24px] bg-table-header-velocity`}>S/O발행</th>
               </tr>
             </thead>
             <tbody>
