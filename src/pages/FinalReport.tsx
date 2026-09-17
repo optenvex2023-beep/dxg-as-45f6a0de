@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { FileDown, Upload, FileText, Check, Send, Plus, Trash2, ImagePlus, X, ShieldCheck, Download, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import { exportReportToWord } from "@/lib/wordExport";
-import { canEditReports, isSuperAdmin } from "@/lib/permissions";
+import { canEditReports, canQAReview, isSuperAdmin } from "@/lib/permissions";
 import { uploadReportVersionFile } from "@/lib/reportVersionUpload";
 import {
   createDefaultReportData,
@@ -59,7 +59,7 @@ export default function FinalReport() {
 
   const superAdmin = isSuperAdmin(currentUser);
   const isManufacturing = canEditReports(currentUser);
-  const isQC = superAdmin || currentUser?.department === "품질본부";
+  const isQC = canQAReview(currentUser);
   const isSales = superAdmin || currentUser?.department === "환경영업팀";
   const isAdmin = superAdmin || (currentUser?.role_category === "관리자" && currentUser?.department === "환경영업팀");
   const canApprove = isQC || isAdmin;
