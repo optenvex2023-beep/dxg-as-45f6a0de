@@ -1,14 +1,13 @@
 # DXG 사내 이관 자료 패키지 (요청 2026-10-16)
 
 ## 작업 목록
-- [ ] 1. 소스 코드 전체 zip (최신, node_modules/dist/.git 제외)
-- [ ] 2. DB 서버 정의 덤프: public 스키마 DDL, enum, RLS, 함수/트리거, storage 정책, cron 확인
-- [ ] 3. 권한·알림 규칙 문서 (코드 기반 + noti_*SentAt 컬럼 채워지는 조건)
-- [ ] 4. 표 10개 전량 JSON 내보내기 (원본 UUID 유지)
-- [ ] 5. Storage 파일 목록 + 다운로드 스크립트 재전달 (버킷: report-files)
-- [ ] 6. 패키지 zip 묶음 + 전달
+- [x] 1. 소스 코드 전체 zip (최신, 201개 파일) → dxg-source-20261016.zip
+- [x] 2. DB 서버 정의 덤프: public DDL+GRANT+RLS 34정책, 함수 1개, 트리거, 스토리지 버킷/정책. cron·Edge Functions 없음 확인
+- [x] 3. 권한·알림 규칙 문서 (MIGRATION-GUIDE.md 3번 절)
+- [x] 4. 표 10개 전량 JSON (원본 UUID 유지, 행수 README에 기록)
+- [x] 5. Storage report-files 파일 목록 2,273건 CSV + download-storage-files.py (기존 파일 존재)
+- [x] 6. 패키지 묶음 dxg-migration-20261016.zip → /mnt/documents 전달 완료
 
 ## 비고
-- Edge Functions 없음 (이전 조사 확인) — 다시 확인
-- 사용자 요청의 "report-photos" 버킷은 실제 "report-files" 버킷
-- 스토리지 파일 다운로드는 사용자 측에서 직접 수행 중 → 목록/스크립트만 제공
+- 실제 버킷명은 report-files (요청서의 report-photos와 동일 대상)
+- 컷오버 시 증분 재축출 요청 예정 (updated_at 기준)
